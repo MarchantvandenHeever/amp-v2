@@ -19,6 +19,7 @@ import TeamDashboard from "./pages/team/Dashboard";
 import EndUserDashboard from "./pages/user/Dashboard";
 import MyInitiatives from "./pages/user/MyInitiatives";
 import MyProgress from "./pages/user/MyProgress";
+import Achievements from "./pages/user/Achievements";
 import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 
