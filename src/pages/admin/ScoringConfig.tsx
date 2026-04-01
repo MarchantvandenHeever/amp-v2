@@ -13,6 +13,7 @@ const ScoringAdmin: React.FC = () => {
   const { data: config, isLoading } = useScoringConfig();
   const updateConfig = useUpdateScoringConfig();
   const [localConfig, setLocalConfig] = useState<any>(null);
+  const [desiredTarget, setDesiredTarget] = useState<number>(100);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
