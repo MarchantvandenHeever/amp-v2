@@ -71,12 +71,14 @@ const Analytics: React.FC = () => {
       byWeek[week].confidence += Number(r.confidence) || 0;
       byWeek[week].adoption += Number(r.adoption) || 0;
     });
-    return Object.entries(byWeek).map(([week, v]) => ({
+    const totalWeeks = Object.keys(byWeek).length;
+    return Object.entries(byWeek).map(([week, v], idx) => ({
       week,
       participation: Math.round(v.participation / v.count),
       ownership: Math.round(v.ownership / v.count),
       confidence: Math.round(v.confidence / v.count),
       adoption: Math.round(v.adoption / v.count),
+      idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
     }));
   }, [scoreHistory, selectedInitiative]);
 
