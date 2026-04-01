@@ -62,7 +62,7 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={<ProtectedRoute><EndUserDashboard /></ProtectedRoute>} />
       <Route path="/dashboard/initiatives" element={<ProtectedRoute><MyInitiatives /></ProtectedRoute>} />
       <Route path="/dashboard/progress" element={<ProtectedRoute><MyProgress /></ProtectedRoute>} />
-      <Route path="/dashboard/achievements" element={<ProtectedRoute><MyProgress /></ProtectedRoute>} />
+      <Route path="/dashboard/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
 
       {/* Shared */}
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />

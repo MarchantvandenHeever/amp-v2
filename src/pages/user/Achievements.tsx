@@ -5,7 +5,7 @@ import { useBadges, useUserBadges, getTierFromPoints } from '@/hooks/useSupabase
 import { Award, Trophy, Star, Zap, Lock, Crown, Flame, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { usePointsLedger } from '@/hooks/useSupabaseData';
+
 
 const tierConfig = [
   { name: 'Starter', min: 0, max: 499, icon: Star, color: 'text-muted-foreground', bg: 'from-muted to-muted/50' },
