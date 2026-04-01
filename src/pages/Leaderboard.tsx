@@ -46,8 +46,8 @@ export default function Leaderboard() {
     return (b.streak || 0) - (a.streak || 0);
   });
 
-  const currentUserRank = ranked.findIndex(p => p.id === user?.profileId) + 1;
-  const currentUserData = ranked.find(p => p.id === user?.profileId);
+  const currentUserRank = ranked.findIndex(p => p.id === user?.id) + 1;
+  const currentUserData = ranked.find(p => p.id === user?.id);
 
   if (profilesLoading) {
     return (
