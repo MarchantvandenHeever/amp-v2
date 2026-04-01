@@ -1,17 +1,47 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { endUsers, teamLeads } from '@/data/mockData';
+import { useProfiles, useScores, useRiskFlags } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
-  const allUsers = [...teamLeads, ...endUsers];
+  const { data: profiles, isLoading } = useProfiles();
+  const { data: scores } = useScores();
+  const { data: riskFlags } = useRiskFlags();
   const [search, setSearch] = React.useState('');
-  const filtered = allUsers.filter(u =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
+
+  const allUsers = (profiles || []).filter(p => p.role === 'end_user' || p.role === 'team_lead');
+
+  const usersWithScores = allUsers.map(u => {
+    const userScore = (scores || []).find(s => s.user_id === u.id);
+    const userRisks = (riskFlags || []).filter(r => r.user_id === u.id);
+    return {
+      ...u,
+      scores: {
+        participation: Number(userScore?.participation || 0),
+        ownership: Number(userScore?.ownership || 0),
+        confidence: Number(userScore?.confidence || 0),
+        adoption: Number(userScore?.adoption || 0),
+      },
+      riskFlags: userRisks,
+    };
+  });
+
+  const filtered = usersWithScores.filter(u =>
+    u.display_name.toLowerCase().includes(search.toLowerCase()) ||
     u.team?.toLowerCase().includes(search.toLowerCase()) ||
     u.persona?.toLowerCase().includes(search.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -53,9 +83,9 @@ const UserManagement: React.FC = () => {
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0">
-                        <span className="text-primary-foreground text-[10px] font-semibold">{user.name.split(' ').map(n => n[0]).join('')}</span>
+                        <span className="text-primary-foreground text-[10px] font-semibold">{user.display_name.split(' ').map(n => n[0]).join('')}</span>
                       </div>
-                      <span className="font-medium">{user.name}</span>
+                      <span className="font-medium">{user.display_name}</span>
                     </div>
                   </td>
                   <td className="py-3 px-4 text-muted-foreground">{user.team}</td>
@@ -64,10 +94,10 @@ const UserManagement: React.FC = () => {
                   <td className="py-3 px-4 text-center font-semibold text-amp-ownership">{user.scores.ownership}</td>
                   <td className="py-3 px-4 text-center font-semibold text-amp-confidence">{user.scores.confidence}</td>
                   <td className="py-3 px-4 text-center font-heading font-bold text-amp-adoption">{user.scores.adoption}</td>
-                  <td className="py-3 px-4 text-center">{user.streak > 0 ? `🔥 ${user.streak}` : '—'}</td>
+                  <td className="py-3 px-4 text-center">{(user.streak || 0) > 0 ? `🔥 ${user.streak}` : '—'}</td>
                   <td className="py-3 px-4">
-                    {user.riskFlags && user.riskFlags.length > 0 ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-amp-risk/10 text-amp-risk font-medium">{user.riskFlags[0]}</span>
+                    {user.riskFlags.length > 0 ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amp-risk/10 text-amp-risk font-medium">{user.riskFlags[0].type}</span>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
                     )}

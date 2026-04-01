@@ -1,31 +1,34 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { useContentItems } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
-import { FileText, Video, Image, Mic, MessageSquare, Star, Plus, Search } from 'lucide-react';
-
-const contentItems = [
-  { id: 'c1', title: 'Welcome to Copilot', type: 'video', status: 'published', journey: 'Copilot Basics', duration: '5 min' },
-  { id: 'c2', title: 'Copilot in Your Daily Workflow', type: 'document', status: 'published', journey: 'Copilot Basics', duration: '8 min' },
-  { id: 'c3', title: 'Advanced Prompting Techniques', type: 'video', status: 'published', journey: 'Copilot in Practice', duration: '12 min' },
-  { id: 'c4', title: 'Copilot Quick Reference Guide', type: 'document', status: 'published', journey: 'Copilot Basics', duration: '3 min' },
-  { id: 'c5', title: 'Initial Readiness Check', type: 'form', status: 'published', journey: 'Copilot Basics', duration: '3 min' },
-  { id: 'c6', title: 'Mid-Journey Confidence Check', type: 'confidence_form', status: 'published', journey: 'Copilot in Practice', duration: '3 min' },
-  { id: 'c7', title: 'Final Confidence Assessment', type: 'confidence_form', status: 'draft', journey: 'Copilot Ownership', duration: '5 min' },
-  { id: 'c8', title: 'Copilot Best Practices Infographic', type: 'image', status: 'published', journey: 'General', duration: '2 min' },
-];
+import { FileText, Video, Image, Mic, MessageSquare, Star, Plus, Search, Loader2 } from 'lucide-react';
 
 const typeIcons: Record<string, React.ElementType> = {
   document: FileText,
   video: Video,
   image: Image,
   audio: Mic,
-  form: MessageSquare,
+  standard_form: MessageSquare,
   confidence_form: Star,
+  announcement: FileText,
 };
 
 const ContentLibrary: React.FC = () => {
+  const { data: contentItems, isLoading } = useContentItems();
   const [search, setSearch] = React.useState('');
-  const filtered = contentItems.filter(c => c.title.toLowerCase().includes(search.toLowerCase()));
+
+  const filtered = (contentItems || []).filter(c => c.title.toLowerCase().includes(search.toLowerCase()));
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -33,7 +36,7 @@ const ContentLibrary: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-heading text-2xl font-bold">Content Library</h1>
-            <p className="text-sm text-muted-foreground mt-1">{contentItems.length} content items</p>
+            <p className="text-sm text-muted-foreground mt-1">{(contentItems || []).length} content items</p>
           </div>
           <button className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium">
             <Plus className="w-4 h-4 inline mr-1" /> Add Content
@@ -60,8 +63,7 @@ const ContentLibrary: React.FC = () => {
                     <p className="text-sm font-semibold">{item.title}</p>
                     <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
                       <span className="capitalize">{item.type.replace('_', ' ')}</span>
-                      <span>· {item.duration}</span>
-                      <span>· {item.journey}</span>
+                      {item.description && <span>· {item.description.slice(0, 50)}</span>}
                     </div>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${

@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { riskFlags, endUsers } from '@/data/mockData';
-import { AlertTriangle, TrendingDown, Eye, Lightbulb } from 'lucide-react';
+import { useRiskFlags } from '@/hooks/useSupabaseData';
+import { AlertTriangle, TrendingDown, Eye, Lightbulb, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const interventions = [
@@ -14,8 +14,21 @@ const interventions = [
 ];
 
 const RiskInsights: React.FC = () => {
-  const highRisk = riskFlags.filter(r => r.severity === 'high');
-  const medRisk = riskFlags.filter(r => r.severity === 'medium');
+  const { data: riskFlags, isLoading } = useRiskFlags();
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const flags = riskFlags || [];
+  const highRisk = flags.filter(r => r.severity === 'high');
+  const medRisk = flags.filter(r => r.severity === 'medium');
 
   return (
     <AppLayout>
@@ -45,7 +58,7 @@ const RiskInsights: React.FC = () => {
               <Eye className="w-4 h-4 text-amp-info" />
               <span className="text-xs font-medium text-muted-foreground uppercase">Total Flags</span>
             </div>
-            <p className="font-heading text-3xl font-bold">{riskFlags.length}</p>
+            <p className="font-heading text-3xl font-bold">{flags.length}</p>
           </div>
         </div>
 
@@ -65,22 +78,25 @@ const RiskInsights: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {riskFlags.map(flag => (
-                  <tr key={flag.id} className="border-b border-border/50 hover:bg-secondary/50">
-                    <td className="py-2.5 px-3 font-medium">{flag.userName}</td>
-                    <td className="py-2.5 px-3 text-muted-foreground">{flag.team}</td>
-                    <td className="py-2.5 px-3">{flag.type}</td>
-                    <td className="py-2.5 px-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        flag.severity === 'high' ? 'bg-amp-risk/10 text-amp-risk' :
-                        flag.severity === 'medium' ? 'bg-amp-warning/10 text-amp-confidence' :
-                        'bg-secondary text-muted-foreground'
-                      }`}>{flag.severity}</span>
-                    </td>
-                    <td className="py-2.5 px-3 text-muted-foreground text-xs max-w-xs">{flag.description}</td>
-                    <td className="py-2.5 px-3 text-primary text-xs font-medium">{flag.recommendation}</td>
-                  </tr>
-                ))}
+                {flags.map(flag => {
+                  const profile = (flag as any).profiles;
+                  return (
+                    <tr key={flag.id} className="border-b border-border/50 hover:bg-secondary/50">
+                      <td className="py-2.5 px-3 font-medium">{profile?.display_name || '—'}</td>
+                      <td className="py-2.5 px-3 text-muted-foreground">{profile?.team || '—'}</td>
+                      <td className="py-2.5 px-3">{flag.type}</td>
+                      <td className="py-2.5 px-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          flag.severity === 'high' ? 'bg-amp-risk/10 text-amp-risk' :
+                          flag.severity === 'medium' ? 'bg-amp-warning/10 text-amp-confidence' :
+                          'bg-secondary text-muted-foreground'
+                        }`}>{flag.severity}</span>
+                      </td>
+                      <td className="py-2.5 px-3 text-muted-foreground text-xs max-w-xs">{flag.description}</td>
+                      <td className="py-2.5 px-3 text-primary text-xs font-medium">{flag.recommendation}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
