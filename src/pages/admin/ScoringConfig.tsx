@@ -17,7 +17,10 @@ const ScoringAdmin: React.FC = () => {
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    if (config) setLocalConfig(JSON.parse(JSON.stringify(config)));
+    if (config) {
+      setLocalConfig(JSON.parse(JSON.stringify(config)));
+      setDesiredTarget((config as any).desired_adoption_target ?? 100);
+    }
   }, [config]);
 
   if (isLoading || !localConfig) {
