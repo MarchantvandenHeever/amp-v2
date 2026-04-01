@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useJourneys, useJourneyItems } from '@/hooks/useSupabaseData';
+import { NewJourneyModal } from '@/components/journey/NewJourneyModal';
 import { supabase } from '@/integrations/supabase/client';
 import { GripVertical, Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, Upload, MessageSquare, Star, Target, FileText, Trash2, Edit, Users, Copy, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';

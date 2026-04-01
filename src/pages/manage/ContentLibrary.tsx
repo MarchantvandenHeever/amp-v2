@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useContentItems } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
 import { FileText, Video, Image, Mic, MessageSquare, Star, Plus, Search, Loader2 } from 'lucide-react';
+import { NewContentModal } from '@/components/content/NewContentModal';
 
 const typeIcons: Record<string, React.ElementType> = {
   document: FileText,

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProfiles, useScores, useRiskFlags } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
 import { Search, Loader2 } from 'lucide-react';
+import { NewUserModal } from '@/components/users/NewUserModal';
 
 const UserManagement: React.FC = () => {
   const { data: profiles, isLoading } = useProfiles();
