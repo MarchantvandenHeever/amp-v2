@@ -99,7 +99,8 @@ const ChangeManagerDashboard: React.FC = () => {
                 <XAxis dataKey="week" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', fontSize: '12px' }} />
-                <Line type="monotone" dataKey="adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="adoption" name="Actual Adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="idealAdoption" name="Ideal Adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2} dot={false} strokeDasharray="6 4" opacity={0.4} />
                 <Line type="monotone" dataKey="participation" stroke="hsl(var(--amp-participation))" strokeWidth={1.5} dot={false} strokeDasharray="4 4" />
                 <Line type="monotone" dataKey="ownership" stroke="hsl(var(--amp-ownership))" strokeWidth={1.5} dot={false} strokeDasharray="4 4" />
                 <Line type="monotone" dataKey="confidence" stroke="hsl(var(--amp-confidence))" strokeWidth={1.5} dot={false} strokeDasharray="4 4" />
