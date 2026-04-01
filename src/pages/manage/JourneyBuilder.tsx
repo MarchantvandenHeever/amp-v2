@@ -158,7 +158,7 @@ const JourneyBuilder: React.FC = () => {
             <h1 className="font-heading text-2xl font-bold">Journey Builder</h1>
             <p className="text-sm text-muted-foreground mt-1">Design behavioural adoption journeys with structured micro-actions</p>
           </div>
-          <button className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+          <button onClick={() => setNewJourneyModal(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
             + New Journey
           </button>
         </div>
