@@ -11,13 +11,13 @@ const MyProgress: React.FC = () => {
   const { user } = useAuth();
   const { data: scoreHistory, isLoading: loadingHistory } = useScoreHistory();
   const { data: scores } = useScores();
-  const { data: allItems } = useAllJourneyItems();
-  const { data: allAssignments } = useAssignments();
+  const { data: allItems, isLoading: loadingItems } = useAllJourneyItems();
+  const { data: allAssignments, isLoading: loadingAssignments } = useAssignments();
   const { data: allJourneys } = useJourneys();
 
   if (!user) return null;
 
-  const isLoading = loadingHistory;
+  const isLoading = loadingHistory || loadingItems || loadingAssignments;
 
   // User's assignments → journey IDs
   const userAssignments = (allAssignments || []).filter((a: any) => a.user_id === user.id);
