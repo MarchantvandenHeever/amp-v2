@@ -110,6 +110,7 @@ const UserManagement: React.FC = () => {
           </table>
         </div>
       </div>
+      <NewUserModal open={showNew} onClose={() => setShowNew(false)} onCreated={() => refetch()} />
     </AppLayout>
   );
 };

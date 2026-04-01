@@ -77,6 +77,7 @@ const ContentLibrary: React.FC = () => {
           })}
         </div>
       </div>
+      <NewContentModal open={showNew} onClose={() => setShowNew(false)} onCreated={() => refetch()} />
     </AppLayout>
   );
 };
