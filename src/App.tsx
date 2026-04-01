@@ -13,6 +13,7 @@ import UserManagement from "./pages/manage/Users";
 import ContentLibrary from "./pages/manage/ContentLibrary";
 import AnnouncementManagement from "./pages/manage/Announcements";
 import RiskInsights from "./pages/manage/RiskInsights";
+import Analytics from "./pages/manage/Analytics";
 import TeamDashboard from "./pages/team/Dashboard";
 import EndUserDashboard from "./pages/user/Dashboard";
 import MyProgress from "./pages/user/MyProgress";
