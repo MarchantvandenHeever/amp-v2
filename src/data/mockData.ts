@@ -326,17 +326,20 @@ export const riskFlags: RiskFlag[] = [
 
 // ============ SCORE TREND DATA ============
 
+// Score trends: 11 weeks of a 24-week initiative. Ideal adoption = (week/24)*100.
+// Actual adoption must always be ≤ idealAdoption at each point.
 export const scoreTrends = [
-  { week: 'W1', participation: 35, ownership: 20, confidence: 30, adoption: 27, idealAdoption: 10 },
-  { week: 'W2', participation: 42, ownership: 28, confidence: 32, adoption: 32, idealAdoption: 20 },
-  { week: 'W3', participation: 50, ownership: 35, confidence: 38, adoption: 37, idealAdoption: 30 },
-  { week: 'W4', participation: 55, ownership: 40, confidence: 42, adoption: 42, idealAdoption: 40 },
-  { week: 'W5', participation: 60, ownership: 48, confidence: 45, adoption: 47, idealAdoption: 50 },
-  { week: 'W6', participation: 63, ownership: 52, confidence: 48, adoption: 51, idealAdoption: 60 },
-  { week: 'W7', participation: 65, ownership: 55, confidence: 52, adoption: 54, idealAdoption: 70 },
-  { week: 'W8', participation: 68, ownership: 58, confidence: 55, adoption: 57, idealAdoption: 80 },
-  { week: 'W9', participation: 70, ownership: 60, confidence: 57, adoption: 59, idealAdoption: 90 },
-  { week: 'W10', participation: 72, ownership: 62, confidence: 60, adoption: 62, idealAdoption: 100 },
+  { week: 'W1', participation: 8, ownership: 4, confidence: 6, adoption: 5, idealAdoption: 4 },
+  { week: 'W2', participation: 14, ownership: 8, confidence: 10, adoption: 10, idealAdoption: 8 },
+  { week: 'W3', participation: 18, ownership: 12, confidence: 13, adoption: 14, idealAdoption: 13 },
+  { week: 'W4', participation: 22, ownership: 16, confidence: 16, adoption: 17, idealAdoption: 17 },
+  { week: 'W5', participation: 26, ownership: 19, confidence: 18, adoption: 20, idealAdoption: 21 },
+  { week: 'W6', participation: 28, ownership: 22, confidence: 20, adoption: 22, idealAdoption: 25 },
+  { week: 'W7', participation: 30, ownership: 24, confidence: 22, adoption: 24, idealAdoption: 29 },
+  { week: 'W8', participation: 33, ownership: 27, confidence: 25, adoption: 27, idealAdoption: 33 },
+  { week: 'W9', participation: 36, ownership: 30, confidence: 28, adoption: 30, idealAdoption: 38 },
+  { week: 'W10', participation: 38, ownership: 32, confidence: 30, adoption: 32, idealAdoption: 42 },
+  { week: 'W11', participation: 40, ownership: 34, confidence: 32, adoption: 34, idealAdoption: 46 },
 ];
 
 export const teamComparison = [
