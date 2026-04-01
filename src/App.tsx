@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Login from "./pages/Login";
 import SuperAdminDashboard from "./pages/admin/Dashboard";
+import ScoringConfig from "./pages/admin/ScoringConfig";
 import ChangeManagerDashboard from "./pages/manage/Dashboard";
 import InitiativeList from "./pages/manage/Initiatives";
 import JourneyBuilder from "./pages/manage/JourneyBuilder";
