@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { journeys as initialJourneys, JourneyItem, Journey } from '@/data/mockData';
-import { motion } from 'framer-motion';
+
 import { GripVertical, Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, Upload, MessageSquare, Star, Target, FileText, Trash2, Edit, Users, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JourneyItemModal } from '@/components/journey/JourneyItemModal';
