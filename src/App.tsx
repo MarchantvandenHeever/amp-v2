@@ -17,6 +17,7 @@ import RiskInsights from "./pages/manage/RiskInsights";
 import Analytics from "./pages/manage/Analytics";
 import TeamDashboard from "./pages/team/Dashboard";
 import EndUserDashboard from "./pages/user/Dashboard";
+import MyInitiatives from "./pages/user/MyInitiatives";
 import MyProgress from "./pages/user/MyProgress";
 import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
@@ -58,7 +59,7 @@ const AppRoutes = () => {
 
       {/* End User */}
       <Route path="/dashboard" element={<ProtectedRoute><EndUserDashboard /></ProtectedRoute>} />
-      <Route path="/dashboard/initiatives" element={<ProtectedRoute><EndUserDashboard /></ProtectedRoute>} />
+      <Route path="/dashboard/initiatives" element={<ProtectedRoute><MyInitiatives /></ProtectedRoute>} />
       <Route path="/dashboard/progress" element={<ProtectedRoute><MyProgress /></ProtectedRoute>} />
       <Route path="/dashboard/achievements" element={<ProtectedRoute><MyProgress /></ProtectedRoute>} />
 
