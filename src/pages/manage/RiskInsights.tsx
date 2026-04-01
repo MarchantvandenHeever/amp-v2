@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useRiskFlags } from '@/hooks/useSupabaseData';
-import { AlertTriangle, TrendingDown, Eye, Lightbulb, Loader2 } from 'lucide-react';
+import { AlertTriangle, TrendingDown, Eye, Lightbulb, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { ImplementRecommendationModal } from '@/components/risk/ImplementRecommendationModal';
+import { useQueryClient } from '@tanstack/react-query';
 
 const interventions = [
   { action: 'Increase reminders', target: 'Disengaging users', impact: 'High', users: 2 },
@@ -14,7 +17,34 @@ const interventions = [
 ];
 
 const RiskInsights: React.FC = () => {
-  const { data: riskFlags, isLoading } = useRiskFlags();
+  const { data: riskFlags, isLoading, refetch } = useRiskFlags();
+  const queryClient = useQueryClient();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedRisk, setSelectedRisk] = useState<any>(null);
+  const [selectedIntervention, setSelectedIntervention] = useState<any>(null);
+  const [implementedInterventions, setImplementedInterventions] = useState<Set<number>>(new Set());
+
+  const handleImplementRisk = (flag: any) => {
+    setSelectedRisk(flag);
+    setSelectedIntervention(null);
+    setModalOpen(true);
+  };
+
+  const handleImplementIntervention = (intv: any, index: number) => {
+    setSelectedRisk(null);
+    setSelectedIntervention({ ...intv, _index: index });
+    setModalOpen(true);
+  };
+
+  const handleImplemented = () => {
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ['content_items'] });
+    queryClient.invalidateQueries({ queryKey: ['journey_items'] });
+    queryClient.invalidateQueries({ queryKey: ['journeys'] });
+    if (selectedIntervention?._index !== undefined) {
+      setImplementedInterventions(prev => new Set(prev).add(selectedIntervention._index));
+    }
+  };
 
   if (isLoading) {
     return (
@@ -73,8 +103,8 @@ const RiskInsights: React.FC = () => {
                   <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Team</th>
                   <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Risk Type</th>
                   <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Severity</th>
-                  <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Description</th>
                   <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Recommendation</th>
+                  <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -92,11 +122,24 @@ const RiskInsights: React.FC = () => {
                           'bg-secondary text-muted-foreground'
                         }`}>{flag.severity}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-muted-foreground text-xs max-w-xs">{flag.description}</td>
-                      <td className="py-2.5 px-3 text-primary text-xs font-medium">{flag.recommendation}</td>
+                      <td className="py-2.5 px-3 text-primary text-xs font-medium max-w-xs">{flag.recommendation}</td>
+                      <td className="py-2.5 px-3 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs"
+                          onClick={() => handleImplementRisk(flag)}
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          Implement
+                        </Button>
+                      </td>
                     </tr>
                   );
                 })}
+                {flags.length === 0 && (
+                  <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No active risk flags</td></tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -109,25 +152,52 @@ const RiskInsights: React.FC = () => {
             <h3 className="font-heading font-semibold">Recommended Interventions</h3>
           </div>
           <div className="space-y-2">
-            {interventions.map((intv, i) => (
-              <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-secondary/30 transition-colors">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{intv.action}</p>
-                  <p className="text-xs text-muted-foreground">{intv.target}</p>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  intv.impact === 'High' ? 'bg-amp-risk/10 text-amp-risk' :
-                  intv.impact === 'Medium' ? 'bg-amp-warning/10 text-amp-confidence' :
-                  'bg-secondary text-muted-foreground'
-                }`}>{intv.impact} impact</span>
-                <span className="text-xs text-muted-foreground">{intv.users} users</span>
-                <button className="px-3 py-1.5 rounded-lg border border-primary text-primary text-xs font-medium hover:bg-primary/5">Apply</button>
-              </motion.div>
-            ))}
+            {interventions.map((intv, i) => {
+              const isImplemented = implementedInterventions.has(i);
+              return (
+                <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                  className={`flex items-center gap-4 p-3 rounded-lg border border-border transition-colors ${
+                    isImplemented ? 'bg-amp-success/5 border-amp-success/20' : 'hover:bg-secondary/30'
+                  }`}>
+                  <div className="flex-1">
+                    <p className={`text-sm font-medium ${isImplemented ? 'line-through text-muted-foreground' : ''}`}>{intv.action}</p>
+                    <p className="text-xs text-muted-foreground">{intv.target}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    intv.impact === 'High' ? 'bg-amp-risk/10 text-amp-risk' :
+                    intv.impact === 'Medium' ? 'bg-amp-warning/10 text-amp-confidence' :
+                    'bg-secondary text-muted-foreground'
+                  }`}>{intv.impact} impact</span>
+                  <span className="text-xs text-muted-foreground">{intv.users} users</span>
+                  {isImplemented ? (
+                    <span className="flex items-center gap-1 text-xs text-amp-success font-medium px-3 py-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Done
+                    </span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs"
+                      onClick={() => handleImplementIntervention(intv, i)}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Implement
+                    </Button>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </div>
+
+      <ImplementRecommendationModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setSelectedRisk(null); setSelectedIntervention(null); }}
+        riskFlag={selectedRisk}
+        intervention={selectedIntervention}
+        onImplemented={handleImplemented}
+      />
     </AppLayout>
   );
 };
