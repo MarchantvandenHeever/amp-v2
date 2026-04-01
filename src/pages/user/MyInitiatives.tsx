@@ -64,10 +64,24 @@ const MyInitiatives: React.FC = () => {
     const active = allItems.filter(i => i.status === 'available' || i.status === 'in_progress');
 
     if (timePeriod === 'today') {
-      return active.filter(i => {
-        if (!i.due_date) return i.status === 'in_progress';
+      // Match Dashboard logic: due today OR in_progress with no date
+      const todayItems = active.filter(i => {
+        if (i.status === 'in_progress') return true;
+        if (!i.due_date) return false;
         try { return isToday(parseISO(i.due_date)); } catch { return false; }
       });
+      // Fallback: if nothing matches today, show next available items (same as Dashboard)
+      if (todayItems.length === 0) {
+        const upcoming = active.filter(i => {
+          if (!i.due_date) return true;
+          try {
+            const d = parseISO(i.due_date);
+            return !isToday(d);
+          } catch { return true; }
+        });
+        return upcoming.slice(0, Math.min(3, upcoming.length));
+      }
+      return todayItems;
     }
     if (timePeriod === 'week') {
       return active.filter(i => {
