@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { useEndUsers, useInitiatives, useRiskFlags, useJourneys, useScores } from '@/hooks/useSupabaseData';
+import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -31,6 +32,7 @@ const ChangeManagerDashboard: React.FC = () => {
   });
 
   // Build trend data from score values (simplified weekly simulation)
+  const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
   const scoreTrends = Array.from({ length: 10 }, (_, i) => {
     const factor = (i + 1) / 10;
     return {
@@ -39,6 +41,7 @@ const ChangeManagerDashboard: React.FC = () => {
       ownership: Math.round(avgScore('ownership') * factor),
       confidence: Math.round(avgScore('confidence') * factor),
       adoption: Math.round(avgScore('adoption') * factor),
+      idealAdoption: Math.round(desiredTarget * factor),
     };
   });
 
@@ -52,7 +55,7 @@ const ChangeManagerDashboard: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
-            <AdoptionScoreRing score={avgScore('adoption')} size={140} />
+            <AdoptionScoreRing score={avgScore('adoption')} size={140} idealScore={currentIdeal} />
             <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">Overall Adoption</p>
           </div>
           <ScoreCard label="Participation" score={avgScore('participation')} color="participation" trend={5} />
@@ -96,7 +99,8 @@ const ChangeManagerDashboard: React.FC = () => {
                 <XAxis dataKey="week" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', fontSize: '12px' }} />
-                <Line type="monotone" dataKey="adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="adoption" name="Actual Adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="idealAdoption" name="Ideal Adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2} dot={false} strokeDasharray="6 4" opacity={0.4} />
                 <Line type="monotone" dataKey="participation" stroke="hsl(var(--amp-participation))" strokeWidth={1.5} dot={false} strokeDasharray="4 4" />
                 <Line type="monotone" dataKey="ownership" stroke="hsl(var(--amp-ownership))" strokeWidth={1.5} dot={false} strokeDasharray="4 4" />
                 <Line type="monotone" dataKey="confidence" stroke="hsl(var(--amp-confidence))" strokeWidth={1.5} dot={false} strokeDasharray="4 4" />

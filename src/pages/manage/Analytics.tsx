@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useScores, useScoreHistory, useProfiles, useInitiatives, useRiskFlags, getAdoptionScore, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
+import { useScoringConfig } from '@/hooks/useScoringConfig';
+import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { motion } from 'framer-motion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,6 +30,7 @@ const Analytics: React.FC = () => {
   const { data: profiles } = useProfiles();
   const { data: initiatives } = useInitiatives();
   const { data: riskFlags } = useRiskFlags();
+  const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
 
   const [selectedIndices, setSelectedIndices] = useState<Set<IndexKey>>(new Set(['participation', 'ownership', 'confidence', 'adoption']));
   const [selectedInitiative, setSelectedInitiative] = useState<string>('all');
@@ -69,12 +72,14 @@ const Analytics: React.FC = () => {
       byWeek[week].confidence += Number(r.confidence) || 0;
       byWeek[week].adoption += Number(r.adoption) || 0;
     });
-    return Object.entries(byWeek).map(([week, v]) => ({
+    const totalWeeks = Object.keys(byWeek).length;
+    return Object.entries(byWeek).map(([week, v], idx) => ({
       week,
       participation: Math.round(v.participation / v.count),
       ownership: Math.round(v.ownership / v.count),
       confidence: Math.round(v.confidence / v.count),
       adoption: Math.round(v.adoption / v.count),
+      idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
     }));
   }, [scoreHistory, selectedInitiative]);
 
@@ -255,6 +260,9 @@ const Analytics: React.FC = () => {
                       <Area key={idx.key} type="monotone" dataKey={idx.key} name={idx.label}
                         stroke={idx.color} strokeWidth={2} fill={`url(#grad-${idx.key})`} dot={false} />
                     ))}
+                    {selectedIndices.has('adoption') && (
+                      <Line type="monotone" dataKey="idealAdoption" name="Ideal Adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2} dot={false} strokeDasharray="6 4" opacity={0.4} />
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -275,7 +283,7 @@ const Analytics: React.FC = () => {
               </div>
               <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
                 <h3 className="font-heading font-semibold mb-4">Overall Adoption</h3>
-                <AdoptionScoreRing score={avgScores.adoption} size={180} />
+                <AdoptionScoreRing score={avgScores.adoption} size={180} idealScore={currentIdeal} />
                 <p className={`mt-3 text-sm font-semibold ${getScoreColor(avgScores.adoption)}`}>
                   {getScoreLabel(avgScores.adoption)}
                 </p>

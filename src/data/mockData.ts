@@ -325,16 +325,16 @@ export const riskFlags: RiskFlag[] = [
 // ============ SCORE TREND DATA ============
 
 export const scoreTrends = [
-  { week: 'W1', participation: 35, ownership: 20, confidence: 30, adoption: 27 },
-  { week: 'W2', participation: 42, ownership: 28, confidence: 32, adoption: 32 },
-  { week: 'W3', participation: 50, ownership: 35, confidence: 38, adoption: 37 },
-  { week: 'W4', participation: 55, ownership: 40, confidence: 42, adoption: 42 },
-  { week: 'W5', participation: 60, ownership: 48, confidence: 45, adoption: 47 },
-  { week: 'W6', participation: 63, ownership: 52, confidence: 48, adoption: 51 },
-  { week: 'W7', participation: 65, ownership: 55, confidence: 52, adoption: 54 },
-  { week: 'W8', participation: 68, ownership: 58, confidence: 55, adoption: 57 },
-  { week: 'W9', participation: 70, ownership: 60, confidence: 57, adoption: 59 },
-  { week: 'W10', participation: 72, ownership: 62, confidence: 60, adoption: 62 },
+  { week: 'W1', participation: 35, ownership: 20, confidence: 30, adoption: 27, idealAdoption: 10 },
+  { week: 'W2', participation: 42, ownership: 28, confidence: 32, adoption: 32, idealAdoption: 20 },
+  { week: 'W3', participation: 50, ownership: 35, confidence: 38, adoption: 37, idealAdoption: 30 },
+  { week: 'W4', participation: 55, ownership: 40, confidence: 42, adoption: 42, idealAdoption: 40 },
+  { week: 'W5', participation: 60, ownership: 48, confidence: 45, adoption: 47, idealAdoption: 50 },
+  { week: 'W6', participation: 63, ownership: 52, confidence: 48, adoption: 51, idealAdoption: 60 },
+  { week: 'W7', participation: 65, ownership: 55, confidence: 52, adoption: 54, idealAdoption: 70 },
+  { week: 'W8', participation: 68, ownership: 58, confidence: 55, adoption: 57, idealAdoption: 80 },
+  { week: 'W9', participation: 70, ownership: 60, confidence: 57, adoption: 59, idealAdoption: 90 },
+  { week: 'W10', participation: 72, ownership: 62, confidence: 60, adoption: 62, idealAdoption: 100 },
 ];
 
 export const teamComparison = [
