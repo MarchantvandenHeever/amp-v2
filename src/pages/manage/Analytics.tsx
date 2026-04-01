@@ -283,7 +283,7 @@ const Analytics: React.FC = () => {
               </div>
               <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
                 <h3 className="font-heading font-semibold mb-4">Overall Adoption</h3>
-                <AdoptionScoreRing score={avgScores.adoption} size={180} />
+                <AdoptionScoreRing score={avgScores.adoption} size={180} idealScore={currentIdeal} />
                 <p className={`mt-3 text-sm font-semibold ${getScoreColor(avgScores.adoption)}`}>
                   {getScoreLabel(avgScores.adoption)}
                 </p>
