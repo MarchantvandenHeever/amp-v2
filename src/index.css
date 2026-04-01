@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,58 +6,58 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 215 25% 15%;
+    --background: 40 30% 96%;
+    --foreground: 160 20% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card: 40 25% 99%;
+    --card-foreground: 160 20% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover: 40 25% 99%;
+    --popover-foreground: 160 20% 12%;
 
-    --primary: 186 72% 32%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 153 45% 28%;
+    --primary-foreground: 40 30% 96%;
 
-    --secondary: 210 18% 95%;
-    --secondary-foreground: 215 25% 25%;
+    --secondary: 40 20% 93%;
+    --secondary-foreground: 160 20% 20%;
 
-    --muted: 210 14% 93%;
-    --muted-foreground: 215 12% 50%;
+    --muted: 40 15% 91%;
+    --muted-foreground: 160 10% 45%;
 
-    --accent: 36 90% 55%;
-    --accent-foreground: 36 90% 15%;
+    --accent: 18 76% 58%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 55%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 16% 90%;
-    --input: 210 16% 90%;
-    --ring: 186 72% 32%;
+    --border: 40 15% 88%;
+    --input: 40 15% 88%;
+    --ring: 153 45% 28%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 215 28% 14%;
-    --sidebar-foreground: 210 20% 88%;
-    --sidebar-primary: 186 72% 48%;
+    --sidebar-background: 153 35% 14%;
+    --sidebar-foreground: 40 20% 90%;
+    --sidebar-primary: 18 76% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 20%;
-    --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 215 20% 22%;
-    --sidebar-ring: 186 72% 48%;
-    --sidebar-muted: 215 15% 40%;
+    --sidebar-accent: 153 30% 20%;
+    --sidebar-accent-foreground: 40 20% 94%;
+    --sidebar-border: 153 25% 22%;
+    --sidebar-ring: 18 76% 58%;
+    --sidebar-muted: 153 15% 40%;
 
     /* AMP specific tokens */
-    --amp-participation: 186 72% 42%;
-    --amp-ownership: 262 60% 55%;
-    --amp-confidence: 36 90% 55%;
-    --amp-adoption: 152 60% 42%;
-    --amp-risk: 0 72% 55%;
-    --amp-success: 152 60% 42%;
-    --amp-warning: 36 90% 55%;
-    --amp-info: 210 80% 55%;
+    --amp-participation: 153 45% 38%;
+    --amp-ownership: 262 50% 52%;
+    --amp-confidence: 36 85% 52%;
+    --amp-adoption: 18 76% 58%;
+    --amp-risk: 0 72% 50%;
+    --amp-success: 153 50% 38%;
+    --amp-warning: 36 85% 52%;
+    --amp-info: 210 70% 50%;
 
     --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
-    --font-body: 'Inter', system-ui, sans-serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
   }
 }
 
@@ -81,21 +81,21 @@
 
 @layer utilities {
   .amp-gradient-primary {
-    background: linear-gradient(135deg, hsl(186 72% 32%), hsl(186 72% 45%));
+    background: linear-gradient(135deg, hsl(153 45% 28%), hsl(153 45% 36%));
   }
   .amp-gradient-sidebar {
-    background: linear-gradient(180deg, hsl(215 28% 14%), hsl(215 28% 10%));
+    background: linear-gradient(180deg, hsl(153 35% 14%), hsl(153 35% 10%));
   }
   .amp-gradient-hero {
-    background: linear-gradient(135deg, hsl(215 28% 14%), hsl(186 72% 25%));
+    background: linear-gradient(135deg, hsl(153 35% 14%), hsl(153 45% 22%));
   }
   .amp-shadow-card {
-    box-shadow: 0 1px 3px 0 hsl(215 25% 15% / 0.06), 0 1px 2px -1px hsl(215 25% 15% / 0.06);
+    box-shadow: 0 1px 3px 0 hsl(153 20% 12% / 0.05), 0 1px 2px -1px hsl(153 20% 12% / 0.04);
   }
   .amp-shadow-card-hover {
-    box-shadow: 0 4px 12px 0 hsl(215 25% 15% / 0.08), 0 2px 4px -1px hsl(215 25% 15% / 0.06);
+    box-shadow: 0 4px 14px 0 hsl(153 20% 12% / 0.08), 0 2px 4px -1px hsl(153 20% 12% / 0.05);
   }
   .amp-score-glow {
-    box-shadow: 0 0 20px hsl(186 72% 42% / 0.15);
+    box-shadow: 0 0 20px hsl(18 76% 58% / 0.15);
   }
 }
