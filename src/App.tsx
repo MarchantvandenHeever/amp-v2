@@ -18,6 +18,7 @@ import Analytics from "./pages/manage/Analytics";
 import TeamDashboard from "./pages/team/Dashboard";
 import EndUserDashboard from "./pages/user/Dashboard";
 import MyProgress from "./pages/user/MyProgress";
+import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
