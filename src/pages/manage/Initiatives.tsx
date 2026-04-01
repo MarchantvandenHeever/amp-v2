@@ -85,6 +85,7 @@ const InitiativeList: React.FC = () => {
           })}
         </div>
       </div>
+      <NewInitiativeModal open={showNew} onClose={() => setShowNew(false)} onCreated={() => refetch()} />
     </AppLayout>
   );
 };
