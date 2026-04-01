@@ -19,6 +19,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Overview', path: '/admin', icon: LayoutDashboard },
     { label: 'Customers', path: '/admin/customers', icon: Building2 },
     { label: 'Users', path: '/admin/users', icon: UserCog },
+    { label: 'Scoring Config', path: '/admin/scoring', icon: Gauge },
     { label: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
     { label: 'Settings', path: '/admin/settings', icon: Settings },
   ],
