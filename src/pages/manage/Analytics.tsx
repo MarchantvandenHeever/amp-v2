@@ -260,6 +260,9 @@ const Analytics: React.FC = () => {
                       <Area key={idx.key} type="monotone" dataKey={idx.key} name={idx.label}
                         stroke={idx.color} strokeWidth={2} fill={`url(#grad-${idx.key})`} dot={false} />
                     ))}
+                    {selectedIndices.has('adoption') && (
+                      <Line type="monotone" dataKey="idealAdoption" name="Ideal Adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2} dot={false} strokeDasharray="6 4" opacity={0.4} />
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
               )}
