@@ -53,8 +53,8 @@ const MyInitiatives: React.FC = () => {
   const [expandedJourney, setExpandedJourney] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'journeys' | 'phases' | 'gantt'>('journeys');
 
-  // Fetch phases for all journeys (use all without specific journeyId)
-  const { data: allPhases } = useJourneyPhases(expandedJourney || undefined);
+  // Fetch all phases
+  const { data: allPhases } = useJourneyPhases();
 
   const activeInitiatives = useMemo(() => initiatives?.filter(i => i.status === 'active' || i.status === 'in_progress') || [], [initiatives]);
   const activeJourneys = useMemo(() => journeys?.filter(j => j.status === 'active') || [], [journeys]);
