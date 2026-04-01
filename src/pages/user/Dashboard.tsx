@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useJourneys, useAllJourneyItems, useAnnouncements, useBadges, useUserBadges, getTierFromPoints, getScoreLabel } from '@/hooks/useSupabaseData';
+import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { TaskDetailModal } from '@/components/journey/TaskDetailModal';
 import { motion } from 'framer-motion';
 import { Target, Flame, Star, ChevronRight, Clock, CheckCircle2, Circle, Lock, Upload, MessageSquare, Loader2, CalendarDays, ListChecks, Timer } from 'lucide-react';
