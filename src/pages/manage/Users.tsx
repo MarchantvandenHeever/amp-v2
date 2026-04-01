@@ -6,9 +6,10 @@ import { Search, Loader2 } from 'lucide-react';
 import { NewUserModal } from '@/components/users/NewUserModal';
 
 const UserManagement: React.FC = () => {
-  const { data: profiles, isLoading } = useProfiles();
+  const { data: profiles, isLoading, refetch } = useProfiles();
   const { data: scores } = useScores();
   const { data: riskFlags } = useRiskFlags();
+  const [showNew, setShowNew] = useState(false);
   const [search, setSearch] = React.useState('');
 
   const allUsers = (profiles || []).filter(p => p.role === 'end_user' || p.role === 'team_lead');
