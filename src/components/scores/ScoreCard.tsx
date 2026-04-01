@@ -89,9 +89,9 @@ export const AdoptionScoreRing: React.FC<{ score: number; size?: number }> = ({ 
           className="transition-all duration-1000"
         />
       </svg>
-      <div className="absolute flex flex-col items-center">
-        <span className="font-heading font-bold text-2xl text-foreground">{score}</span>
-        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Adoption</span>
+      <div className="absolute flex flex-col items-center leading-none">
+        <span className="font-heading font-bold text-foreground" style={{ fontSize: size * 0.3 }}>{score}</span>
+        {size >= 80 && <span className="text-muted-foreground uppercase tracking-wider" style={{ fontSize: Math.max(7, size * 0.1) }}>Adoption</span>}
       </div>
     </div>
   );
