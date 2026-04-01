@@ -2,25 +2,43 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing, ScoreRow } from '@/components/scores/ScoreCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { endUsers, riskFlags } from '@/data/mockData';
+import { useEndUsers, useRiskFlags, useScores } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const TeamDashboard: React.FC = () => {
   const { user } = useAuth();
   const teamName = user?.team || 'Sales';
-  const teamMembers = endUsers.filter(u => u.team === teamName);
-  const teamRisks = riskFlags.filter(r => r.team === teamName);
+  const { data: allProfiles, isLoading: loadingProfiles } = useEndUsers();
+  const { data: riskFlags } = useRiskFlags();
+  const { data: scores, isLoading: loadingScores } = useScores();
 
+  if (loadingProfiles || loadingScores) {
+    return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
+  }
+
+  const teamMembers = allProfiles?.filter(u => u.team === teamName) || [];
+  const teamRisks = riskFlags?.filter(r => teamMembers.some(m => m.id === r.user_id)) || [];
+
+  const teamScores = scores?.filter(s => teamMembers.some(m => m.id === s.user_id)) || [];
   const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
-    Math.round(teamMembers.reduce((s, u) => s + u.scores[key], 0) / (teamMembers.length || 1));
+    teamScores.length ? Math.round(teamScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / teamScores.length) : 0;
 
-  const chartData = teamMembers.map(u => ({
-    name: u.name.split(' ')[0],
-    participation: u.scores.participation,
-    ownership: u.scores.ownership,
-    confidence: u.scores.confidence,
-  }));
+  const chartData = teamMembers.map(u => {
+    const s = teamScores.find(sc => sc.user_id === u.id);
+    return {
+      name: u.display_name.split(' ')[0],
+      participation: Number(s?.participation || 0),
+      ownership: Number(s?.ownership || 0),
+      confidence: Number(s?.confidence || 0),
+    };
+  });
+
+  const membersWithScores = teamMembers.map(m => {
+    const s = teamScores.find(sc => sc.user_id === m.id);
+    return { ...m, scores: { participation: Number(s?.participation || 0), ownership: Number(s?.ownership || 0), confidence: Number(s?.confidence || 0), adoption: Number(s?.adoption || 0) } };
+  }).sort((a, b) => b.scores.adoption - a.scores.adoption);
 
   return (
     <AppLayout>
@@ -40,7 +58,6 @@ const TeamDashboard: React.FC = () => {
           <ScoreCard label="Confidence" score={avgScore('confidence')} color="confidence" />
         </div>
 
-        {/* Member comparison chart */}
         <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
           <h3 className="font-heading font-semibold mb-4">Member Comparison</h3>
           <ResponsiveContainer width="100%" height={280}>
@@ -56,34 +73,36 @@ const TeamDashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Member list */}
         <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
           <h3 className="font-heading font-semibold mb-4">Team Members</h3>
           <div className="space-y-3">
-            {teamMembers.sort((a, b) => b.scores.adoption - a.scores.adoption).map((member, i) => (
-              <motion.div key={member.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
-                className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0">
-                  <span className="text-primary-foreground text-xs font-semibold">{member.name.split(' ').map(n => n[0]).join('')}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{member.name}</p>
-                  <p className="text-xs text-muted-foreground">{member.persona} · {member.streak} day streak · {member.points} pts</p>
-                </div>
-                <div className="hidden md:flex gap-4 items-center">
-                  <ScoreRow label="Participation" score={member.scores.participation} color="bg-amp-participation" />
-                  <ScoreRow label="Ownership" score={member.scores.ownership} color="bg-amp-ownership" />
-                  <ScoreRow label="Confidence" score={member.scores.confidence} color="bg-amp-confidence" />
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-lg font-heading font-bold text-amp-adoption">{member.scores.adoption}</p>
-                  <p className="text-[10px] text-muted-foreground">adoption</p>
-                </div>
-                {member.riskFlags && member.riskFlags.length > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-amp-risk/10 text-amp-risk font-medium shrink-0">risk</span>
-                )}
-              </motion.div>
-            ))}
+            {membersWithScores.map((member, i) => {
+              const hasRisk = riskFlags?.some(r => r.user_id === member.id);
+              return (
+                <motion.div key={member.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
+                  className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0">
+                    <span className="text-primary-foreground text-xs font-semibold">{member.display_name.split(' ').map(n => n[0]).join('')}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{member.display_name}</p>
+                    <p className="text-xs text-muted-foreground">{member.persona} · {member.streak} day streak · {member.points} pts</p>
+                  </div>
+                  <div className="hidden md:flex gap-4 items-center">
+                    <ScoreRow label="Participation" score={member.scores.participation} color="bg-amp-participation" />
+                    <ScoreRow label="Ownership" score={member.scores.ownership} color="bg-amp-ownership" />
+                    <ScoreRow label="Confidence" score={member.scores.confidence} color="bg-amp-confidence" />
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-lg font-heading font-bold text-amp-adoption">{member.scores.adoption}</p>
+                    <p className="text-[10px] text-muted-foreground">adoption</p>
+                  </div>
+                  {hasRisk && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amp-risk/10 text-amp-risk font-medium shrink-0">risk</span>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </div>

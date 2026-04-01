@@ -2,10 +2,9 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { initiatives, journeys, announcements, allBadges, getTierFromPoints, getScoreLabel } from '@/data/mockData';
+import { useJourneys, useAllJourneyItems, useAnnouncements, useBadges, useUserBadges, getTierFromPoints, getScoreLabel } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
-import { Target, Flame, Star, ChevronRight, Clock, CheckCircle2, Circle, Lock, Upload, MessageSquare } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Target, Flame, Star, ChevronRight, Clock, CheckCircle2, Circle, Lock, Upload, MessageSquare, Loader2 } from 'lucide-react';
 
 const itemTypeIcon: Record<string, React.ElementType> = {
   content: Circle,
@@ -19,15 +18,26 @@ const itemTypeIcon: Record<string, React.ElementType> = {
 
 const EndUserDashboard: React.FC = () => {
   const { user } = useAuth();
+  const { data: journeys, isLoading: loadingJourneys } = useJourneys();
+  const { data: allItems, isLoading: loadingItems } = useAllJourneyItems();
+  const { data: announcements } = useAnnouncements();
+  const { data: badges } = useBadges();
+  const { data: userBadges } = useUserBadges(user?.id);
+
   if (!user) return null;
 
+  if (loadingJourneys || loadingItems) {
+    return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
+  }
+
   const tier = getTierFromPoints(user.points);
-  const activeJourneys = journeys.filter(j => j.status === 'active');
+  const activeJourneys = journeys?.filter(j => j.status === 'active') || [];
+  const activeAnnouncements = announcements?.filter(a => a.active) || [];
+  const earnedBadgeNames = user.badges;
 
   return (
     <AppLayout>
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Welcome */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
           className="amp-gradient-hero rounded-2xl p-6 text-primary-foreground">
           <div className="flex items-center justify-between">
@@ -57,7 +67,6 @@ const EndUserDashboard: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Scores */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-xl p-5 amp-shadow-card flex flex-col items-center justify-center">
             <AdoptionScoreRing score={user.scores.adoption} size={120} />
@@ -68,10 +77,9 @@ const EndUserDashboard: React.FC = () => {
           <ScoreCard label="Confidence" score={user.scores.confidence} color="confidence" size="sm" />
         </div>
 
-        {/* Announcements */}
-        {announcements.filter(a => a.active).length > 0 && (
+        {activeAnnouncements.length > 0 && (
           <div className="space-y-2">
-            {announcements.filter(a => a.active).slice(0, 2).map(ann => (
+            {activeAnnouncements.slice(0, 2).map(ann => (
               <div key={ann.id} className="bg-card border border-border rounded-xl p-4 amp-shadow-card flex items-start gap-3">
                 <span className="text-lg">{ann.type === 'celebration' ? '🏆' : ann.type === 'action' ? '🚀' : '📋'}</span>
                 <div>
@@ -83,12 +91,12 @@ const EndUserDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Active Journeys / Next Actions */}
         <div>
           <h3 className="font-heading font-semibold mb-3">Your Active Journeys</h3>
           <div className="space-y-3">
             {activeJourneys.map(journey => {
-              const nextItem = journey.items.find(i => i.status === 'in_progress' || i.status === 'available');
+              const journeyItems = allItems?.filter(i => i.journey_id === journey.id) || [];
+              const nextItem = journeyItems.find(i => i.status === 'in_progress' || i.status === 'available');
               return (
                 <motion.div key={journey.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className="bg-card border border-border rounded-xl p-5 amp-shadow-card hover:amp-shadow-card-hover transition-shadow cursor-pointer">
@@ -111,17 +119,17 @@ const EndUserDashboard: React.FC = () => {
                         {React.createElement(itemTypeIcon[nextItem.type] || Circle, { className: 'w-3 h-3 text-primary' })}
                       </div>
                       <span className="font-medium">Next: {nextItem.title}</span>
-                      {nextItem.dueDate && (
+                      {nextItem.due_date && (
                         <span className="text-muted-foreground ml-auto flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> Due {nextItem.dueDate}
+                          <Clock className="w-3 h-3" /> Due {nextItem.due_date}
                         </span>
                       )}
                     </div>
                   )}
-                  {/* Item list */}
                   <div className="mt-3 space-y-1">
-                    {journey.items.map(item => {
+                    {journeyItems.map(item => {
                       const Icon = itemTypeIcon[item.type] || Circle;
+                      const contributesTo = (item.contributes_to || []) as string[];
                       return (
                         <div key={item.id} className={`flex items-center gap-2 text-xs py-1.5 ${item.status === 'locked' ? 'opacity-40' : ''}`}>
                           {item.status === 'completed' ? (
@@ -134,7 +142,7 @@ const EndUserDashboard: React.FC = () => {
                           <span className={item.status === 'completed' ? 'line-through text-muted-foreground' : ''}>{item.title}</span>
                           <span className="text-muted-foreground ml-auto">{item.duration}</span>
                           <div className="flex gap-1">
-                            {item.contributesTo.map(c => (
+                            {contributesTo.map(c => (
                               <span key={c} className={`w-1.5 h-1.5 rounded-full ${
                                 c === 'participation' ? 'bg-amp-participation' :
                                 c === 'ownership' ? 'bg-amp-ownership' : 'bg-amp-confidence'
@@ -151,12 +159,11 @@ const EndUserDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Badges */}
         <div>
           <h3 className="font-heading font-semibold mb-3">Achievements</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            {allBadges.map(badge => {
-              const earned = user.badges.includes(badge.name);
+            {badges?.map(badge => {
+              const earned = earnedBadgeNames.includes(badge.name);
               return (
                 <div key={badge.id} className={`bg-card border border-border rounded-xl p-3 text-center amp-shadow-card ${!earned ? 'opacity-30' : ''}`}>
                   <span className="text-2xl block mb-1">{badge.icon}</span>
