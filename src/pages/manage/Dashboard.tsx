@@ -32,6 +32,7 @@ const ChangeManagerDashboard: React.FC = () => {
   });
 
   // Build trend data from score values (simplified weekly simulation)
+  const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
   const scoreTrends = Array.from({ length: 10 }, (_, i) => {
     const factor = (i + 1) / 10;
     return {
@@ -40,6 +41,7 @@ const ChangeManagerDashboard: React.FC = () => {
       ownership: Math.round(avgScore('ownership') * factor),
       confidence: Math.round(avgScore('confidence') * factor),
       adoption: Math.round(avgScore('adoption') * factor),
+      idealAdoption: Math.round(desiredTarget * factor),
     };
   });
 
