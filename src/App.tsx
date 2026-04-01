@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Login from "./pages/Login";
 import SuperAdminDashboard from "./pages/admin/Dashboard";
+import ScoringConfig from "./pages/admin/ScoringConfig";
 import ChangeManagerDashboard from "./pages/manage/Dashboard";
 import InitiativeList from "./pages/manage/Initiatives";
 import JourneyBuilder from "./pages/manage/JourneyBuilder";
@@ -37,6 +38,7 @@ const AppRoutes = () => {
 
       {/* Super Admin */}
       <Route path="/admin" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/scoring" element={<ProtectedRoute><ScoringConfig /></ProtectedRoute>} />
       <Route path="/admin/*" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
 
       {/* Change Manager */}
