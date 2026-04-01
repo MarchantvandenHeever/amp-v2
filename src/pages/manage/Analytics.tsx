@@ -30,6 +30,7 @@ const Analytics: React.FC = () => {
   const { data: profiles } = useProfiles();
   const { data: initiatives } = useInitiatives();
   const { data: riskFlags } = useRiskFlags();
+  const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
 
   const [selectedIndices, setSelectedIndices] = useState<Set<IndexKey>>(new Set(['participation', 'ownership', 'confidence', 'adoption']));
   const [selectedInitiative, setSelectedInitiative] = useState<string>('all');
