@@ -53,7 +53,7 @@ const UserManagement: React.FC = () => {
             <h1 className="font-heading text-2xl font-bold">Users & Teams</h1>
             <p className="text-sm text-muted-foreground mt-1">{allUsers.length} users across {new Set(allUsers.map(u => u.team)).size} teams</p>
           </div>
-          <button className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium">+ Add User</button>
+          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium">+ Add User</button>
         </div>
 
         <div className="relative">
