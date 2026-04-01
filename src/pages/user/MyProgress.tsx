@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScoreHistory, useScores, useAllJourneyItems, useAssignments, useJourneys, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
