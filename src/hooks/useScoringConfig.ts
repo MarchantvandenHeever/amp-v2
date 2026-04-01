@@ -26,7 +26,8 @@ export function useScoringConfig() {
         confidence_traits: config.confidence_traits || DEFAULT_SCORING_CONFIG.confidence_traits,
         negative_signals: config.negative_signals || DEFAULT_SCORING_CONFIG.negative_signals,
         score_bands: config.score_bands || DEFAULT_SCORING_CONFIG.score_bands,
-      } as ScoringConfig;
+        desired_adoption_target: Number(config.desired_adoption_target) || 100,
+      } as ScoringConfig & { desired_adoption_target: number };
     },
   });
 }

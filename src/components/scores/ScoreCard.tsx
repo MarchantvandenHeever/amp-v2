@@ -63,11 +63,18 @@ export const ScoreRow: React.FC<{ label: string; score: number; color: string }>
   </div>
 );
 
-export const AdoptionScoreRing: React.FC<{ score: number; size?: number }> = ({ score, size = 120 }) => {
+interface AdoptionScoreRingProps {
+  score: number;
+  size?: number;
+  idealScore?: number;
+}
+
+export const AdoptionScoreRing: React.FC<AdoptionScoreRingProps> = ({ score, size = 120, idealScore }) => {
   const strokeWidth = 8;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
+  const idealOffset = idealScore !== undefined ? circumference - (idealScore / 100) * circumference : circumference;
 
   const getColor = (s: number) => {
     if (s >= 80) return 'hsl(var(--amp-adoption))';
@@ -76,23 +83,54 @@ export const AdoptionScoreRing: React.FC<{ score: number; size?: number }> = ({ 
     return 'hsl(var(--amp-risk))';
   };
 
+  const showIdeal = idealScore !== undefined && idealScore > 0;
+
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} strokeWidth={strokeWidth} stroke="hsl(var(--muted))" fill="none" />
-        <circle
-          cx={size / 2} cy={size / 2} r={radius} strokeWidth={strokeWidth}
-          stroke={getColor(score)} fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          className="transition-all duration-1000"
-        />
-      </svg>
-      <div className="absolute flex flex-col items-center leading-none">
-        <span className="font-heading font-bold text-foreground" style={{ fontSize: size * 0.3 }}>{score}</span>
-        {size >= 80 && <span className="text-muted-foreground uppercase tracking-wider" style={{ fontSize: Math.max(7, size * 0.1) }}>Adoption</span>}
+    <div className="relative inline-flex flex-col items-center">
+      <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          {/* Background track */}
+          <circle cx={size / 2} cy={size / 2} r={radius} strokeWidth={strokeWidth} stroke="hsl(var(--muted))" fill="none" />
+          {/* Ideal score arc (dashed, behind) */}
+          {showIdeal && (
+            <circle
+              cx={size / 2} cy={size / 2} r={radius} strokeWidth={strokeWidth}
+              stroke="hsl(var(--amp-adoption))" fill="none"
+              strokeLinecap="round"
+              strokeDasharray={`${strokeWidth * 0.8} ${strokeWidth * 0.6}`}
+              strokeDashoffset={idealOffset}
+              opacity={0.25}
+              className="transition-all duration-1000"
+            />
+          )}
+          {/* Actual score arc */}
+          <circle
+            cx={size / 2} cy={size / 2} r={radius} strokeWidth={strokeWidth}
+            stroke={getColor(score)} fill="none"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            className="transition-all duration-1000"
+          />
+        </svg>
+        <div className="absolute flex flex-col items-center leading-none">
+          <span className="font-heading font-bold text-foreground" style={{ fontSize: size * 0.28 }}>{score}</span>
+          {size >= 80 && <span className="text-muted-foreground uppercase tracking-wider" style={{ fontSize: Math.max(7, size * 0.09) }}>Adoption</span>}
+        </div>
       </div>
+      {/* Ideal score legend below */}
+      {showIdeal && size >= 80 && (
+        <div className="flex items-center gap-3 mt-2">
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getColor(score) }} />
+            <span className="text-[10px] text-muted-foreground">Actual</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-amp-adoption/25 border border-amp-adoption/40" />
+            <span className="text-[10px] text-muted-foreground">Ideal {idealScore}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
