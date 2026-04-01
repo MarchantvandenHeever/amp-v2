@@ -4,7 +4,7 @@ import { useAuth, getRoleLabel } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, Users, Target, Route, FileText, Bell, BarChart3,
   Settings, LogOut, ChevronLeft, ChevronRight, Megaphone, Shield,
-  UserCog, Building2, Milestone, Award
+  UserCog, Building2, Milestone, Award, Gauge
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
