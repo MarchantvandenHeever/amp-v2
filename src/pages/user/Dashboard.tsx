@@ -123,7 +123,7 @@ const EndUserDashboard: React.FC = () => {
         {/* Quick stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center">
-            <AdoptionScoreRing score={user.scores.adoption} size={60} />
+            <AdoptionScoreRing score={user.scores.adoption} size={60} idealScore={idealScore} />
             <p className="text-[10px] text-muted-foreground mt-1">Adoption · {getScoreLabel(user.scores.adoption)}</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center">
