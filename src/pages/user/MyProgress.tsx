@@ -135,7 +135,7 @@ const MyProgress: React.FC = () => {
         {/* Scores + Radar */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
-            <AdoptionScoreRing score={user.scores.adoption} size={160} />
+            <AdoptionScoreRing score={user.scores.adoption} size={160} idealScore={idealScore} />
             <p className="text-sm font-semibold mt-3">Adoption Score</p>
             <p className={cn("text-xs font-medium mt-0.5", getScoreColor(user.scores.adoption))}>{getScoreLabel(user.scores.adoption)}</p>
           </div>
