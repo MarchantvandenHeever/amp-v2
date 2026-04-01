@@ -62,6 +62,9 @@ const AppRoutes = () => {
       <Route path="/dashboard/progress" element={<ProtectedRoute><MyProgress /></ProtectedRoute>} />
       <Route path="/dashboard/achievements" element={<ProtectedRoute><MyProgress /></ProtectedRoute>} />
 
+      {/* Shared */}
+      <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
