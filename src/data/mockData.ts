@@ -95,6 +95,8 @@ export interface RiskFlag {
 
 // ============ USERS ============
 
+// Initiative is ~46% through (Jan 15 – Jun 30, current Apr 1).
+// Max possible adoption ≈ 46. All P/O/C and adoption scores honour this cap.
 export const demoUsers: DemoUser[] = [
   {
     id: 'u-admin', name: 'Sarah Chen', email: 'sarah.chen@ampplatform.com',
@@ -111,112 +113,112 @@ export const demoUsers: DemoUser[] = [
   {
     id: 'u-tl1', name: 'Rachel Torres', email: 'rachel.torres@acmecorp.com',
     role: 'team_lead', team: 'Sales', persona: 'Manager',
-    scores: { participation: 88, ownership: 82, confidence: 79, adoption: 82 },
-    streak: 12, points: 1450, badges: ['Started', 'Consistent Contributor', 'On-Time Finisher'],
+    scores: { participation: 44, ownership: 40, confidence: 38, adoption: 40 },
+    streak: 12, points: 720, badges: ['Started', 'Consistent Contributor', 'On-Time Finisher'],
   },
   {
     id: 'u-tl2', name: 'David Kim', email: 'david.kim@acmecorp.com',
     role: 'team_lead', team: 'Marketing', persona: 'Manager',
-    scores: { participation: 76, ownership: 71, confidence: 68, adoption: 71 },
-    streak: 5, points: 980, badges: ['Started', 'Consistent Contributor'],
+    scores: { participation: 38, ownership: 34, confidence: 32, adoption: 34 },
+    streak: 5, points: 490, badges: ['Started', 'Consistent Contributor'],
   },
-  // End users with different behavioral profiles
+  // End users — scores capped at ~46 (journey progress ceiling)
   {
     id: 'u1', name: 'Alex Morgan', email: 'alex.morgan@acmecorp.com',
     role: 'end_user', team: 'Sales', persona: 'Power User',
-    scores: { participation: 92, ownership: 88, confidence: 85, adoption: 87 },
-    streak: 18, points: 2340, badges: ['Started', 'Consistent Contributor', 'On-Time Finisher', 'Evidence Submitted', 'Ownership Builder'],
-    profile: 'Strong all-round adopter',
+    scores: { participation: 46, ownership: 44, confidence: 42, adoption: 44 },
+    streak: 18, points: 1170, badges: ['Started', 'Consistent Contributor', 'On-Time Finisher', 'Evidence Submitted'],
+    profile: 'Strong all-round adopter — near-perfect at current progress point',
   },
   {
     id: 'u2', name: 'Maria Santos', email: 'maria.santos@acmecorp.com',
     role: 'end_user', team: 'Sales', persona: 'Power User',
-    scores: { participation: 85, ownership: 42, confidence: 55, adoption: 53 },
-    streak: 7, points: 890, badges: ['Started', 'Consistent Contributor'],
+    scores: { participation: 42, ownership: 18, confidence: 24, adoption: 24 },
+    streak: 7, points: 445, badges: ['Started', 'Consistent Contributor'],
     riskFlags: ['High participation / low ownership'],
     profile: 'High participation / low ownership',
   },
   {
     id: 'u3', name: 'Tom Bradley', email: 'tom.bradley@acmecorp.com',
     role: 'end_user', team: 'Sales', persona: 'Standard User',
-    scores: { participation: 45, ownership: 78, confidence: 35, adoption: 55 },
-    streak: 2, points: 620, badges: ['Started'],
+    scores: { participation: 20, ownership: 36, confidence: 16, adoption: 25 },
+    streak: 2, points: 310, badges: ['Started'],
     riskFlags: ['High ownership / low confidence'],
     profile: 'High ownership / low confidence',
   },
   {
     id: 'u4', name: 'Lisa Huang', email: 'lisa.huang@acmecorp.com',
     role: 'end_user', team: 'Sales', persona: 'Standard User',
-    scores: { participation: 72, ownership: 65, confidence: 88, adoption: 74 },
-    streak: 9, points: 1120, badges: ['Started', 'Confidence Builder'],
+    scores: { participation: 36, ownership: 30, confidence: 40, adoption: 34 },
+    streak: 9, points: 560, badges: ['Started', 'Confidence Builder'],
     riskFlags: ['Overconfidence'],
     profile: 'Overconfident user',
   },
   {
     id: 'u5', name: 'Ryan Cooper', email: 'ryan.cooper@acmecorp.com',
     role: 'end_user', team: 'Marketing', persona: 'Power User',
-    scores: { participation: 68, ownership: 58, confidence: 62, adoption: 61 },
-    streak: 3, points: 780, badges: ['Started'],
+    scores: { participation: 32, ownership: 26, confidence: 28, adoption: 28 },
+    streak: 3, points: 390, badges: ['Started'],
     riskFlags: ['Heavy reminder dependence'],
     profile: 'Reminder-dependent user',
   },
   {
     id: 'u6', name: 'Emma Wilson', email: 'emma.wilson@acmecorp.com',
     role: 'end_user', team: 'Marketing', persona: 'Standard User',
-    scores: { participation: 28, ownership: 22, confidence: 30, adoption: 26 },
-    streak: 0, points: 180, badges: [],
+    scores: { participation: 12, ownership: 8, confidence: 10, adoption: 10 },
+    streak: 0, points: 90, badges: [],
     riskFlags: ['Inactivity drop-off', 'Low participation / low ownership'],
     profile: 'Disengaging user',
   },
   {
     id: 'u7', name: 'James Park', email: 'james.park@acmecorp.com',
     role: 'end_user', team: 'Marketing', persona: 'Power User',
-    scores: { participation: 55, ownership: 60, confidence: 58, adoption: 59 },
-    streak: 6, points: 650, badges: ['Started', 'Consistent Contributor'],
+    scores: { participation: 28, ownership: 26, confidence: 24, adoption: 26 },
+    streak: 6, points: 325, badges: ['Started', 'Consistent Contributor'],
     profile: 'Improving user over time',
   },
   {
     id: 'u8', name: 'Priya Patel', email: 'priya.patel@acmecorp.com',
     role: 'end_user', team: 'Sales', persona: 'Reluctant User',
-    scores: { participation: 35, ownership: 30, confidence: 25, adoption: 29 },
-    streak: 0, points: 210, badges: [],
+    scores: { participation: 14, ownership: 10, confidence: 8, adoption: 10 },
+    streak: 0, points: 105, badges: [],
     riskFlags: ['Low participation / low ownership', 'Evidence missing'],
     profile: 'Disengaging user',
   },
   {
     id: 'u9', name: 'Carlos Rivera', email: 'carlos.rivera@acmecorp.com',
     role: 'end_user', team: 'Marketing', persona: 'Standard User',
-    scores: { participation: 78, ownership: 72, confidence: 70, adoption: 72 },
-    streak: 10, points: 1050, badges: ['Started', 'Consistent Contributor', 'On-Time Finisher'],
+    scores: { participation: 38, ownership: 34, confidence: 32, adoption: 34 },
+    streak: 10, points: 525, badges: ['Started', 'Consistent Contributor', 'On-Time Finisher'],
     profile: 'Strong all-round adopter',
   },
   {
     id: 'u10', name: 'Sophie Laurent', email: 'sophie.laurent@acmecorp.com',
     role: 'end_user', team: 'Sales', persona: 'Power User',
-    scores: { participation: 82, ownership: 75, confidence: 71, adoption: 74 },
-    streak: 8, points: 1180, badges: ['Started', 'Consistent Contributor', 'Evidence Submitted'],
+    scores: { participation: 40, ownership: 36, confidence: 34, adoption: 36 },
+    streak: 8, points: 590, badges: ['Started', 'Consistent Contributor', 'Evidence Submitted'],
     profile: 'Improving user over time',
   },
   {
     id: 'u11', name: 'Nathan Brooks', email: 'nathan.brooks@acmecorp.com',
     role: 'end_user', team: 'Marketing', persona: 'Reluctant User',
-    scores: { participation: 40, ownership: 35, confidence: 45, adoption: 39 },
-    streak: 1, points: 320, badges: ['Started'],
+    scores: { participation: 18, ownership: 14, confidence: 20, adoption: 17 },
+    streak: 1, points: 160, badges: ['Started'],
     riskFlags: ['Unstable confidence'],
     profile: 'Reminder-dependent user',
   },
   {
     id: 'u12', name: 'Aisha Johnson', email: 'aisha.johnson@acmecorp.com',
     role: 'end_user', team: 'Sales', persona: 'Standard User',
-    scores: { participation: 65, ownership: 58, confidence: 52, adoption: 56 },
-    streak: 4, points: 720, badges: ['Started'],
+    scores: { participation: 30, ownership: 24, confidence: 22, adoption: 24 },
+    streak: 4, points: 360, badges: ['Started'],
     profile: 'Improving user over time',
   },
   {
     id: 'u13', name: 'Oliver Schmidt', email: 'oliver.schmidt@acmecorp.com',
     role: 'end_user', team: 'Marketing', persona: 'Power User',
-    scores: { participation: 90, ownership: 85, confidence: 82, adoption: 84 },
-    streak: 15, points: 2100, badges: ['Started', 'Consistent Contributor', 'On-Time Finisher', 'Ownership Builder', 'Confidence Builder'],
+    scores: { participation: 45, ownership: 42, confidence: 40, adoption: 42 },
+    streak: 15, points: 1050, badges: ['Started', 'Consistent Contributor', 'On-Time Finisher', 'Evidence Submitted'],
     profile: 'Strong all-round adopter',
   },
 ];
@@ -324,22 +326,25 @@ export const riskFlags: RiskFlag[] = [
 
 // ============ SCORE TREND DATA ============
 
+// Score trends: 11 weeks of a 24-week initiative. Ideal adoption = (week/24)*100.
+// Actual adoption must always be ≤ idealAdoption at each point.
 export const scoreTrends = [
-  { week: 'W1', participation: 35, ownership: 20, confidence: 30, adoption: 27, idealAdoption: 10 },
-  { week: 'W2', participation: 42, ownership: 28, confidence: 32, adoption: 32, idealAdoption: 20 },
-  { week: 'W3', participation: 50, ownership: 35, confidence: 38, adoption: 37, idealAdoption: 30 },
-  { week: 'W4', participation: 55, ownership: 40, confidence: 42, adoption: 42, idealAdoption: 40 },
-  { week: 'W5', participation: 60, ownership: 48, confidence: 45, adoption: 47, idealAdoption: 50 },
-  { week: 'W6', participation: 63, ownership: 52, confidence: 48, adoption: 51, idealAdoption: 60 },
-  { week: 'W7', participation: 65, ownership: 55, confidence: 52, adoption: 54, idealAdoption: 70 },
-  { week: 'W8', participation: 68, ownership: 58, confidence: 55, adoption: 57, idealAdoption: 80 },
-  { week: 'W9', participation: 70, ownership: 60, confidence: 57, adoption: 59, idealAdoption: 90 },
-  { week: 'W10', participation: 72, ownership: 62, confidence: 60, adoption: 62, idealAdoption: 100 },
+  { week: 'W1', participation: 8, ownership: 4, confidence: 6, adoption: 5, idealAdoption: 4 },
+  { week: 'W2', participation: 14, ownership: 8, confidence: 10, adoption: 10, idealAdoption: 8 },
+  { week: 'W3', participation: 18, ownership: 12, confidence: 13, adoption: 14, idealAdoption: 13 },
+  { week: 'W4', participation: 22, ownership: 16, confidence: 16, adoption: 17, idealAdoption: 17 },
+  { week: 'W5', participation: 26, ownership: 19, confidence: 18, adoption: 20, idealAdoption: 21 },
+  { week: 'W6', participation: 28, ownership: 22, confidence: 20, adoption: 22, idealAdoption: 25 },
+  { week: 'W7', participation: 30, ownership: 24, confidence: 22, adoption: 24, idealAdoption: 29 },
+  { week: 'W8', participation: 33, ownership: 27, confidence: 25, adoption: 27, idealAdoption: 33 },
+  { week: 'W9', participation: 36, ownership: 30, confidence: 28, adoption: 30, idealAdoption: 38 },
+  { week: 'W10', participation: 38, ownership: 32, confidence: 30, adoption: 32, idealAdoption: 42 },
+  { week: 'W11', participation: 40, ownership: 34, confidence: 32, adoption: 34, idealAdoption: 46 },
 ];
 
 export const teamComparison = [
-  { team: 'Sales', participation: 68, ownership: 60, confidence: 56, adoption: 60 },
-  { team: 'Marketing', participation: 58, ownership: 52, confidence: 54, adoption: 54 },
+  { team: 'Sales', participation: 33, ownership: 28, confidence: 26, adoption: 28 },
+  { team: 'Marketing', participation: 28, ownership: 24, confidence: 25, adoption: 25 },
 ];
 
 // ============ BADGES ============
