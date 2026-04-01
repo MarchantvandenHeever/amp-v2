@@ -44,15 +44,17 @@ const MyProgress: React.FC = () => {
   const totalTimeRemaining = userItems.filter((i: any) => i.status !== 'completed').reduce((sum: number, i: any) => sum + parseDuration(i.duration), 0);
 
   // Score trend data
+  const totalHistoryPoints = (scoreHistory || []).filter((s: any) => s.user_id === user.id).length;
   const userHistory = (scoreHistory || [])
     .filter((s: any) => s.user_id === user.id)
     .sort((a: any, b: any) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-    .map((s: any) => ({
+    .map((s: any, idx: number) => ({
       week: s.week_label || '',
       participation: Number(s.participation || 0),
       ownership: Number(s.ownership || 0),
       confidence: Number(s.confidence || 0),
       adoption: Number(s.adoption || 0),
+      idealAdoption: totalHistoryPoints > 0 ? Math.round(desiredTarget * ((idx + 1) / totalHistoryPoints)) : 0,
     }));
 
   // Radar data
