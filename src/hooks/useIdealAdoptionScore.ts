@@ -22,21 +22,19 @@ export function useIdealAdoptionScore(userId?: string) {
 
   const desiredTarget = ((config as any)?.desired_adoption_target ?? 100) as number;
 
+  // All hooks called above — safe to do conditional logic now
   if (!userId || !initiatives || !allAssignments || !allJourneys) {
     return { idealScore: 0, journeyProgress: 0, timeProgress: 0, desiredTarget };
   }
 
-  // Find the user's assigned journeys and their linked initiatives
   const userAssignments = allAssignments.filter((a: any) => a.user_id === userId);
   const userJourneyIds = userAssignments.map((a: any) => a.journey_id);
   const userJourneys = allJourneys.filter((j: any) => userJourneyIds.includes(j.id));
 
-  // Get initiative IDs from user's journeys
   const initiativeIds = [...new Set(userJourneys.map((j: any) => j.initiative_id).filter(Boolean))];
   const userInitiatives = initiatives.filter((i: any) => initiativeIds.includes(i.id));
 
   if (userInitiatives.length === 0) {
-    // Fallback: use all active initiatives
     const activeInitiatives = initiatives.filter((i: any) => i.status === 'active');
     if (activeInitiatives.length === 0) {
       return { idealScore: 0, journeyProgress: 0, timeProgress: 0, desiredTarget };

@@ -13,6 +13,7 @@ const ChangeManagerDashboard: React.FC = () => {
   const { data: riskFlags, isLoading: loadingRisks } = useRiskFlags();
   const { data: journeys } = useJourneys();
   const { data: scores, isLoading: loadingScores } = useScores();
+  const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
 
   if (loadingProfiles || loadingInit || loadingRisks || loadingScores) {
     return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
@@ -22,7 +23,6 @@ const ChangeManagerDashboard: React.FC = () => {
   const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
     endUserScores.length ? Math.round(endUserScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / endUserScores.length) : 0;
 
-  // Build team comparison from profiles + scores
   const teams = [...new Set(profiles?.map(p => p.team).filter(Boolean) || [])];
   const teamComparison = teams.map(team => {
     const teamProfiles = profiles?.filter(p => p.team === team) || [];
@@ -31,8 +31,6 @@ const ChangeManagerDashboard: React.FC = () => {
     return { team, participation: avg('participation'), ownership: avg('ownership'), confidence: avg('confidence'), adoption: avg('adoption') };
   });
 
-  // Build trend data from score values (simplified weekly simulation)
-  const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
   const scoreTrends = Array.from({ length: 10 }, (_, i) => {
     const factor = (i + 1) / 10;
     return {
