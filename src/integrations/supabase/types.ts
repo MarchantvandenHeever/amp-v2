@@ -321,15 +321,18 @@ export type Database = {
       journey_items: {
         Row: {
           completed_date: string | null
+          content_item_id: string | null
           contributes_to: string[] | null
           created_at: string
           description: string | null
           due_date: string | null
           duration: string | null
+          execution_mode: string
           id: string
           journey_id: string
           mandatory: boolean | null
           order_index: number | null
+          phase_id: string | null
           predecessor_id: string | null
           reminder_enabled: boolean | null
           status: string
@@ -340,15 +343,18 @@ export type Database = {
         }
         Insert: {
           completed_date?: string | null
+          content_item_id?: string | null
           contributes_to?: string[] | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           duration?: string | null
+          execution_mode?: string
           id?: string
           journey_id: string
           mandatory?: boolean | null
           order_index?: number | null
+          phase_id?: string | null
           predecessor_id?: string | null
           reminder_enabled?: boolean | null
           status?: string
@@ -359,15 +365,18 @@ export type Database = {
         }
         Update: {
           completed_date?: string | null
+          content_item_id?: string | null
           contributes_to?: string[] | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           duration?: string | null
+          execution_mode?: string
           id?: string
           journey_id?: string
           mandatory?: boolean | null
           order_index?: number | null
+          phase_id?: string | null
           predecessor_id?: string | null
           reminder_enabled?: boolean | null
           status?: string
@@ -378,6 +387,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "journey_items_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "journey_items_journey_id_fkey"
             columns: ["journey_id"]
             isOneToOne: false
@@ -385,10 +401,64 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "journey_items_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "journey_phases"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "journey_items_predecessor_id_fkey"
             columns: ["predecessor_id"]
             isOneToOne: false
             referencedRelation: "journey_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_phases: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          journey_id: string
+          name: string
+          order_index: number | null
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          journey_id: string
+          name: string
+          order_index?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          journey_id?: string
+          name?: string
+          order_index?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_phases_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
             referencedColumns: ["id"]
           },
         ]
@@ -401,6 +471,8 @@ export type Database = {
           initiative_id: string | null
           milestone_id: string | null
           name: string
+          parent_journey_id: string | null
+          phase_id: string | null
           progress: number | null
           status: string
           updated_at: string
@@ -413,6 +485,8 @@ export type Database = {
           initiative_id?: string | null
           milestone_id?: string | null
           name: string
+          parent_journey_id?: string | null
+          phase_id?: string | null
           progress?: number | null
           status?: string
           updated_at?: string
@@ -425,6 +499,8 @@ export type Database = {
           initiative_id?: string | null
           milestone_id?: string | null
           name?: string
+          parent_journey_id?: string | null
+          phase_id?: string | null
           progress?: number | null
           status?: string
           updated_at?: string
@@ -443,6 +519,20 @@ export type Database = {
             columns: ["milestone_id"]
             isOneToOne: false
             referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journeys_parent_journey_id_fkey"
+            columns: ["parent_journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journeys_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "journey_phases"
             referencedColumns: ["id"]
           },
         ]

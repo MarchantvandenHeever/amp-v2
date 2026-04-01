@@ -71,6 +71,20 @@ export function useJourneys(initiativeId?: string) {
   });
 }
 
+export function useJourneyPhases(journeyId?: string) {
+  return useQuery({
+    queryKey: ['journey_phases', journeyId],
+    queryFn: async () => {
+      let query = supabase.from('journey_phases').select('*').order('order_index');
+      if (journeyId) query = query.eq('journey_id', journeyId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!journeyId,
+  });
+}
+
 export function useJourneyItems(journeyId?: string) {
   return useQuery({
     queryKey: ['journey_items', journeyId],
