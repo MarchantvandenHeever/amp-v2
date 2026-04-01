@@ -186,7 +186,7 @@ const JourneyBuilder: React.FC = () => {
                 const expanded = expandedItem === item.id;
                 const isDragOver = dragOverIdx === i && dragIdx !== i;
                 return (
-                  <motion.div
+                  <div
                     key={item.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
