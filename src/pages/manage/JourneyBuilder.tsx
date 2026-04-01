@@ -42,6 +42,7 @@ const JourneyBuilder: React.FC = () => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [itemModal, setItemModal] = useState<{ open: boolean; item: any | null }>({ open: false, item: null });
   const [assignModal, setAssignModal] = useState(false);
+  const [newJourneyModal, setNewJourneyModal] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
