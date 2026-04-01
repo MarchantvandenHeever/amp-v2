@@ -29,7 +29,7 @@ const InitiativeList: React.FC = () => {
             <h1 className="font-heading text-2xl font-bold">Initiatives</h1>
             <p className="text-sm text-muted-foreground mt-1">Manage adoption initiatives and track progress</p>
           </div>
-          <button className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
             + New Initiative
           </button>
         </div>
