@@ -16,8 +16,9 @@ const typeIcons: Record<string, React.ElementType> = {
 };
 
 const ContentLibrary: React.FC = () => {
-  const { data: contentItems, isLoading } = useContentItems();
+  const { data: contentItems, isLoading, refetch } = useContentItems();
   const [search, setSearch] = React.useState('');
+  const [showNew, setShowNew] = useState(false);
 
   const filtered = (contentItems || []).filter(c => c.title.toLowerCase().includes(search.toLowerCase()));
 
