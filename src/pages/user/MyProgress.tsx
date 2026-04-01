@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScoreHistory, useScores, useAllJourneyItems, useAssignments, useJourneys, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
@@ -26,6 +26,8 @@ const MyProgress: React.FC = () => {
   const completedItems = userItems.filter((i: any) => i.status === 'completed');
   const inProgressItems = userItems.filter((i: any) => i.status === 'in_progress');
   const totalItems = userItems.length;
+
+  console.log('[MyProgress] user.id:', user.id, 'assignments:', userAssignments.length, 'journeyIds:', userJourneyIds, 'userItems:', userItems.length, 'completed:', completedItems.length);
 
   // Parse durations
   const parseDuration = (d: string | null) => {
