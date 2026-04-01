@@ -40,7 +40,7 @@ const ContentLibrary: React.FC = () => {
             <h1 className="font-heading text-2xl font-bold">Content Library</h1>
             <p className="text-sm text-muted-foreground mt-1">{(contentItems || []).length} content items</p>
           </div>
-          <button className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium">
+          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium">
             <Plus className="w-4 h-4 inline mr-1" /> Add Content
           </button>
         </div>
