@@ -4,7 +4,7 @@ import { useAuth, getRoleLabel } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, Users, Target, Route, FileText, Bell, BarChart3,
   Settings, LogOut, ChevronLeft, ChevronRight, Megaphone, Shield,
-  UserCog, Building2, Milestone, Award, Gauge
+  UserCog, Building2, Milestone, Award, Gauge, Trophy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,17 +32,20 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Announcements', path: '/manage/announcements', icon: Megaphone },
     { label: 'Analytics', path: '/manage/analytics', icon: BarChart3 },
     { label: 'Risk & Insights', path: '/manage/risk', icon: Shield },
+    { label: 'Leaderboard', path: '/leaderboard', icon: Trophy },
   ],
   team_lead: [
     { label: 'Team Dashboard', path: '/team', icon: LayoutDashboard },
     { label: 'Team Members', path: '/team/members', icon: Users },
     { label: 'Risk & Actions', path: '/team/risk', icon: Shield },
+    { label: 'Leaderboard', path: '/leaderboard', icon: Trophy },
   ],
   end_user: [
     { label: 'My Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'My Initiatives', path: '/dashboard/initiatives', icon: Target },
     { label: 'My Progress', path: '/dashboard/progress', icon: BarChart3 },
     { label: 'Achievements', path: '/dashboard/achievements', icon: Award },
+    { label: 'Leaderboard', path: '/leaderboard', icon: Trophy },
   ],
 };
 

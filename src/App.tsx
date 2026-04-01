@@ -18,6 +18,7 @@ import Analytics from "./pages/manage/Analytics";
 import TeamDashboard from "./pages/team/Dashboard";
 import EndUserDashboard from "./pages/user/Dashboard";
 import MyProgress from "./pages/user/MyProgress";
+import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,9 @@ const AppRoutes = () => {
       <Route path="/dashboard/initiatives" element={<ProtectedRoute><EndUserDashboard /></ProtectedRoute>} />
       <Route path="/dashboard/progress" element={<ProtectedRoute><MyProgress /></ProtectedRoute>} />
       <Route path="/dashboard/achievements" element={<ProtectedRoute><MyProgress /></ProtectedRoute>} />
+
+      {/* Shared */}
+      <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
