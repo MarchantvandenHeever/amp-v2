@@ -38,6 +38,7 @@ const AppRoutes = () => {
 
       {/* Super Admin */}
       <Route path="/admin" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/scoring" element={<ProtectedRoute><ScoringConfig /></ProtectedRoute>} />
       <Route path="/admin/*" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
 
       {/* Change Manager */}
