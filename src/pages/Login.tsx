@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth, getRoleDashboardPath, getRoleLabel } from '@/contexts/AuthContext';
-import { demoUsers, UserRole } from '@/data/mockData';
+import { useAuth, getRoleDashboardPath, getRoleLabel, UserRole } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
-import { ArrowRight, Shield, Users, BarChart3, User } from 'lucide-react';
+import { ArrowRight, Shield, Users, BarChart3, User, Loader2 } from 'lucide-react';
 
 const roleConfig: Record<UserRole, { icon: React.ElementType; description: string; color: string }> = {
   super_admin: { icon: Shield, description: 'Platform-wide settings, customers, and analytics', color: 'bg-amp-participation/10 text-amp-participation' },
@@ -12,23 +12,54 @@ const roleConfig: Record<UserRole, { icon: React.ElementType; description: strin
   end_user: { icon: User, description: 'Complete micro-actions, build your adoption journey', color: 'bg-amp-adoption/10 text-amp-adoption' },
 };
 
-const demoPersonas = [
-  { userId: 'u-admin', label: 'Sarah Chen', sublabel: 'Super Admin' },
-  { userId: 'u-cm', label: 'James Mitchell', sublabel: 'Change Manager' },
-  { userId: 'u-tl1', label: 'Rachel Torres', sublabel: 'Team Lead — Sales' },
-  { userId: 'u1', label: 'Alex Morgan', sublabel: 'End User — Strong Adopter' },
-  { userId: 'u2', label: 'Maria Santos', sublabel: 'End User — Low Ownership' },
-  { userId: 'u6', label: 'Emma Wilson', sublabel: 'End User — Disengaging' },
-];
+interface DemoPersona {
+  id: string;
+  display_name: string;
+  email: string;
+  role: UserRole;
+  team: string | null;
+  persona: string | null;
+}
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [personas, setPersonas] = useState<DemoPersona[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loggingIn, setLoggingIn] = useState<string | null>(null);
 
-  const handleLogin = (userId: string) => {
-    login(userId);
-    const user = demoUsers.find(u => u.id === userId);
-    if (user) navigate(getRoleDashboardPath(user.role));
+  useEffect(() => {
+    const fetchPersonas = async () => {
+      // Fetch a curated set of demo personas (one per role + a few end users)
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, display_name, email, role, team, persona')
+        .in('email', [
+          'sarah.chen@ampplatform.com',
+          'james.mitchell@acmecorp.com',
+          'rachel.torres@acmecorp.com',
+          'alex.morgan@acmecorp.com',
+          'maria.santos@acmecorp.com',
+          'emma.wilson@acmecorp.com',
+        ]);
+      if (data) setPersonas(data as DemoPersona[]);
+      setLoading(false);
+    };
+    fetchPersonas();
+  }, []);
+
+  const handleLogin = async (profileId: string, role: UserRole) => {
+    setLoggingIn(profileId);
+    await login(profileId);
+    navigate(getRoleDashboardPath(role));
+  };
+
+  const getSublabel = (p: DemoPersona) => {
+    const roleLabel = getRoleLabel(p.role);
+    if (p.role === 'end_user' || p.role === 'team_lead') {
+      return `${roleLabel} — ${p.team}`;
+    }
+    return roleLabel;
   };
 
   return (
@@ -84,35 +115,45 @@ const Login: React.FC = () => {
           <h2 className="font-heading text-2xl font-bold mb-2">Sign in to AMP</h2>
           <p className="text-muted-foreground text-sm mb-8">Choose a demo persona to explore the platform</p>
 
-          <div className="space-y-2">
-            {demoPersonas.map((persona, i) => {
-              const user = demoUsers.find(u => u.id === persona.userId)!;
-              const config = roleConfig[user.role];
-              const Icon = config.icon;
-              return (
-                <motion.button
-                  key={persona.userId}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.08 }}
-                  onClick={() => handleLogin(persona.userId)}
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:amp-shadow-card-hover hover:border-primary/30 transition-all group text-left"
-                >
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{persona.label}</p>
-                    <p className="text-xs text-muted-foreground">{persona.sublabel}</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                </motion.button>
-              );
-            })}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {personas.map((persona, i) => {
+                const config = roleConfig[persona.role];
+                const Icon = config.icon;
+                return (
+                  <motion.button
+                    key={persona.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08 }}
+                    onClick={() => handleLogin(persona.id, persona.role)}
+                    disabled={loggingIn === persona.id}
+                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:amp-shadow-card-hover hover:border-primary/30 transition-all group text-left disabled:opacity-50"
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.color}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{persona.display_name}</p>
+                      <p className="text-xs text-muted-foreground">{getSublabel(persona)}</p>
+                    </div>
+                    {loggingIn === persona.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
 
           <p className="text-center text-xs text-muted-foreground mt-8">
-            AMP v2 Demo — Behavioural Adoption Platform
+            AMP v2 Demo — Behavioural Adoption Platform · Powered by Lovable Cloud
           </p>
         </motion.div>
       </div>
