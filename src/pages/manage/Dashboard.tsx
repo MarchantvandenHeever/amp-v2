@@ -1,15 +1,47 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
-import { endUsers, initiatives, riskFlags, scoreTrends, announcements, teamComparison, journeys } from '@/data/mockData';
+import { useEndUsers, useInitiatives, useRiskFlags, useJourneys, useScores } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
-import { Target, Users, AlertTriangle, TrendingUp, Megaphone, Route } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
-
-const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
-  Math.round(endUsers.reduce((s, u) => s + u.scores[key], 0) / endUsers.length);
+import { Loader2 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 const ChangeManagerDashboard: React.FC = () => {
+  const { data: profiles, isLoading: loadingProfiles } = useEndUsers();
+  const { data: initiatives, isLoading: loadingInit } = useInitiatives();
+  const { data: riskFlags, isLoading: loadingRisks } = useRiskFlags();
+  const { data: journeys } = useJourneys();
+  const { data: scores, isLoading: loadingScores } = useScores();
+
+  if (loadingProfiles || loadingInit || loadingRisks || loadingScores) {
+    return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
+  }
+
+  const endUserScores = scores?.filter(s => profiles?.some(p => p.id === s.user_id)) || [];
+  const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
+    endUserScores.length ? Math.round(endUserScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / endUserScores.length) : 0;
+
+  // Build team comparison from profiles + scores
+  const teams = [...new Set(profiles?.map(p => p.team).filter(Boolean) || [])];
+  const teamComparison = teams.map(team => {
+    const teamProfiles = profiles?.filter(p => p.team === team) || [];
+    const teamScores = endUserScores.filter(s => teamProfiles.some(p => p.id === s.user_id));
+    const avg = (k: string) => teamScores.length ? Math.round(teamScores.reduce((sum, s) => sum + Number((s as any)[k] || 0), 0) / teamScores.length) : 0;
+    return { team, participation: avg('participation'), ownership: avg('ownership'), confidence: avg('confidence'), adoption: avg('adoption') };
+  });
+
+  // Build trend data from score values (simplified weekly simulation)
+  const scoreTrends = Array.from({ length: 10 }, (_, i) => {
+    const factor = (i + 1) / 10;
+    return {
+      week: `W${i + 1}`,
+      participation: Math.round(avgScore('participation') * factor),
+      ownership: Math.round(avgScore('ownership') * factor),
+      confidence: Math.round(avgScore('confidence') * factor),
+      adoption: Math.round(avgScore('adoption') * factor),
+    };
+  });
+
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -18,7 +50,6 @@ const ChangeManagerDashboard: React.FC = () => {
           <p className="text-sm text-muted-foreground mt-1">Ownership and confidence signal whether change is truly forming</p>
         </div>
 
-        {/* Adoption overview */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
             <AdoptionScoreRing score={avgScore('adoption')} size={140} />
@@ -29,17 +60,16 @@ const ChangeManagerDashboard: React.FC = () => {
           <ScoreCard label="Confidence" score={avgScore('confidence')} color="confidence" trend={2} />
         </div>
 
-        {/* Initiatives */}
         <div>
           <h3 className="font-heading font-semibold mb-3">Active Initiatives</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {initiatives.filter(i => i.status === 'active').map(init => (
+            {initiatives?.filter(i => i.status === 'active').map(init => (
               <motion.div key={init.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                 className="bg-card border border-border rounded-xl p-5 amp-shadow-card hover:amp-shadow-card-hover transition-shadow cursor-pointer">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h4 className="font-semibold text-sm">{init.name}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">{init.customer} · {init.userCount} users</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{init.user_count} users</p>
                   </div>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-amp-adoption/10 text-amp-adoption font-medium">{init.phase.replace(/_/g, ' ')}</span>
                 </div>
@@ -50,15 +80,13 @@ const ChangeManagerDashboard: React.FC = () => {
                   <span className="text-xs font-semibold">{init.progress}%</span>
                 </div>
                 <div className="flex gap-4 text-xs text-muted-foreground">
-                  <span>{init.milestones.filter(m => m.status === 'completed').length}/{init.milestones.length} milestones</span>
-                  <span>{journeys.filter(j => j.initiativeId === init.id).length} journeys</span>
+                  <span>{journeys?.filter(j => j.initiative_id === init.id).length || 0} journeys</span>
                 </div>
               </motion.div>
             ))}
           </div>
         </div>
 
-        {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-4">Adoption Trend</h3>
@@ -91,12 +119,11 @@ const ChangeManagerDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Risk table */}
         <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-heading font-semibold">At-Risk Users</h3>
             <span className="text-xs px-2 py-1 rounded-full bg-amp-risk/10 text-amp-risk font-medium">
-              {riskFlags.filter(r => r.severity === 'high').length} high risk
+              {riskFlags?.filter(r => r.severity === 'high').length || 0} high risk
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -111,10 +138,10 @@ const ChangeManagerDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {riskFlags.map(flag => (
+                {riskFlags?.map(flag => (
                   <tr key={flag.id} className="border-b border-border/50 hover:bg-secondary/50">
-                    <td className="py-2.5 px-3 font-medium">{flag.userName}</td>
-                    <td className="py-2.5 px-3 text-muted-foreground">{flag.team}</td>
+                    <td className="py-2.5 px-3 font-medium">{(flag as any).profiles?.display_name || 'Unknown'}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground">{(flag as any).profiles?.team || '-'}</td>
                     <td className="py-2.5 px-3">{flag.type}</td>
                     <td className="py-2.5 px-3">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
