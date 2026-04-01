@@ -3,13 +3,13 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInitiatives, useJourneys, useAllJourneyItems, useJourneyPhases } from '@/hooks/useSupabaseData';
 import { GanttChart } from '@/components/journey/GanttChart';
-import { motion } from 'framer-motion';
+import { TaskDetailModal } from '@/components/journey/TaskDetailModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import {
   Target, Clock, CheckCircle2, Circle, Lock, ChevronDown, ChevronRight,
-  Loader2, Calendar, BarChart3, Layers, Route as RouteIcon, Timer
+  Loader2, BarChart3, Layers, Route as RouteIcon, Timer
 } from 'lucide-react';
 import { parseISO, isToday, isThisWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
@@ -18,7 +18,7 @@ const parseDurationMinutes = (d?: string | null): number => {
   const m = d.match(/(\d+)/);
   const num = m ? parseInt(m[1]) : 5;
   if (d.includes('hour') || d.includes('hr')) return num * 60;
-  return num; // assume minutes
+  return num;
 };
 
 const formatTime = (mins: number): string => {
@@ -52,14 +52,13 @@ const MyInitiatives: React.FC = () => {
   const [timePeriod, setTimePeriod] = useState<'today' | 'week' | 'month'>('today');
   const [expandedJourney, setExpandedJourney] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'journeys' | 'phases' | 'gantt'>('journeys');
+  const [selectedTask, setSelectedTask] = useState<any>(null);
 
-  // Fetch all phases
   const { data: allPhases } = useJourneyPhases();
 
   const activeInitiatives = useMemo(() => initiatives?.filter(i => i.status === 'active' || i.status === 'in_progress') || [], [initiatives]);
   const activeJourneys = useMemo(() => journeys?.filter(j => j.status === 'active') || [], [journeys]);
 
-  // Time-filtered items for the summary
   const timeFilteredItems = useMemo(() => {
     if (!allItems) return [];
     const active = allItems.filter(i => i.status === 'available' || i.status === 'in_progress');
@@ -76,7 +75,6 @@ const MyInitiatives: React.FC = () => {
         try { return isThisWeek(parseISO(i.due_date)); } catch { return true; }
       });
     }
-    // month
     const now = new Date();
     return active.filter(i => {
       if (!i.due_date) return true;
@@ -94,6 +92,52 @@ const MyInitiatives: React.FC = () => {
   if (li || lj || lit) {
     return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
   }
+
+  const handleItemClick = (item: any) => {
+    if (item.status !== 'locked') {
+      setSelectedTask(item);
+    }
+  };
+
+  const renderItemRow = (item: any, showDetails = true) => {
+    const Icon = statusIcon[item.status] || Circle;
+    const style = statusStyle[item.status] || '';
+    const isClickable = item.status !== 'locked';
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => handleItemClick(item)}
+        disabled={!isClickable}
+        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
+          item.status === 'locked' ? 'opacity-40 cursor-not-allowed' : 'hover:bg-secondary/40 cursor-pointer'
+        }`}
+      >
+        <Icon className={`w-4 h-4 shrink-0 ${style}`} />
+        <span className={`flex-1 truncate ${item.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
+          {item.title}
+        </span>
+        <span className="text-xs text-muted-foreground">{item.duration || '5 min'}</span>
+        {showDetails && (
+          <>
+            {item.execution_mode === 'parallel' && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amp-info/10 text-amp-info font-medium">∥</span>
+            )}
+            {item.mandatory && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amp-warning/10 text-amp-warning font-medium">req</span>}
+            <div className="flex gap-1">
+              {(item.contributes_to as string[] || []).map((c: string) => (
+                <span key={c} className={`w-1.5 h-1.5 rounded-full ${
+                  c === 'participation' ? 'bg-amp-participation' :
+                  c === 'ownership' ? 'bg-amp-ownership' : 'bg-amp-confidence'
+                }`} />
+              ))}
+            </div>
+          </>
+        )}
+        {isClickable && <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />}
+      </button>
+    );
+  };
 
   return (
     <AppLayout>
@@ -139,16 +183,20 @@ const MyInitiatives: React.FC = () => {
             </div>
           </div>
 
-          {/* Item breakdown */}
           {timeFilteredItems.length > 0 && (
-            <div className="mt-4 space-y-1.5">
+            <div className="mt-4 space-y-1">
               {timeFilteredItems.map(item => (
-                <div key={item.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-background text-sm">
+                <button
+                  key={item.id}
+                  onClick={() => handleItemClick(item)}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-background text-sm hover:bg-secondary/30 transition-colors text-left"
+                >
                   <Circle className="w-3 h-3 text-primary shrink-0" />
                   <span className="flex-1 truncate">{item.title}</span>
                   <span className="text-xs text-muted-foreground font-medium">{item.duration || '5 min'}</span>
                   {item.mandatory && <Badge variant="outline" className="text-[9px] h-4">Required</Badge>}
-                </div>
+                  <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                </button>
               ))}
             </div>
           )}
@@ -214,35 +262,13 @@ const MyInitiatives: React.FC = () => {
                         </button>
 
                         {isExpanded && (
-                          <div className="px-4 pb-3 space-y-1">
+                          <div className="px-4 pb-3 space-y-0.5">
                             <div className="flex gap-4 text-xs text-muted-foreground mb-2 px-2">
                               <span>Total: {formatTime(totalMin)}</span>
                               <span>Remaining: {formatTime(remainMin)}</span>
                               <span>Completed: {formatTime(totalMin - remainMin)}</span>
                             </div>
-                            {items.map(item => {
-                              const Icon = statusIcon[item.status] || Circle;
-                              const style = statusStyle[item.status] || '';
-                              return (
-                                <div key={item.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${item.status === 'locked' ? 'opacity-40' : 'hover:bg-secondary/30'}`}>
-                                  <Icon className={`w-4 h-4 shrink-0 ${style}`} />
-                                  <span className={`flex-1 ${item.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>{item.title}</span>
-                                  <span className="text-xs text-muted-foreground">{item.duration || '5 min'}</span>
-                                  {item.execution_mode === 'parallel' && (
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amp-info/10 text-amp-info font-medium">∥</span>
-                                  )}
-                                  {item.mandatory && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amp-warning/10 text-amp-warning font-medium">req</span>}
-                                  <div className="flex gap-1">
-                                    {(item.contributes_to as string[] || []).map(c => (
-                                      <span key={c} className={`w-1.5 h-1.5 rounded-full ${
-                                        c === 'participation' ? 'bg-amp-participation' :
-                                        c === 'ownership' ? 'bg-amp-ownership' : 'bg-amp-confidence'
-                                      }`} />
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })}
+                            {items.map(item => renderItemRow(item))}
                           </div>
                         )}
                       </div>
@@ -252,7 +278,6 @@ const MyInitiatives: React.FC = () => {
               );
             })}
 
-            {/* Journeys without initiative */}
             {activeJourneys.filter(j => !j.initiative_id).length > 0 && (
               <div className="bg-card border border-border rounded-xl amp-shadow-card overflow-hidden">
                 <div className="p-4 border-b border-border bg-secondary/20">
@@ -279,18 +304,8 @@ const MyInitiatives: React.FC = () => {
                         </div>
                       </button>
                       {isExpanded && (
-                        <div className="px-4 pb-3 space-y-1">
-                          {items.map(item => {
-                            const Icon = statusIcon[item.status] || Circle;
-                            const style = statusStyle[item.status] || '';
-                            return (
-                              <div key={item.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${item.status === 'locked' ? 'opacity-40' : ''}`}>
-                                <Icon className={`w-4 h-4 shrink-0 ${style}`} />
-                                <span className="flex-1">{item.title}</span>
-                                <span className="text-xs text-muted-foreground">{item.duration || '5 min'}</span>
-                              </div>
-                            );
-                          })}
+                        <div className="px-4 pb-3 space-y-0.5">
+                          {items.map(item => renderItemRow(item, false))}
                         </div>
                       )}
                     </div>
@@ -307,7 +322,6 @@ const MyInitiatives: React.FC = () => {
               const phases = allPhases || [];
               const journeyPhases = phases.filter(p => p.journey_id === journey.id).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
-              // Items grouped by phase
               const phaseGroups = journeyPhases.map(phase => ({
                 phase,
                 items: items.filter(i => i.phase_id === phase.id),
@@ -334,36 +348,16 @@ const MyInitiatives: React.FC = () => {
                           {formatTime(phaseItems.reduce((s, i) => s + parseDurationMinutes(i.duration), 0))}
                         </span>
                       </div>
-                      <div className="px-4 py-2 space-y-1">
-                        {phaseItems.map(item => {
-                          const Icon = statusIcon[item.status] || Circle;
-                          const style = statusStyle[item.status] || '';
-                          return (
-                            <div key={item.id} className={`flex items-center gap-3 px-2 py-1.5 rounded text-sm ${item.status === 'locked' ? 'opacity-40' : ''}`}>
-                              <Icon className={`w-3.5 h-3.5 shrink-0 ${style}`} />
-                              <span className="flex-1 truncate">{item.title}</span>
-                              <span className="text-xs text-muted-foreground">{item.duration || '5 min'}</span>
-                            </div>
-                          );
-                        })}
+                      <div className="px-2 py-1.5 space-y-0.5">
+                        {phaseItems.map(item => renderItemRow(item, false))}
                       </div>
                     </div>
                   ))}
 
                   {noPhaseItems.length > 0 && (
-                    <div className="px-4 py-2 space-y-1">
-                      <p className="text-[10px] text-muted-foreground font-medium mb-1">Unphased Items</p>
-                      {noPhaseItems.map(item => {
-                        const Icon = statusIcon[item.status] || Circle;
-                        const style = statusStyle[item.status] || '';
-                        return (
-                          <div key={item.id} className={`flex items-center gap-3 px-2 py-1.5 rounded text-sm ${item.status === 'locked' ? 'opacity-40' : ''}`}>
-                            <Icon className={`w-3.5 h-3.5 shrink-0 ${style}`} />
-                            <span className="flex-1 truncate">{item.title}</span>
-                            <span className="text-xs text-muted-foreground">{item.duration || '5 min'}</span>
-                          </div>
-                        );
-                      })}
+                    <div className="px-2 py-2 space-y-0.5">
+                      <p className="text-[10px] text-muted-foreground font-medium mb-1 px-3">Unphased Items</p>
+                      {noPhaseItems.map(item => renderItemRow(item, false))}
                     </div>
                   )}
 
@@ -390,6 +384,12 @@ const MyInitiatives: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <TaskDetailModal
+        item={selectedTask}
+        open={!!selectedTask}
+        onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+      />
     </AppLayout>
   );
 };

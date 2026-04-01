@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useJourneys, useAllJourneyItems, useAnnouncements, useBadges, useUserBadges, getTierFromPoints, getScoreLabel } from '@/hooks/useSupabaseData';
+import { TaskDetailModal } from '@/components/journey/TaskDetailModal';
 import { motion } from 'framer-motion';
-import { Target, Flame, Star, ChevronRight, Clock, CheckCircle2, Circle, Lock, Upload, MessageSquare, Loader2, CalendarDays, ListChecks } from 'lucide-react';
+import { Target, Flame, Star, ChevronRight, Clock, CheckCircle2, Circle, Lock, Upload, MessageSquare, Loader2, CalendarDays, ListChecks, Timer } from 'lucide-react';
 import { format, isToday, isTomorrow, isThisWeek, parseISO } from 'date-fns';
 
 const itemTypeIcon: Record<string, React.ElementType> = {
@@ -17,17 +19,35 @@ const itemTypeIcon: Record<string, React.ElementType> = {
   scenario: Target,
 };
 
+const parseDurationMinutes = (d?: string | null): number => {
+  if (!d) return 5;
+  const m = d.match(/(\d+)/);
+  const num = m ? parseInt(m[1]) : 5;
+  if (d.includes('hour') || d.includes('hr')) return num * 60;
+  return num;
+};
+
+const formatTime = (mins: number): string => {
+  if (mins >= 60) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  return `${mins}m`;
+};
+
 const EndUserDashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: journeys, isLoading: loadingJourneys } = useJourneys();
   const { data: allItems, isLoading: loadingItems } = useAllJourneyItems();
   const { data: announcements } = useAnnouncements();
   const { data: badges } = useBadges();
   const { data: userBadges } = useUserBadges(user?.id);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
 
-  // Derive today's tasks and upcoming tasks
-  const { todayTasks, upcomingTasks } = useMemo(() => {
-    if (!allItems) return { todayTasks: [], upcomingTasks: [] };
+  const { todayTasks, upcomingTasks, todayTimeMinutes } = useMemo(() => {
+    if (!allItems) return { todayTasks: [], upcomingTasks: [], todayTimeMinutes: 0 };
     const activeTasks = allItems.filter(i => i.status === 'available' || i.status === 'in_progress');
     const today: typeof activeTasks = [];
     const upcoming: typeof activeTasks = [];
@@ -40,17 +60,17 @@ const EndUserDashboard: React.FC = () => {
           if (isTomorrow(d) || isThisWeek(d)) { upcoming.push(item); return; }
         } catch {}
       }
-      // Items with no date or past-due that are still active => today
       if (item.status === 'in_progress') today.push(item);
       else upcoming.push(item);
     });
 
-    // If no items landed in today, move the first upcoming ones
     if (today.length === 0 && upcoming.length > 0) {
       today.push(...upcoming.splice(0, Math.min(3, upcoming.length)));
     }
 
-    return { todayTasks: today.slice(0, 5), upcomingTasks: upcoming.slice(0, 5) };
+    const todayTime = today.reduce((s, i) => s + parseDurationMinutes(i.duration), 0);
+
+    return { todayTasks: today.slice(0, 5), upcomingTasks: upcoming.slice(0, 5), todayTimeMinutes: todayTime };
   }, [allItems]);
 
   if (!user) return null;
@@ -108,10 +128,16 @@ const EndUserDashboard: React.FC = () => {
             <p className="font-heading text-2xl font-bold text-foreground">{todayTasks.length}</p>
             <p className="text-[10px] text-muted-foreground">Tasks Today</p>
           </div>
-          <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center">
-            <p className="font-heading text-2xl font-bold text-foreground">{activeJourneys.length}</p>
-            <p className="text-[10px] text-muted-foreground">Active Journeys</p>
-          </div>
+          <button
+            onClick={() => navigate('/dashboard/initiatives')}
+            className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center hover:amp-shadow-card-hover transition-shadow"
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <Timer className="w-4 h-4 text-primary" />
+              <p className="font-heading text-2xl font-bold text-foreground">{formatTime(todayTimeMinutes)}</p>
+            </div>
+            <p className="text-[10px] text-muted-foreground">Time Today</p>
+          </button>
           <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center">
             <p className="font-heading text-2xl font-bold text-foreground">{totalCompleted}/{totalItems}</p>
             <p className="text-[10px] text-muted-foreground">Items Done</p>
@@ -135,9 +161,14 @@ const EndUserDashboard: React.FC = () => {
 
         {/* Today's Tasks */}
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <ListChecks className="w-4 h-4 text-primary" />
-            <h3 className="font-heading font-semibold">Tasks for Today</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <ListChecks className="w-4 h-4 text-primary" />
+              <h3 className="font-heading font-semibold">Tasks for Today</h3>
+            </div>
+            <button onClick={() => navigate('/dashboard/initiatives')} className="text-xs text-primary hover:underline">
+              View all →
+            </button>
           </div>
           {todayTasks.length === 0 ? (
             <div className="bg-card border border-border rounded-xl p-6 text-center amp-shadow-card">
@@ -150,7 +181,11 @@ const EndUserDashboard: React.FC = () => {
               {todayTasks.map(item => {
                 const Icon = itemTypeIcon[item.type] || Circle;
                 return (
-                  <div key={item.id} className="bg-card border border-border rounded-xl p-4 amp-shadow-card flex items-center gap-3 hover:amp-shadow-card-hover transition-shadow">
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedTask(item)}
+                    className="w-full bg-card border border-border rounded-xl p-4 amp-shadow-card flex items-center gap-3 hover:amp-shadow-card-hover hover:border-primary/30 transition-all text-left"
+                  >
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <Icon className="w-4 h-4 text-primary" />
                     </div>
@@ -168,8 +203,9 @@ const EndUserDashboard: React.FC = () => {
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                         item.status === 'in_progress' ? 'bg-amp-info/10 text-amp-info' : 'bg-primary/10 text-primary'
                       }`}>{item.status === 'in_progress' ? 'In Progress' : 'Ready'}</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -187,14 +223,19 @@ const EndUserDashboard: React.FC = () => {
               {upcomingTasks.map(item => {
                 const Icon = itemTypeIcon[item.type] || Circle;
                 return (
-                  <div key={item.id} className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-secondary/40 text-sm">
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedTask(item)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-secondary/40 text-sm hover:bg-secondary/60 transition-colors text-left"
+                  >
                     <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
                     <span className="flex-1 truncate">{item.title}</span>
                     <span className="text-xs text-muted-foreground">{item.duration || '5 min'}</span>
                     {item.due_date && (
                       <span className="text-xs text-muted-foreground">{format(parseISO(item.due_date), 'MMM d')}</span>
                     )}
-                  </div>
+                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                  </button>
                 );
               })}
             </div>
@@ -203,11 +244,17 @@ const EndUserDashboard: React.FC = () => {
 
         {/* Active Journeys Summary */}
         <div>
-          <h3 className="font-heading font-semibold mb-3">Your Active Journeys</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-heading font-semibold">Your Active Journeys</h3>
+            <button onClick={() => navigate('/dashboard/initiatives')} className="text-xs text-primary hover:underline">
+              Detailed view →
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {activeJourneys.map(journey => {
               const journeyItems = allItems?.filter(i => i.journey_id === journey.id) || [];
               const completed = journeyItems.filter(i => i.status === 'completed').length;
+              const remainMin = journeyItems.filter(i => i.status !== 'completed').reduce((s, i) => s + parseDurationMinutes(i.duration), 0);
               const nextItem = journeyItems.find(i => i.status === 'in_progress' || i.status === 'available');
               return (
                 <motion.div key={journey.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -222,12 +269,20 @@ const EndUserDashboard: React.FC = () => {
                     </div>
                     <span className="text-xs font-semibold">{journey.progress}%</span>
                   </div>
-                  {nextItem && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <ChevronRight className="w-3 h-3" />
-                      <span>Next: {nextItem.title}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between">
+                    {nextItem ? (
+                      <button
+                        onClick={() => setSelectedTask(nextItem)}
+                        className="flex items-center gap-2 text-xs text-primary hover:underline"
+                      >
+                        <ChevronRight className="w-3 h-3" />
+                        <span>Next: {nextItem.title}</span>
+                      </button>
+                    ) : <span />}
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Clock className="w-3 h-3" />{formatTime(remainMin)} left
+                    </span>
+                  </div>
                 </motion.div>
               );
             })}
@@ -250,6 +305,12 @@ const EndUserDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <TaskDetailModal
+        item={selectedTask}
+        open={!!selectedTask}
+        onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+      />
     </AppLayout>
   );
 };
