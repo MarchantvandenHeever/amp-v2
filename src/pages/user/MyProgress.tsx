@@ -15,7 +15,7 @@ const MyProgress: React.FC = () => {
   const { data: allItems, isLoading: loadingItems } = useAllJourneyItems();
   const { data: allAssignments, isLoading: loadingAssignments } = useAssignments();
   const { data: allJourneys } = useJourneys();
-  const { idealScore, journeyProgress } = useIdealAdoptionScore(user?.id);
+  const { idealScore, journeyProgress, desiredTarget } = useIdealAdoptionScore(user?.id);
 
   if (!user) return null;
 
