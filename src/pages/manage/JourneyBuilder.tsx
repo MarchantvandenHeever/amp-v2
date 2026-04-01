@@ -262,7 +262,7 @@ const JourneyBuilder: React.FC = () => {
                         </div>
                       </div>
                     )}
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
