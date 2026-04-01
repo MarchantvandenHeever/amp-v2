@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useJourneys, useJourneyItems } from '@/hooks/useSupabaseData';
+import { NewJourneyModal } from '@/components/journey/NewJourneyModal';
 import { supabase } from '@/integrations/supabase/client';
 import { GripVertical, Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, Upload, MessageSquare, Star, Target, FileText, Trash2, Edit, Users, Copy, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -35,12 +36,13 @@ const pillarColors: Record<string, string> = {
 };
 
 const JourneyBuilder: React.FC = () => {
-  const { data: journeys, isLoading: loadingJourneys } = useJourneys();
+  const { data: journeys, isLoading: loadingJourneys, refetch: refetchJourneys } = useJourneys();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: items, isLoading: loadingItems, refetch: refetchItems } = useJourneyItems(selectedId || undefined);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [itemModal, setItemModal] = useState<{ open: boolean; item: any | null }>({ open: false, item: null });
   const [assignModal, setAssignModal] = useState(false);
+  const [newJourneyModal, setNewJourneyModal] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
@@ -156,7 +158,7 @@ const JourneyBuilder: React.FC = () => {
             <h1 className="font-heading text-2xl font-bold">Journey Builder</h1>
             <p className="text-sm text-muted-foreground mt-1">Design behavioural adoption journeys with structured micro-actions</p>
           </div>
-          <button className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+          <button onClick={() => setNewJourneyModal(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
             + New Journey
           </button>
         </div>
@@ -318,6 +320,7 @@ const JourneyBuilder: React.FC = () => {
           journeyName={selectedJourney.name}
         />
       )}
+      <NewJourneyModal open={newJourneyModal} onClose={() => setNewJourneyModal(false)} onCreated={() => refetchJourneys()} />
     </AppLayout>
   );
 };

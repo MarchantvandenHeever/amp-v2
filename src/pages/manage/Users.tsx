@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProfiles, useScores, useRiskFlags } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
 import { Search, Loader2 } from 'lucide-react';
+import { NewUserModal } from '@/components/users/NewUserModal';
 
 const UserManagement: React.FC = () => {
-  const { data: profiles, isLoading } = useProfiles();
+  const { data: profiles, isLoading, refetch } = useProfiles();
   const { data: scores } = useScores();
   const { data: riskFlags } = useRiskFlags();
+  const [showNew, setShowNew] = useState(false);
   const [search, setSearch] = React.useState('');
 
   const allUsers = (profiles || []).filter(p => p.role === 'end_user' || p.role === 'team_lead');
@@ -51,7 +53,7 @@ const UserManagement: React.FC = () => {
             <h1 className="font-heading text-2xl font-bold">Users & Teams</h1>
             <p className="text-sm text-muted-foreground mt-1">{allUsers.length} users across {new Set(allUsers.map(u => u.team)).size} teams</p>
           </div>
-          <button className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium">+ Add User</button>
+          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium">+ Add User</button>
         </div>
 
         <div className="relative">
@@ -108,6 +110,7 @@ const UserManagement: React.FC = () => {
           </table>
         </div>
       </div>
+      <NewUserModal open={showNew} onClose={() => setShowNew(false)} onCreated={() => refetch()} />
     </AppLayout>
   );
 };

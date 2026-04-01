@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useContentItems } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
 import { FileText, Video, Image, Mic, MessageSquare, Star, Plus, Search, Loader2 } from 'lucide-react';
+import { NewContentModal } from '@/components/content/NewContentModal';
 
 const typeIcons: Record<string, React.ElementType> = {
   document: FileText,
@@ -15,8 +16,9 @@ const typeIcons: Record<string, React.ElementType> = {
 };
 
 const ContentLibrary: React.FC = () => {
-  const { data: contentItems, isLoading } = useContentItems();
+  const { data: contentItems, isLoading, refetch } = useContentItems();
   const [search, setSearch] = React.useState('');
+  const [showNew, setShowNew] = useState(false);
 
   const filtered = (contentItems || []).filter(c => c.title.toLowerCase().includes(search.toLowerCase()));
 
@@ -38,7 +40,7 @@ const ContentLibrary: React.FC = () => {
             <h1 className="font-heading text-2xl font-bold">Content Library</h1>
             <p className="text-sm text-muted-foreground mt-1">{(contentItems || []).length} content items</p>
           </div>
-          <button className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium">
+          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium">
             <Plus className="w-4 h-4 inline mr-1" /> Add Content
           </button>
         </div>
@@ -75,6 +77,7 @@ const ContentLibrary: React.FC = () => {
           })}
         </div>
       </div>
+      <NewContentModal open={showNew} onClose={() => setShowNew(false)} onCreated={() => refetch()} />
     </AppLayout>
   );
 };

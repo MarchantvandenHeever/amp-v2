@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useInitiatives, useMilestones, useJourneys } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
 import { Calendar, Users, ChevronRight, Loader2 } from 'lucide-react';
+import { NewInitiativeModal } from '@/components/initiatives/NewInitiativeModal';
 
 const InitiativeList: React.FC = () => {
-  const { data: initiatives, isLoading: loadingInit } = useInitiatives();
+  const { data: initiatives, isLoading: loadingInit, refetch } = useInitiatives();
   const { data: milestones } = useMilestones();
   const { data: journeys } = useJourneys();
+  const [showNew, setShowNew] = useState(false);
 
   if (loadingInit) {
     return (
@@ -27,7 +29,7 @@ const InitiativeList: React.FC = () => {
             <h1 className="font-heading text-2xl font-bold">Initiatives</h1>
             <p className="text-sm text-muted-foreground mt-1">Manage adoption initiatives and track progress</p>
           </div>
-          <button className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
             + New Initiative
           </button>
         </div>
@@ -83,6 +85,7 @@ const InitiativeList: React.FC = () => {
           })}
         </div>
       </div>
+      <NewInitiativeModal open={showNew} onClose={() => setShowNew(false)} onCreated={() => refetch()} />
     </AppLayout>
   );
 };
