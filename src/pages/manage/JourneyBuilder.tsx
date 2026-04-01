@@ -320,6 +320,7 @@ const JourneyBuilder: React.FC = () => {
           journeyName={selectedJourney.name}
         />
       )}
+      <NewJourneyModal open={newJourneyModal} onClose={() => setNewJourneyModal(false)} onCreated={() => refetchJourneys()} />
     </AppLayout>
   );
 };
