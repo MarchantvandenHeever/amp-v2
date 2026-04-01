@@ -189,7 +189,6 @@ const JourneyBuilder: React.FC = () => {
                   <div
                     key={item.id}
                     draggable
-                    draggable
                     onDragStart={onDragStart(i)}
                     onDragOver={onDragOver(i)}
                     onDrop={onDrop(i)}
