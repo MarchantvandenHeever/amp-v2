@@ -161,7 +161,7 @@ export default function Leaderboard() {
                   {ranked.map((p, i) => {
                     const tier = tierConfig[p.tier] || tierConfig.Starter;
                     const TierIcon = tier.icon;
-                    const isCurrentUser = p.id === user?.profileId;
+                    const isCurrentUser = p.id === user?.id;
                     return (
                       <div key={p.id} className={cn('flex items-center gap-4 px-6 py-3 transition-colors', isCurrentUser && 'bg-primary/5')}>
                         <span className={cn('w-8 text-center font-bold text-sm', i < 3 ? 'text-primary' : 'text-muted-foreground')}>
