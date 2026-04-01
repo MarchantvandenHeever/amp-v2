@@ -12,7 +12,7 @@ export function useProfiles() {
   });
 }
 
-export function useProfilesByRole(role: string) {
+export function useProfilesByRole(role: 'super_admin' | 'change_manager' | 'team_lead' | 'end_user') {
   return useQuery({
     queryKey: ['profiles', role],
     queryFn: async () => {
