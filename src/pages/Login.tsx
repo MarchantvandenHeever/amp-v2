@@ -30,7 +30,6 @@ const Login: React.FC = () => {
 
   useEffect(() => {
     const fetchPersonas = async () => {
-      // Fetch a curated set of demo personas (one per role + a few end users)
       const { data } = await supabase
         .from('profiles')
         .select('id, display_name, email, role, team, persona')
@@ -61,6 +60,10 @@ const Login: React.FC = () => {
     }
     return roleLabel;
   };
+
+  // Sort personas by role order
+  const roleOrder: UserRole[] = ['super_admin', 'change_manager', 'team_lead', 'end_user'];
+  const sortedPersonas = [...personas].sort((a, b) => roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role));
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -121,7 +124,7 @@ const Login: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {personas.map((persona, i) => {
+              {sortedPersonas.map((persona, i) => {
                 const config = roleConfig[persona.role];
                 const Icon = config.icon;
                 return (
@@ -131,7 +134,7 @@ const Login: React.FC = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.08 }}
                     onClick={() => handleLogin(persona.id, persona.role)}
-                    disabled={loggingIn === persona.id}
+                    disabled={!!loggingIn}
                     className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:amp-shadow-card-hover hover:border-primary/30 transition-all group text-left disabled:opacity-50"
                   >
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.color}`}>
@@ -153,7 +156,7 @@ const Login: React.FC = () => {
           )}
 
           <p className="text-center text-xs text-muted-foreground mt-8">
-            AMP v2 Demo — Behavioural Adoption Platform · Powered by Lovable Cloud
+            AMP v2 Demo — Behavioural Adoption Platform
           </p>
         </motion.div>
       </div>
