@@ -208,12 +208,10 @@ export function useContentItems() {
 // Helper functions (kept client-side for scoring)
 export type AppRole = 'super_admin' | 'change_manager' | 'team_lead' | 'end_user';
 
-export { adoptionScore as getAdoptionScore } from '@/lib/scoringEngine';
+import { adoptionScore as _adoptionScore, DEFAULT_SCORING_CONFIG } from '@/lib/scoringEngine';
 
-// Re-export for backward compat — uses default phase weights from the framework
-export function getAdoptionScoreLegacy(p: number, o: number, c: number, phase: string = 'training_testing'): number {
-  const { adoptionScore, DEFAULT_SCORING_CONFIG } = require('@/lib/scoringEngine');
-  return adoptionScore(p, o, c, phase, DEFAULT_SCORING_CONFIG.phase_weights);
+export function getAdoptionScore(p: number, o: number, c: number, phase: string = 'training_testing'): number {
+  return _adoptionScore(p, o, c, phase, DEFAULT_SCORING_CONFIG.phase_weights);
 }
 
 export function getScoreLabel(score: number): string {
