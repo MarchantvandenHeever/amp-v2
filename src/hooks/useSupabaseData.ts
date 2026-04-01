@@ -73,7 +73,7 @@ export function useJourneys(initiativeId?: string) {
 
 export function useJourneyPhases(journeyId?: string) {
   return useQuery({
-    queryKey: ['journey_phases', journeyId],
+    queryKey: ['journey_phases', journeyId || 'all'],
     queryFn: async () => {
       let query = supabase.from('journey_phases').select('*').order('order_index');
       if (journeyId) query = query.eq('journey_id', journeyId);
@@ -81,7 +81,6 @@ export function useJourneyPhases(journeyId?: string) {
       if (error) throw error;
       return data;
     },
-    enabled: !!journeyId,
   });
 }
 
