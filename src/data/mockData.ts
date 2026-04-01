@@ -343,8 +343,8 @@ export const scoreTrends = [
 ];
 
 export const teamComparison = [
-  { team: 'Sales', participation: 68, ownership: 60, confidence: 56, adoption: 60 },
-  { team: 'Marketing', participation: 58, ownership: 52, confidence: 54, adoption: 54 },
+  { team: 'Sales', participation: 33, ownership: 28, confidence: 26, adoption: 28 },
+  { team: 'Marketing', participation: 28, ownership: 24, confidence: 25, adoption: 25 },
 ];
 
 // ============ BADGES ============
