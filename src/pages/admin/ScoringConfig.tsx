@@ -171,6 +171,31 @@ const ScoringAdmin: React.FC = () => {
 
           {/* Adoption Phase Weights */}
           <TabsContent value="adoption" className="space-y-6">
+            {/* Desired Adoption Target */}
+            <div className="bg-card border border-border rounded-xl p-5 amp-shadow-card">
+              <h3 className="font-heading text-sm font-semibold mb-1">Desired Adoption Target</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Sets the target adoption score. The ideal score at any point = (journey progress %) × this target. e.g., at 50% progress with target 80, ideal = 40.
+              </p>
+              <div className="flex items-center gap-4">
+                <div className="flex-1 max-w-xs space-y-2">
+                  <Label>Target Score (0–100)</Label>
+                  <Input
+                    type="number" min={0} max={100} value={desiredTarget}
+                    onChange={e => { setDesiredTarget(parseInt(e.target.value) || 0); setDirty(true); }}
+                    className="h-9 w-32"
+                  />
+                </div>
+                <div className="bg-secondary/30 rounded-lg p-4 text-center flex-1">
+                  <p className="text-xs text-muted-foreground mb-1">Example at 50% journey progress</p>
+                  <p className="text-2xl font-bold text-amp-adoption">{Math.round(0.5 * desiredTarget)}</p>
+                  <p className="text-xs text-muted-foreground">Ideal adoption score</p>
+                </div>
+                <Button size="sm" onClick={() => handleSave('desired_adoption_target', desiredTarget)} disabled={updateConfig.isPending}>
+                  <Save className="w-3.5 h-3.5 mr-1" /> Save Target
+                </Button>
+              </div>
+            </div>
             <div className="bg-card border border-border rounded-xl p-5 amp-shadow-card">
               <h3 className="font-heading text-sm font-semibold mb-1">Phase-Based Dimension Weights</h3>
               <p className="text-xs text-muted-foreground mb-4">
