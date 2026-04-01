@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { useEndUsers, useInitiatives, useRiskFlags, useJourneys, useScores } from '@/hooks/useSupabaseData';
+import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
