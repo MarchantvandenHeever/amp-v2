@@ -55,7 +55,7 @@ const ChangeManagerDashboard: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
-            <AdoptionScoreRing score={avgScore('adoption')} size={140} />
+            <AdoptionScoreRing score={avgScore('adoption')} size={140} idealScore={currentIdeal} />
             <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">Overall Adoption</p>
           </div>
           <ScoreCard label="Participation" score={avgScore('participation')} color="participation" trend={5} />
