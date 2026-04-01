@@ -19,6 +19,7 @@ import TeamDashboard from "./pages/team/Dashboard";
 import EndUserDashboard from "./pages/user/Dashboard";
 import MyInitiatives from "./pages/user/MyInitiatives";
 import MyProgress from "./pages/user/MyProgress";
+import Achievements from "./pages/user/Achievements";
 import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 
@@ -61,7 +62,7 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={<ProtectedRoute><EndUserDashboard /></ProtectedRoute>} />
       <Route path="/dashboard/initiatives" element={<ProtectedRoute><MyInitiatives /></ProtectedRoute>} />
       <Route path="/dashboard/progress" element={<ProtectedRoute><MyProgress /></ProtectedRoute>} />
-      <Route path="/dashboard/achievements" element={<ProtectedRoute><MyProgress /></ProtectedRoute>} />
+      <Route path="/dashboard/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
 
       {/* Shared */}
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
