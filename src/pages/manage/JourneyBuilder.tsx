@@ -36,7 +36,7 @@ const pillarColors: Record<string, string> = {
 };
 
 const JourneyBuilder: React.FC = () => {
-  const { data: journeys, isLoading: loadingJourneys } = useJourneys();
+  const { data: journeys, isLoading: loadingJourneys, refetch: refetchJourneys } = useJourneys();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: items, isLoading: loadingItems, refetch: refetchItems } = useJourneyItems(selectedId || undefined);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
