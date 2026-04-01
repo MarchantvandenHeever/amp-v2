@@ -188,9 +188,7 @@ const JourneyBuilder: React.FC = () => {
                 return (
                   <div
                     key={item.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
+                    draggable
                     draggable
                     onDragStart={onDragStart(i)}
                     onDragOver={onDragOver(i)}
