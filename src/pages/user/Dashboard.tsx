@@ -46,6 +46,7 @@ const EndUserDashboard: React.FC = () => {
   const { data: badges } = useBadges();
   const { data: userBadges } = useUserBadges(user?.id);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const { idealScore } = useIdealAdoptionScore(user?.id);
 
   const { todayTasks, upcomingTasks, todayTimeMinutes } = useMemo(() => {
     if (!allItems) return { todayTasks: [], upcomingTasks: [], todayTimeMinutes: 0 };
