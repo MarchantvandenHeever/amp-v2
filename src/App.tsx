@@ -46,7 +46,7 @@ const AppRoutes = () => {
       <Route path="/manage/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
       <Route path="/manage/content" element={<ProtectedRoute><ContentLibrary /></ProtectedRoute>} />
       <Route path="/manage/announcements" element={<ProtectedRoute><AnnouncementManagement /></ProtectedRoute>} />
-      <Route path="/manage/analytics" element={<ProtectedRoute><ChangeManagerDashboard /></ProtectedRoute>} />
+      <Route path="/manage/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
       <Route path="/manage/risk" element={<ProtectedRoute><RiskInsights /></ProtectedRoute>} />
 
       {/* Team Lead */}
