@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useInitiatives, useMilestones, useJourneys } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
 import { Calendar, Users, ChevronRight, Loader2 } from 'lucide-react';
+import { NewInitiativeModal } from '@/components/initiatives/NewInitiativeModal';
 
 const InitiativeList: React.FC = () => {
-  const { data: initiatives, isLoading: loadingInit } = useInitiatives();
+  const { data: initiatives, isLoading: loadingInit, refetch } = useInitiatives();
   const { data: milestones } = useMilestones();
   const { data: journeys } = useJourneys();
+  const [showNew, setShowNew] = useState(false);
 
   if (loadingInit) {
     return (
