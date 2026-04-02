@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { endUsers, initiatives, riskFlags, scoreTrends, teamComparison } from '@/data/mockData';
+import type { InitiativeOption } from '@/components/charts/AdoptionTrendChart';
 import { motion } from 'framer-motion';
 import { Users, Target, AlertTriangle, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -50,7 +51,12 @@ const SuperAdminDashboard: React.FC = () => {
         {/* Trend Chart */}
         <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
           <h3 className="font-heading font-semibold mb-4">Adoption Trend</h3>
-          <AdoptionTrendChart data={scoreTrends} height={280} />
+          <AdoptionTrendChart
+            data={scoreTrends}
+            height={280}
+            initiatives={initiatives.filter(i => i.status === 'active').map(i => ({ id: i.id, name: i.name, progress: i.progress }))}
+            progress={Math.round(initiatives.filter(i => i.status === 'active').reduce((s, i) => s + i.progress, 0) / Math.max(1, initiatives.filter(i => i.status === 'active').length))}
+          />
         </div>
 
         {/* Team Comparison */}

@@ -32,6 +32,9 @@ const ChangeManagerDashboard: React.FC = () => {
     return { team, participation: avg('participation'), ownership: avg('ownership'), confidence: avg('confidence'), adoption: avg('adoption') };
   });
 
+  const activeInits = initiatives?.filter(i => i.status === 'active') || [];
+
+  // Combined trend (weighted average across initiatives)
   const scoreTrends = Array.from({ length: 10 }, (_, i) => {
     const factor = (i + 1) / 10;
     return {
@@ -42,6 +45,36 @@ const ChangeManagerDashboard: React.FC = () => {
       adoption: Math.round(avgScore('adoption') * factor),
       idealAdoption: Math.round(desiredTarget * factor),
     };
+  });
+
+  // Average progress across all active initiatives
+  const combinedProgress = activeInits.length > 0
+    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
+    : 100;
+
+  // Per-initiative trend data
+  const initiativeOptions = activeInits.map(init => ({
+    id: init.id,
+    name: init.name,
+    progress: init.progress || 0,
+  }));
+
+  const initiativeData: Record<string, any[]> = {};
+  activeInits.forEach(init => {
+    const initScores = endUserScores.filter(s => s.initiative_id === init.id);
+    const initAvg = (key: string) =>
+      initScores.length ? Math.round(initScores.reduce((sum, s) => sum + Number((s as any)[key] || 0), 0) / initScores.length) : avgScore(key as any);
+    initiativeData[init.id] = Array.from({ length: 10 }, (_, i) => {
+      const factor = (i + 1) / 10;
+      return {
+        week: `W${i + 1}`,
+        participation: Math.round(initAvg('participation') * factor),
+        ownership: Math.round(initAvg('ownership') * factor),
+        confidence: Math.round(initAvg('confidence') * factor),
+        adoption: Math.round(initAvg('adoption') * factor),
+        idealAdoption: Math.round(desiredTarget * factor),
+      };
+    });
   });
 
   return (
@@ -92,7 +125,13 @@ const ChangeManagerDashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-4">Adoption Trend</h3>
-            <AdoptionTrendChart data={scoreTrends} height={240} />
+            <AdoptionTrendChart
+              data={scoreTrends}
+              height={240}
+              initiatives={initiativeOptions}
+              initiativeData={initiativeData}
+              progress={combinedProgress}
+            />
           </div>
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-4">Team Comparison</h3>

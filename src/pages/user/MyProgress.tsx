@@ -164,7 +164,7 @@ const MyProgress: React.FC = () => {
         {userHistory.length > 0 && (
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-4">Score Trend Over Time</h3>
-            <AdoptionTrendChart data={userHistory} height={280} />
+            <AdoptionTrendChart data={userHistory} height={280} progress={journeyProgress} />
           </div>
         )}
 
