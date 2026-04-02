@@ -129,31 +129,19 @@ const Analytics: React.FC = () => {
       const m = w.match(/\d+/);
       return m ? parseInt(m[0]) : 0;
     });
-    // Use initiative dates for total duration, not week estimation
-    const maxDataWeek = Math.max(...weekNumbers, 1);
-    let estimatedTotalWeeks = maxDataWeek;
-    if (startDate && endDate) {
-      const totalMs = new Date(endDate).getTime() - new Date(startDate).getTime();
-      const elapsedMs = Math.max(0, Date.now() - new Date(startDate).getTime());
-      const progressFrac = totalMs > 0 ? Math.min(elapsedMs / totalMs, 1) : 1;
-      estimatedTotalWeeks = progressFrac > 0 ? Math.max(Math.ceil(maxDataWeek / progressFrac), maxDataWeek) : maxDataWeek;
-    }
-
     return weekEntries.map(([week, v]) => {
       const m = week.match(/\d+/);
       const weekNum = m ? parseInt(m[0]) : 1;
-      // Duration-based ideal: compute timeProgressRatio at this week point
       let idealAdoption: number;
       if (startDate && endDate) {
-        const start = new Date(startDate).getTime();
-        const end = new Date(endDate).getTime();
-        const totalDuration = end - start;
-        // Map week to a point in calendar time
-        const weekPointMs = start + (weekNum / estimatedTotalWeeks) * totalDuration;
-        const elapsed = Math.max(0, Math.min(weekPointMs - start, totalDuration));
-        idealAdoption = Math.round(desiredTarget * (elapsed / totalDuration));
+        const startMs = new Date(startDate).getTime();
+        const endMs = new Date(endDate).getTime();
+        const totalDuration = endMs - startMs;
+        const weekDateMs = startMs + weekNum * 7 * 24 * 60 * 60 * 1000;
+        const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
+        idealAdoption = totalDuration > 0 ? Math.round(desiredTarget * (elapsed / totalDuration)) : 0;
       } else {
-        idealAdoption = Math.round(desiredTarget * (weekNum / estimatedTotalWeeks));
+        idealAdoption = 0;
       }
       return {
         week,
