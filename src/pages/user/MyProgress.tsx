@@ -46,21 +46,24 @@ const MyProgress: React.FC = () => {
 
   // Score trend data
   const userHistoryRaw = (scoreHistory || []).filter((s: any) => s.user_id === user.id);
-  const availablePoints = userHistoryRaw.length;
-  // Estimate full journey data points from progress so ideal adoption scales correctly
-  const progressFraction = (journeyProgress || 100) / 100;
-  const estimatedTotalPoints = progressFraction > 0 ? Math.round(availablePoints / progressFraction) : availablePoints;
-  const totalPoints = Math.max(estimatedTotalPoints, availablePoints);
   const userHistory = userHistoryRaw
     .sort((a: any, b: any) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-    .map((s: any, idx: number) => ({
-      week: s.week_label || '',
-      participation: Number(s.participation || 0),
-      ownership: Number(s.ownership || 0),
-      confidence: Number(s.confidence || 0),
-      adoption: Number(s.adoption || 0),
-      idealAdoption: totalPoints > 0 ? Math.round(desiredTarget * ((idx + 1) / totalPoints)) : 0,
-    }));
+    .map((s: any) => {
+      const weekLabel = s.week_label || '';
+      const m = weekLabel.match(/\d+/);
+      const weekNum = m ? parseInt(m[0]) : 1;
+      return { week: weekLabel, weekNum, participation: Number(s.participation || 0), ownership: Number(s.ownership || 0), confidence: Number(s.confidence || 0), adoption: Number(s.adoption || 0) };
+    });
+  // Determine max week across all data points for correct ideal scaling
+  const maxWeekNum = Math.max(...userHistory.map(h => h.weekNum), 10);
+  const userHistoryWithIdeal = userHistory.map(h => ({
+    week: h.week,
+    participation: h.participation,
+    ownership: h.ownership,
+    confidence: h.confidence,
+    adoption: h.adoption,
+    idealAdoption: Math.round(desiredTarget * (h.weekNum / maxWeekNum)),
+  }));
 
   // Radar data
   const radarData = [
@@ -165,10 +168,10 @@ const MyProgress: React.FC = () => {
         </div>
 
         {/* Trend Chart */}
-        {userHistory.length > 0 && (
+        {userHistoryWithIdeal.length > 0 && (
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-4">Score Trend Over Time</h3>
-            <AdoptionTrendChart data={userHistory} height={280} progress={journeyProgress} />
+            <AdoptionTrendChart data={userHistoryWithIdeal} height={280} progress={journeyProgress} />
           </div>
         )}
 

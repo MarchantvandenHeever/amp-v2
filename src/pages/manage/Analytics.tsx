@@ -85,19 +85,26 @@ const Analytics: React.FC = () => {
       byWeek[week].confidence += Number(r.confidence) || 0;
       byWeek[week].adoption += Number(r.adoption) || 0;
     });
-    const availableWeeks = Object.keys(byWeek).length;
-    const progressFraction = (combinedProgress || 100) / 100;
-    const estimatedTotalWeeks = progressFraction > 0 ? Math.round(availableWeeks / progressFraction) : availableWeeks;
-    const totalWeeks = Math.max(estimatedTotalWeeks, availableWeeks);
-    return Object.entries(byWeek).map(([week, v], idx) => ({
-      week,
-      participation: Math.round(v.participation / v.count),
-      ownership: Math.round(v.ownership / v.count),
-      confidence: Math.round(v.confidence / v.count),
-      adoption: Math.round(v.adoption / v.count),
-      idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
-    }));
-  }, [scoreHistory, selectedInitiative, desiredTarget, combinedProgress]);
+    // Parse week numbers to find the max week (total journey weeks)
+    const weekEntries = Object.entries(byWeek);
+    const weekNumbers = weekEntries.map(([w]) => {
+      const m = w.match(/\d+/);
+      return m ? parseInt(m[0]) : 0;
+    });
+    const maxWeek = Math.max(...weekNumbers, 10); // at least 10
+    return weekEntries.map(([week, v]) => {
+      const m = week.match(/\d+/);
+      const weekNum = m ? parseInt(m[0]) : 1;
+      return {
+        week,
+        participation: Math.round(v.participation / v.count),
+        ownership: Math.round(v.ownership / v.count),
+        confidence: Math.round(v.confidence / v.count),
+        adoption: Math.round(v.adoption / v.count),
+        idealAdoption: Math.round(desiredTarget * (weekNum / maxWeek)),
+      };
+    });
+  }, [scoreHistory, selectedInitiative, desiredTarget]);
 
   const perInitiativeTrendData = useMemo(() => {
     if (!scoreHistory?.length) return {} as Record<string, any[]>;
@@ -114,18 +121,24 @@ const Analytics: React.FC = () => {
         byWeek[week].confidence += Number(r.confidence) || 0;
         byWeek[week].adoption += Number(r.adoption) || 0;
       });
-      const availableWeeks = Object.keys(byWeek).length;
-      const initProgress = (init.progress || 100) / 100;
-      const estimatedTotalWeeks = initProgress > 0 ? Math.round(availableWeeks / initProgress) : availableWeeks;
-      const totalWeeks = Math.max(estimatedTotalWeeks, availableWeeks);
-      result[init.id] = Object.entries(byWeek).map(([week, v], idx) => ({
-        week,
-        participation: Math.round(v.participation / v.count),
-        ownership: Math.round(v.ownership / v.count),
-        confidence: Math.round(v.confidence / v.count),
-        adoption: Math.round(v.adoption / v.count),
-        idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
-      }));
+      const weekEntries = Object.entries(byWeek);
+      const weekNumbers = weekEntries.map(([w]) => {
+        const m = w.match(/\d+/);
+        return m ? parseInt(m[0]) : 0;
+      });
+      const maxWeek = Math.max(...weekNumbers, 10);
+      result[init.id] = weekEntries.map(([week, v]) => {
+        const m = week.match(/\d+/);
+        const weekNum = m ? parseInt(m[0]) : 1;
+        return {
+          week,
+          participation: Math.round(v.participation / v.count),
+          ownership: Math.round(v.ownership / v.count),
+          confidence: Math.round(v.confidence / v.count),
+          adoption: Math.round(v.adoption / v.count),
+          idealAdoption: Math.round(desiredTarget * (weekNum / maxWeek)),
+        };
+      });
     });
     return result;
   }, [scoreHistory, activeInits, desiredTarget]);
