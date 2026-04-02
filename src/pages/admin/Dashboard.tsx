@@ -4,7 +4,8 @@ import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { endUsers, initiatives, riskFlags, scoreTrends, teamComparison } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Users, Target, AlertTriangle, TrendingUp } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import AdoptionTrendChart from '@/components/charts/AdoptionTrendChart';
 
 const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
   Math.round(endUsers.reduce((s, u) => s + u.scores[key], 0) / endUsers.length);
