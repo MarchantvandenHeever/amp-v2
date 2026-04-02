@@ -34,12 +34,16 @@ const ChangeManagerDashboard: React.FC = () => {
 
   const activeInits = initiatives?.filter(i => i.status === 'active') || [];
 
+  // Average progress across all active initiatives
+  const combinedProgress = activeInits.length > 0
+    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
+    : 100;
+
   // Combined trend — scale so that at the progress-cutoff week the value equals the current actual score
   const totalWeeks = 10;
   const progressFraction = Math.max(combinedProgress, 1) / 100;
   const scoreTrends = Array.from({ length: totalWeeks }, (_, i) => {
     const weekFraction = (i + 1) / totalWeeks;
-    // Linear ramp: at progress point value = actual score
     const scale = weekFraction / progressFraction;
     return {
       week: `W${i + 1}`,
@@ -50,10 +54,6 @@ const ChangeManagerDashboard: React.FC = () => {
       idealAdoption: Math.round(desiredTarget * weekFraction),
     };
   });
-
-  // Average progress across all active initiatives
-  const combinedProgress = activeInits.length > 0
-    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
     : 100;
 
   // Per-initiative trend data
