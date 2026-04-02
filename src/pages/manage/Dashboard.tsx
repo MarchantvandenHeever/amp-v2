@@ -5,7 +5,8 @@ import { useEndUsers, useInitiatives, useRiskFlags, useJourneys, useScores } fro
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import AdoptionTrendChart from '@/components/charts/AdoptionTrendChart';
 
 const ChangeManagerDashboard: React.FC = () => {
   const { data: profiles, isLoading: loadingProfiles } = useEndUsers();
