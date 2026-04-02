@@ -82,8 +82,18 @@ const MyProgress: React.FC = () => {
   // Combined date range
   const starts = relevantInits.map((i: any) => i.start_date).filter(Boolean) as string[];
   const ends = relevantInits.map((i: any) => i.end_date).filter(Boolean) as string[];
-  const combinedStart = starts.length ? starts.sort()[0] : null;
-  const combinedEnd = ends.length ? ends.sort().reverse()[0] : null;
+  const combinedStartStr = starts.length ? starts.sort()[0] : null;
+  const combinedEndStr = ends.length ? ends.sort().reverse()[0] : null;
+
+  // Duration-based combined progress for truncating chart
+  const combinedProgressValue = useMemo(() => {
+    if (!combinedStartStr || !combinedEndStr) return 100;
+    const startMs = new Date(combinedStartStr).getTime();
+    const endMs = new Date(combinedEndStr).getTime();
+    const totalDuration = endMs - startMs;
+    if (totalDuration <= 0) return 100;
+    return Math.min(100, Math.round(((Date.now() - startMs) / totalDuration) * 100));
+  }, [combinedStartStr, combinedEndStr]);
 
   const userHistoryWithIdeal = userHistory.map(h => {
     let idealAdoption: number;
