@@ -1,0 +1,1 @@
+ALTER TABLE public.scoring_config ADD CONSTRAINT scoring_config_config_key_unique UNIQUE (config_key);
