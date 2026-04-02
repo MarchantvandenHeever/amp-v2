@@ -59,6 +59,18 @@ const Analytics: React.FC = () => {
     };
   }, [scores, selectedInitiative]);
 
+  // Per-initiative data setup (needed by trendData)
+  const activeInits = initiatives?.filter(i => i.status === 'active') || [];
+  const initiativeOptions = activeInits.map(init => ({
+    id: init.id,
+    name: init.name,
+    progress: init.progress || 0,
+  }));
+
+  const combinedProgress = activeInits.length > 0
+    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
+    : 100;
+
   // Trend data (score_history by week)
   const trendData = useMemo(() => {
     if (!scoreHistory?.length) return [];
@@ -74,7 +86,6 @@ const Analytics: React.FC = () => {
       byWeek[week].adoption += Number(r.adoption) || 0;
     });
     const availableWeeks = Object.keys(byWeek).length;
-    // Estimate full journey weeks from progress — if 50% done with 5 weeks of data, full = 10
     const progressFraction = (combinedProgress || 100) / 100;
     const estimatedTotalWeeks = progressFraction > 0 ? Math.round(availableWeeks / progressFraction) : availableWeeks;
     const totalWeeks = Math.max(estimatedTotalWeeks, availableWeeks);
@@ -87,17 +98,6 @@ const Analytics: React.FC = () => {
       idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
     }));
   }, [scoreHistory, selectedInitiative, desiredTarget, combinedProgress]);
-
-  // Per-initiative trend data for the AdoptionTrendChart filter
-  const activeInits = initiatives?.filter(i => i.status === 'active') || [];
-  const initiativeOptions = activeInits.map(init => ({
-    id: init.id,
-    name: init.name,
-    progress: init.progress || 0,
-  }));
-
-  const combinedProgress = activeInits.length > 0
-    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
     : 100;
 
   const perInitiativeTrendData = useMemo(() => {
