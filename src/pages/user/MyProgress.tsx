@@ -44,16 +44,32 @@ const MyProgress: React.FC = () => {
   const totalTimeSpent = completedItems.reduce((sum: number, i: any) => sum + parseDuration(i.duration), 0);
   const totalTimeRemaining = userItems.filter((i: any) => i.status !== 'completed').reduce((sum: number, i: any) => sum + parseDuration(i.duration), 0);
 
-  // Score trend data
+  // Score trend data — aggregate across initiatives by week label
   const userHistoryRaw = (scoreHistory || []).filter((s: any) => s.user_id === user.id);
-  const userHistory = userHistoryRaw
-    .sort((a: any, b: any) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-    .map((s: any) => {
-      const weekLabel = s.week_label || '';
-      const m = weekLabel.match(/\d+/);
+  const byWeek: Record<string, { count: number; participation: number; ownership: number; confidence: number; adoption: number }> = {};
+  userHistoryRaw.forEach((s: any) => {
+    const week = s.week_label || 'W1';
+    if (!byWeek[week]) byWeek[week] = { count: 0, participation: 0, ownership: 0, confidence: 0, adoption: 0 };
+    byWeek[week].count++;
+    byWeek[week].participation += Number(s.participation || 0);
+    byWeek[week].ownership += Number(s.ownership || 0);
+    byWeek[week].confidence += Number(s.confidence || 0);
+    byWeek[week].adoption += Number(s.adoption || 0);
+  });
+  const userHistory = Object.entries(byWeek)
+    .map(([week, v]) => {
+      const m = week.match(/\d+/);
       const weekNum = m ? parseInt(m[0]) : 1;
-      return { week: weekLabel, weekNum, participation: Number(s.participation || 0), ownership: Number(s.ownership || 0), confidence: Number(s.confidence || 0), adoption: Number(s.adoption || 0) };
-    });
+      return {
+        week,
+        weekNum,
+        participation: Math.round(v.participation / v.count),
+        ownership: Math.round(v.ownership / v.count),
+        confidence: Math.round(v.confidence / v.count),
+        adoption: Math.round(v.adoption / v.count),
+      };
+    })
+    .sort((a, b) => a.weekNum - b.weekNum);
   // Estimate total journey weeks from progress to scale ideal adoption correctly
   const maxDataWeek = Math.max(...userHistory.map(h => h.weekNum), 1);
   const jpFrac = Math.max(journeyProgress, 1) / 100;
@@ -173,7 +189,7 @@ const MyProgress: React.FC = () => {
         {userHistoryWithIdeal.length > 0 && (
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-4">Score Trend Over Time</h3>
-            <AdoptionTrendChart data={userHistoryWithIdeal} height={280} progress={journeyProgress} />
+            <AdoptionTrendChart data={userHistoryWithIdeal} height={280} />
           </div>
         )}
 

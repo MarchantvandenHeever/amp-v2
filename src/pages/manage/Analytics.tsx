@@ -100,13 +100,14 @@ const Analytics: React.FC = () => {
       const weekNum = m ? parseInt(m[0]) : 1;
       return {
         week,
+        weekNum,
         participation: Math.round(v.participation / v.count),
         ownership: Math.round(v.ownership / v.count),
         confidence: Math.round(v.confidence / v.count),
         adoption: Math.round(v.adoption / v.count),
         idealAdoption: Math.round(desiredTarget * (weekNum / estimatedTotalWeeks)),
       };
-    });
+    }).sort((a, b) => a.weekNum - b.weekNum).map(({ weekNum, ...rest }) => rest);
   }, [scoreHistory, selectedInitiative, desiredTarget, combinedProgress]);
 
   const perInitiativeTrendData = useMemo(() => {
@@ -137,13 +138,14 @@ const Analytics: React.FC = () => {
         const weekNum = m ? parseInt(m[0]) : 1;
         return {
           week,
+          weekNum,
           participation: Math.round(v.participation / v.count),
           ownership: Math.round(v.ownership / v.count),
           confidence: Math.round(v.confidence / v.count),
           adoption: Math.round(v.adoption / v.count),
           idealAdoption: Math.round(desiredTarget * (weekNum / estimatedTotalWeeks)),
         };
-      });
+      }).sort((a, b) => a.weekNum - b.weekNum).map(({ weekNum, ...rest }) => rest);
     });
     return result;
   }, [scoreHistory, activeInits, desiredTarget]);
