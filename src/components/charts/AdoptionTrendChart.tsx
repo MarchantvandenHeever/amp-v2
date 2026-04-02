@@ -13,7 +13,7 @@ interface SeriesConfig {
 
 const DEFAULT_SERIES: SeriesConfig[] = [
   { key: 'adoption', label: 'Actual Adoption', color: 'hsl(var(--amp-adoption))', strokeWidth: 2.5, defaultVisible: true },
-  { key: 'idealAdoption', label: 'Ideal Adoption', color: 'hsl(var(--amp-adoption))', strokeWidth: 2, defaultVisible: true },
+  { key: 'idealAdoption', label: 'Ideal Adoption', color: 'hsl(var(--primary))', strokeWidth: 2, defaultVisible: true },
   { key: 'participation', label: 'Participation', color: 'hsl(var(--amp-participation))', strokeWidth: 1.5, defaultVisible: true },
   { key: 'ownership', label: 'Ownership', color: 'hsl(var(--amp-ownership))', strokeWidth: 1.5, defaultVisible: true },
   { key: 'confidence', label: 'Confidence', color: 'hsl(var(--amp-confidence))', strokeWidth: 1.5, defaultVisible: true },
