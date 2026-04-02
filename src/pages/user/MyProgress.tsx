@@ -97,9 +97,9 @@ const MyProgress: React.FC = () => {
 
   const userHistoryWithIdeal = userHistory.map(h => {
     let idealAdoption: number;
-    if (combinedStart && combinedEnd) {
-      const startMs = new Date(combinedStart).getTime();
-      const endMs = new Date(combinedEnd).getTime();
+    if (combinedStartStr && combinedEndStr) {
+      const startMs = new Date(combinedStartStr).getTime();
+      const endMs = new Date(combinedEndStr).getTime();
       const totalDuration = endMs - startMs;
       // Each week label maps to a calendar date: start + weekNum * 7 days
       const weekDateMs = startMs + h.weekNum * 7 * 24 * 60 * 60 * 1000;
