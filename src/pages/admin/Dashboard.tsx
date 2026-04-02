@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { endUsers, initiatives, riskFlags, scoreTrends, teamComparison } from '@/data/mockData';
+import type { InitiativeOption } from '@/components/charts/AdoptionTrendChart';
 import { motion } from 'framer-motion';
 import { Users, Target, AlertTriangle, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
