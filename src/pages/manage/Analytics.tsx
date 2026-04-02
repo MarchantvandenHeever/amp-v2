@@ -98,7 +98,6 @@ const Analytics: React.FC = () => {
       idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
     }));
   }, [scoreHistory, selectedInitiative, desiredTarget, combinedProgress]);
-    : 100;
 
   const perInitiativeTrendData = useMemo(() => {
     if (!scoreHistory?.length) return {} as Record<string, any[]>;
