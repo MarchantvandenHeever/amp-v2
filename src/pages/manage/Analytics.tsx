@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
+import AdoptionTrendChart from '@/components/charts/AdoptionTrendChart';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -81,7 +82,47 @@ const Analytics: React.FC = () => {
       adoption: Math.round(v.adoption / v.count),
       idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
     }));
-  }, [scoreHistory, selectedInitiative]);
+  }, [scoreHistory, selectedInitiative, desiredTarget]);
+
+  // Per-initiative trend data for the AdoptionTrendChart filter
+  const activeInits = initiatives?.filter(i => i.status === 'active') || [];
+  const initiativeOptions = activeInits.map(init => ({
+    id: init.id,
+    name: init.name,
+    progress: init.progress || 0,
+  }));
+
+  const combinedProgress = activeInits.length > 0
+    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
+    : 100;
+
+  const perInitiativeTrendData = useMemo(() => {
+    if (!scoreHistory?.length) return {} as Record<string, any[]>;
+    const result: Record<string, any[]> = {};
+    activeInits.forEach(init => {
+      const filtered = scoreHistory.filter(s => s.initiative_id === init.id);
+      const byWeek: Record<string, { count: number; participation: number; ownership: number; confidence: number; adoption: number }> = {};
+      filtered.forEach(r => {
+        const week = r.week_label || 'Unknown';
+        if (!byWeek[week]) byWeek[week] = { count: 0, participation: 0, ownership: 0, confidence: 0, adoption: 0 };
+        byWeek[week].count++;
+        byWeek[week].participation += Number(r.participation) || 0;
+        byWeek[week].ownership += Number(r.ownership) || 0;
+        byWeek[week].confidence += Number(r.confidence) || 0;
+        byWeek[week].adoption += Number(r.adoption) || 0;
+      });
+      const totalWeeks = Object.keys(byWeek).length;
+      result[init.id] = Object.entries(byWeek).map(([week, v], idx) => ({
+        week,
+        participation: Math.round(v.participation / v.count),
+        ownership: Math.round(v.ownership / v.count),
+        confidence: Math.round(v.confidence / v.count),
+        adoption: Math.round(v.adoption / v.count),
+        idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
+      }));
+    });
+    return result;
+  }, [scoreHistory, activeInits, desiredTarget]);
 
   // Group breakdown (by team or persona)
   const groupData = useMemo(() => {
@@ -235,36 +276,19 @@ const Analytics: React.FC = () => {
 
           {/* TRENDS TAB */}
           <TabsContent value="trends" className="space-y-4">
-            {/* Line chart */}
+            {/* Adoption Trend Chart with initiative filter */}
             <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
               <h3 className="font-heading font-semibold mb-4">Score Trend Over Time</h3>
               {trendData.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">No trend data available</p>
               ) : (
-                <ResponsiveContainer width="100%" height={320}>
-                  <AreaChart data={trendData}>
-                    <defs>
-                      {INDICES.filter(i => selectedIndices.has(i.key)).map(idx => (
-                        <linearGradient key={idx.key} id={`grad-${idx.key}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={idx.color} stopOpacity={0.2} />
-                          <stop offset="95%" stopColor={idx.color} stopOpacity={0} />
-                        </linearGradient>
-                      ))}
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="week" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', fontSize: '12px', background: 'hsl(var(--card))' }} />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    {INDICES.filter(i => selectedIndices.has(i.key)).map(idx => (
-                      <Area key={idx.key} type="monotone" dataKey={idx.key} name={idx.label}
-                        stroke={idx.color} strokeWidth={2} fill={`url(#grad-${idx.key})`} dot={false} />
-                    ))}
-                    {selectedIndices.has('adoption') && (
-                      <Line type="monotone" dataKey="idealAdoption" name="Ideal Adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2} dot={false} strokeDasharray="6 4" opacity={0.4} />
-                    )}
-                  </AreaChart>
-                </ResponsiveContainer>
+                <AdoptionTrendChart
+                  data={trendData}
+                  height={320}
+                  initiatives={initiativeOptions}
+                  initiativeData={perInitiativeTrendData}
+                  progress={combinedProgress}
+                />
               )}
             </div>
 
