@@ -34,16 +34,20 @@ const ChangeManagerDashboard: React.FC = () => {
 
   const activeInits = initiatives?.filter(i => i.status === 'active') || [];
 
-  // Combined trend (weighted average across initiatives)
-  const scoreTrends = Array.from({ length: 10 }, (_, i) => {
-    const factor = (i + 1) / 10;
+  // Combined trend — scale so that at the progress-cutoff week the value equals the current actual score
+  const totalWeeks = 10;
+  const progressFraction = Math.max(combinedProgress, 1) / 100;
+  const scoreTrends = Array.from({ length: totalWeeks }, (_, i) => {
+    const weekFraction = (i + 1) / totalWeeks;
+    // Linear ramp: at progress point value = actual score
+    const scale = weekFraction / progressFraction;
     return {
       week: `W${i + 1}`,
-      participation: Math.round(avgScore('participation') * factor),
-      ownership: Math.round(avgScore('ownership') * factor),
-      confidence: Math.round(avgScore('confidence') * factor),
-      adoption: Math.round(avgScore('adoption') * factor),
-      idealAdoption: Math.round(desiredTarget * factor),
+      participation: Math.min(100, Math.round(avgScore('participation') * scale)),
+      ownership: Math.min(100, Math.round(avgScore('ownership') * scale)),
+      confidence: Math.min(100, Math.round(avgScore('confidence') * scale)),
+      adoption: Math.min(100, Math.round(avgScore('adoption') * scale)),
+      idealAdoption: Math.round(desiredTarget * weekFraction),
     };
   });
 
