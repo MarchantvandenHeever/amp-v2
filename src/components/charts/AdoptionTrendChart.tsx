@@ -106,26 +106,7 @@ const AdoptionTrendChart: React.FC<AdoptionTrendChartProps> = ({
         </div>
       )}
 
-      {/* Series toggles */}
-      <div className="flex flex-wrap gap-3 mb-3">
-        {series.map(s => (
-          <button
-            key={s.key}
-            onClick={() => handleLegendClick(s.key)}
-            className="flex items-center gap-1.5 text-xs font-medium transition-opacity"
-            style={{ opacity: visibleSeries[s.key] ? 1 : 0.35 }}
-          >
-            <span
-              className="inline-block w-4 h-0.5 rounded-full"
-              style={{
-                backgroundColor: s.color,
-                height: s.key === 'idealAdoption' ? 2 : 3,
-              }}
-            />
-            {s.label}
-          </button>
-        ))}
-      </div>
+
 
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={chartData}>
