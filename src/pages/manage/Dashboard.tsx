@@ -34,10 +34,18 @@ const ChangeManagerDashboard: React.FC = () => {
 
   const activeInits = initiatives?.filter(i => i.status === 'active') || [];
 
-  // Average progress across all active initiatives
-  const combinedProgress = activeInits.length > 0
-    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
-    : 100;
+  // Duration-based combined progress
+  const now = new Date();
+  const combinedProgress = (() => {
+    const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
+    const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
+    if (!starts.length || !ends.length) return 100;
+    const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
+    const latest = Math.max(...ends.map(s => new Date(s).getTime()));
+    const totalDuration = latest - earliest;
+    if (totalDuration <= 0) return 100;
+    return Math.min(100, Math.round(((now.getTime() - earliest) / totalDuration) * 100));
+  })();
 
   // Duration-based trend using initiative date ranges
   // Find combined date range across active initiatives
