@@ -54,7 +54,6 @@ const ChangeManagerDashboard: React.FC = () => {
       idealAdoption: Math.round(desiredTarget * weekFraction),
     };
   });
-    : 100;
 
   // Per-initiative trend data
   const initiativeOptions = activeInits.map(init => ({
