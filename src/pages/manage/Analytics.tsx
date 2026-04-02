@@ -115,7 +115,10 @@ const Analytics: React.FC = () => {
         byWeek[week].confidence += Number(r.confidence) || 0;
         byWeek[week].adoption += Number(r.adoption) || 0;
       });
-      const totalWeeks = Object.keys(byWeek).length;
+      const availableWeeks = Object.keys(byWeek).length;
+      const initProgress = (init.progress || 100) / 100;
+      const estimatedTotalWeeks = initProgress > 0 ? Math.round(availableWeeks / initProgress) : availableWeeks;
+      const totalWeeks = Math.max(estimatedTotalWeeks, availableWeeks);
       result[init.id] = Object.entries(byWeek).map(([week, v], idx) => ({
         week,
         participation: Math.round(v.participation / v.count),
