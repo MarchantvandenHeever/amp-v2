@@ -37,11 +37,17 @@ export function useUpdateScoringConfig() {
 
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: any }) => {
-      const { error } = await supabase
+      // First try update, then insert if no rows matched
+      const { error: updateError, count } = await supabase
         .from('scoring_config')
-        .upsert(
-          { config_key: key, config_value: value, category: 'general', updated_at: new Date().toISOString() },
-          { onConflict: 'config_key' }
+        .update({ config_value: value, updated_at: new Date().toISOString() })
+        .eq('config_key', key);
+      if (updateError) throw updateError;
+      // If no row existed, insert it
+      if (count === 0) {
+        const { error: insertError } = await supabase
+          .from('scoring_config')
+          .insert({ config_key: key, config_value: value, category: 'general', updated_at: new Date().toISOString() }
         );
       if (error) throw error;
     },
