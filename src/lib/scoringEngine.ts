@@ -71,24 +71,24 @@ export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
     P_CA: { weight: 0.16, label: 'Content Access', baseline_mean: 0.85, baseline_sd: 0.10 },
     P_ET: { weight: 0.12, label: 'Engagement Timeliness', baseline_mean: 0.70, baseline_sd: 0.15 },
     P_DQ: { weight: 0.12, label: 'Content Dwell Quality', baseline_mean: 0.65, baseline_sd: 0.15 },
-    P_CC: { weight: 0.16, label: 'Completion Coverage', baseline_mean: 0.75, baseline_sd: 0.10 },
+    P_CC: { weight: 0.16, label: 'Completion Coverage', baseline_mean: 0.80, baseline_sd: 0.12 },
     P_EC: { weight: 0.10, label: 'Engagement Consistency', baseline_mean: 0.65, baseline_sd: 0.15 },
-    P_BE: { weight: 0.08, label: 'Breadth of Engagement', baseline_mean: 0.70, baseline_sd: 0.15 },
-    P_RB: { weight: 0.07, label: 'Revisit Behaviour', baseline_mean: 0.30, baseline_sd: 0.15 },
-    P_NR: { weight: 0.07, label: 'Nudge Responsiveness', baseline_mean: 0.60, baseline_sd: 0.20 },
-    P_AE: { weight: 0.06, label: 'Active Engagement Depth', baseline_mean: 0.55, baseline_sd: 0.20 },
-    P_PC: { weight: 0.06, label: 'Participation Continuity', baseline_mean: 0.70, baseline_sd: 0.15 },
+    P_BE: { weight: 0.08, label: 'Breadth of Engagement', baseline_mean: 0.60, baseline_sd: 0.15 },
+    P_RB: { weight: 0.07, label: 'Revisit Behaviour', baseline_mean: 0.35, baseline_sd: 0.15 },
+    P_NR: { weight: 0.07, label: 'Nudge Responsiveness', baseline_mean: 0.55, baseline_sd: 0.20 },
+    P_AE: { weight: 0.06, label: 'Active Engagement Depth', baseline_mean: 0.50, baseline_sd: 0.20 },
+    P_PC: { weight: 0.06, label: 'Participation Continuity', baseline_mean: 0.65, baseline_sd: 0.15 },
   },
   ownership_traits: {
-    O_TCQ: { weight: 0.16, label: 'Task Completion Quality', baseline_mean: 0.75, baseline_sd: 0.10 },
+    O_QQ: { weight: 0.16, label: 'Task Completion Quality', baseline_mean: 0.75, baseline_sd: 0.10 },
     O_TE: { weight: 0.14, label: 'Timeliness of Execution', baseline_mean: 0.70, baseline_sd: 0.15 },
     O_EA: { weight: 0.14, label: 'Evidence of Application', baseline_mean: 0.60, baseline_sd: 0.20 },
     O_IT: { weight: 0.08, label: 'Improvement Over Time', baseline_mean: 0.10, baseline_sd: 0.10 },
     O_VE: { weight: 0.08, label: 'Voluntary Engagement', baseline_mean: 0.25, baseline_sd: 0.15 },
     O_IR: { weight: 0.14, label: 'Independence from Reminders', baseline_mean: 0.70, baseline_sd: 0.15 },
     O_BC: { weight: 0.10, label: 'Behavioural Consistency', baseline_mean: 0.65, baseline_sd: 0.15 },
-    O_PR: { weight: 0.06, label: 'Problem Resolution', baseline_mean: 0.50, baseline_sd: 0.20 },
-    O_VCA: { weight: 0.04, label: 'Volunteer as Change Agent', baseline_mean: 0.20, baseline_sd: 0.15 },
+    O_PR: { weight: 0.06, label: 'Problem Resolution', baseline_mean: 0.60, baseline_sd: 0.20 },
+    O_VC: { weight: 0.04, label: 'Volunteer as Change Agent', baseline_mean: 0.10, baseline_sd: 0.10 },
     O_TW: { weight: 0.03, label: 'Teamwork', baseline_mean: 0.50, baseline_sd: 0.20 },
     O_VI: { weight: 0.03, label: 'Voluntary Insights', baseline_mean: 0.20, baseline_sd: 0.15 },
   },
@@ -98,11 +98,11 @@ export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
     C_RD: { weight: 0.08, label: 'Response Decisiveness', baseline_mean: 0.60, baseline_sd: 0.20 },
     C_CS: { weight: 0.12, label: 'Confidence Stability', baseline_mean: 0.65, baseline_sd: 0.15 },
     C_SC: { weight: 0.18, label: 'Scenario Performance', baseline_mean: 0.60, baseline_sd: 0.20 },
-    C_RM: { weight: 0.08, label: 'Recovery After Mistakes', baseline_mean: 0.55, baseline_sd: 0.20 },
+    C_RF: { weight: 0.08, label: 'Recovery After Mistakes', baseline_mean: 0.55, baseline_sd: 0.20 },
     C_HD: { weight: 0.10, label: 'Help Dependency (inverse)', baseline_mean: 0.65, baseline_sd: 0.15 },
     C_CG: { weight: 0.08, label: 'Confidence Growth', baseline_mean: 0.10, baseline_sd: 0.10 },
-    C_AT: { weight: 0.04, label: 'Advanced Task Participation', baseline_mean: 0.25, baseline_sd: 0.15 },
-    C_TV: { weight: 0.04, label: 'Training Volunteering', baseline_mean: 0.15, baseline_sd: 0.10 },
+    C_AT: { weight: 0.04, label: 'Advanced Task Participation', baseline_mean: 0.20, baseline_sd: 0.15 },
+    C_TV: { weight: 0.04, label: 'Training Volunteering', baseline_mean: 0.10, baseline_sd: 0.10 },
   },
   negative_signals: {
     participation: {
@@ -191,10 +191,30 @@ export function rawDimensionScore(
 
 /**
  * Convert raw score [-1, 1] to dashboard score [0, 100]
- * Score_100 = 50 * (Score_raw + 1)
+ * Per framework docs: Score_disp = max(0, min(100, 50 + 25 × Score_raw))
  */
 export function dashboardScore(rawScore: number): number {
-  return Math.round(Math.max(0, Math.min(100, 50 * (rawScore + 1))));
+  return Math.round(Math.max(0, Math.min(100, 50 + 25 * rawScore)));
+}
+
+/**
+ * Pillar Progressive Score (for trend charts)
+ * ActualPillarProgression(t) = (PillarDashScore / 100) × TP(t)
+ * Returns value on 0–1 scale.
+ * NOTE: This is for DISPLAY on trend charts only.
+ * Pillar KPI cards show the raw dashboard score WITHOUT DPR.
+ */
+export function pillarProgression(pillarDashScore: number, dpr: number): number {
+  return (pillarDashScore / 100) * dpr;
+}
+
+/**
+ * Ideal Pillar Progressive Score
+ * IdealPillarProgression(t) = IdealPillarScore × TP(t)
+ * Where IdealPillarScore is the admin-configured target (0–1 scale).
+ */
+export function idealPillarProgression(idealPillarScore: number, dpr: number): number {
+  return idealPillarScore * dpr;
 }
 
 /**
