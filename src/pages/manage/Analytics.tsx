@@ -73,7 +73,11 @@ const Analytics: React.FC = () => {
       byWeek[week].confidence += Number(r.confidence) || 0;
       byWeek[week].adoption += Number(r.adoption) || 0;
     });
-    const totalWeeks = Object.keys(byWeek).length;
+    const availableWeeks = Object.keys(byWeek).length;
+    // Estimate full journey weeks from progress — if 50% done with 5 weeks of data, full = 10
+    const progressFraction = (combinedProgress || 100) / 100;
+    const estimatedTotalWeeks = progressFraction > 0 ? Math.round(availableWeeks / progressFraction) : availableWeeks;
+    const totalWeeks = Math.max(estimatedTotalWeeks, availableWeeks);
     return Object.entries(byWeek).map(([week, v], idx) => ({
       week,
       participation: Math.round(v.participation / v.count),
@@ -82,7 +86,7 @@ const Analytics: React.FC = () => {
       adoption: Math.round(v.adoption / v.count),
       idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
     }));
-  }, [scoreHistory, selectedInitiative, desiredTarget]);
+  }, [scoreHistory, selectedInitiative, desiredTarget, combinedProgress]);
 
   // Per-initiative trend data for the AdoptionTrendChart filter
   const activeInits = initiatives?.filter(i => i.status === 'active') || [];
