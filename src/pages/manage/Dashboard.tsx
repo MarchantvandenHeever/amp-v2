@@ -61,7 +61,7 @@ const ChangeManagerDashboard: React.FC = () => {
   }, null as Date | null);
 
   const totalWeeks = 10;
-  const now = new Date();
+  // now already declared above
 
   const buildTrendData = (startDate: Date | null, endDate: Date | null, scoresFn: (key: string) => number) => {
     if (!startDate || !endDate) {
