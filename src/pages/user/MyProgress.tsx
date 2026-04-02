@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScoreHistory, useScores, useAllJourneyItems, useAssignments, useJourneys, useInitiatives, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
@@ -82,14 +82,24 @@ const MyProgress: React.FC = () => {
   // Combined date range
   const starts = relevantInits.map((i: any) => i.start_date).filter(Boolean) as string[];
   const ends = relevantInits.map((i: any) => i.end_date).filter(Boolean) as string[];
-  const combinedStart = starts.length ? starts.sort()[0] : null;
-  const combinedEnd = ends.length ? ends.sort().reverse()[0] : null;
+  const combinedStartStr = starts.length ? starts.sort()[0] : null;
+  const combinedEndStr = ends.length ? ends.sort().reverse()[0] : null;
+
+  // Duration-based combined progress for truncating chart
+  const combinedProgressValue = (() => {
+    if (!combinedStartStr || !combinedEndStr) return 100;
+    const startMs = new Date(combinedStartStr).getTime();
+    const endMs = new Date(combinedEndStr).getTime();
+    const totalDuration = endMs - startMs;
+    if (totalDuration <= 0) return 100;
+    return Math.min(100, Math.round(((Date.now() - startMs) / totalDuration) * 100));
+  })();
 
   const userHistoryWithIdeal = userHistory.map(h => {
     let idealAdoption: number;
-    if (combinedStart && combinedEnd) {
-      const startMs = new Date(combinedStart).getTime();
-      const endMs = new Date(combinedEnd).getTime();
+    if (combinedStartStr && combinedEndStr) {
+      const startMs = new Date(combinedStartStr).getTime();
+      const endMs = new Date(combinedEndStr).getTime();
       const totalDuration = endMs - startMs;
       // Each week label maps to a calendar date: start + weekNum * 7 days
       const weekDateMs = startMs + h.weekNum * 7 * 24 * 60 * 60 * 1000;
@@ -214,7 +224,7 @@ const MyProgress: React.FC = () => {
         {userHistoryWithIdeal.length > 0 && (
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-4">Score Trend Over Time</h3>
-            <AdoptionTrendChart data={userHistoryWithIdeal} height={280} />
+            <AdoptionTrendChart data={userHistoryWithIdeal} height={280} progress={combinedProgressValue} />
           </div>
         )}
 
