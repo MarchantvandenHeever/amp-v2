@@ -86,14 +86,14 @@ const MyProgress: React.FC = () => {
   const combinedEndStr = ends.length ? ends.sort().reverse()[0] : null;
 
   // Duration-based combined progress for truncating chart
-  const combinedProgressValue = useMemo(() => {
+  const combinedProgressValue = (() => {
     if (!combinedStartStr || !combinedEndStr) return 100;
     const startMs = new Date(combinedStartStr).getTime();
     const endMs = new Date(combinedEndStr).getTime();
     const totalDuration = endMs - startMs;
     if (totalDuration <= 0) return 100;
     return Math.min(100, Math.round(((Date.now() - startMs) / totalDuration) * 100));
-  }, [combinedStartStr, combinedEndStr]);
+  })();
 
   const userHistoryWithIdeal = userHistory.map(h => {
     let idealAdoption: number;
