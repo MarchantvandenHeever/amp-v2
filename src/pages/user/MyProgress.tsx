@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useScoreHistory, useScores, useAllJourneyItems, useAssignments, useJourneys, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import AdoptionTrendChart from '@/components/charts/AdoptionTrendChart';
 import { TrendingUp, CheckCircle2, Clock, Target, BarChart3, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
