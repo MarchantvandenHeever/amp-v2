@@ -85,28 +85,18 @@ const MyProgress: React.FC = () => {
   const combinedStart = starts.length ? starts.sort()[0] : null;
   const combinedEnd = ends.length ? ends.sort().reverse()[0] : null;
 
-  const maxDataWeek = Math.max(...userHistory.map(h => h.weekNum), 1);
-
-  // Estimate total weeks from duration
-  let estimatedTotalWeeks = maxDataWeek;
-  if (combinedStart && combinedEnd) {
-    const totalMs = new Date(combinedEnd).getTime() - new Date(combinedStart).getTime();
-    const elapsedMs = Math.max(0, Date.now() - new Date(combinedStart).getTime());
-    const progressFrac = totalMs > 0 ? Math.min(elapsedMs / totalMs, 1) : 1;
-    estimatedTotalWeeks = progressFrac > 0 ? Math.max(Math.ceil(maxDataWeek / progressFrac), maxDataWeek) : maxDataWeek;
-  }
-
   const userHistoryWithIdeal = userHistory.map(h => {
     let idealAdoption: number;
     if (combinedStart && combinedEnd) {
-      const start = new Date(combinedStart).getTime();
-      const end = new Date(combinedEnd).getTime();
-      const totalDuration = end - start;
-      const weekPointMs = start + (h.weekNum / estimatedTotalWeeks) * totalDuration;
-      const elapsed = Math.max(0, Math.min(weekPointMs - start, totalDuration));
-      idealAdoption = Math.round(desiredTarget * (elapsed / totalDuration));
+      const startMs = new Date(combinedStart).getTime();
+      const endMs = new Date(combinedEnd).getTime();
+      const totalDuration = endMs - startMs;
+      // Each week label maps to a calendar date: start + weekNum * 7 days
+      const weekDateMs = startMs + h.weekNum * 7 * 24 * 60 * 60 * 1000;
+      const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
+      idealAdoption = totalDuration > 0 ? Math.round(desiredTarget * (elapsed / totalDuration)) : 0;
     } else {
-      idealAdoption = Math.round(desiredTarget * (h.weekNum / estimatedTotalWeeks));
+      idealAdoption = 0;
     }
     return {
       week: h.week,
