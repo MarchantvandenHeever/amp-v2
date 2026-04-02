@@ -39,21 +39,52 @@ const ChangeManagerDashboard: React.FC = () => {
     ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
     : 100;
 
-  // Combined trend — scale so that at the progress-cutoff week the value equals the current actual score
+  // Duration-based trend using initiative date ranges
+  // Find combined date range across active initiatives
+  const combinedStart = activeInits.reduce((earliest, init) => {
+    if (!init.start_date) return earliest;
+    const d = new Date(init.start_date);
+    return !earliest || d < earliest ? d : earliest;
+  }, null as Date | null);
+  const combinedEnd = activeInits.reduce((latest, init) => {
+    if (!init.end_date) return latest;
+    const d = new Date(init.end_date);
+    return !latest || d > latest ? d : latest;
+  }, null as Date | null);
+
   const totalWeeks = 10;
-  const progressFraction = Math.max(combinedProgress, 1) / 100;
-  const scoreTrends = Array.from({ length: totalWeeks }, (_, i) => {
-    const weekFraction = (i + 1) / totalWeeks;
-    const scale = weekFraction / progressFraction;
-    return {
-      week: `W${i + 1}`,
-      participation: Math.min(100, Math.round(avgScore('participation') * scale)),
-      ownership: Math.min(100, Math.round(avgScore('ownership') * scale)),
-      confidence: Math.min(100, Math.round(avgScore('confidence') * scale)),
-      adoption: Math.min(100, Math.round(avgScore('adoption') * scale)),
-      idealAdoption: Math.round(desiredTarget * weekFraction),
-    };
-  });
+  const now = new Date();
+
+  const buildTrendData = (startDate: Date | null, endDate: Date | null, scoresFn: (key: string) => number) => {
+    if (!startDate || !endDate) {
+      // Fallback: evenly spaced
+      return Array.from({ length: totalWeeks }, (_, i) => ({
+        week: `W${i + 1}`,
+        participation: 0, ownership: 0, confidence: 0, adoption: 0,
+        idealAdoption: Math.round(desiredTarget * ((i + 1) / totalWeeks)),
+      }));
+    }
+    const totalDuration = endDate.getTime() - startDate.getTime();
+    const elapsed = Math.max(0, Math.min(now.getTime() - startDate.getTime(), totalDuration));
+    const progressFrac = totalDuration > 0 ? elapsed / totalDuration : 1;
+
+    return Array.from({ length: totalWeeks }, (_, i) => {
+      const weekFraction = (i + 1) / totalWeeks;
+      // timeProgressRatio at this week point
+      const timeProgressRatio = Math.min(weekFraction, 1);
+      const scale = progressFrac > 0 ? weekFraction / progressFrac : 0;
+      return {
+        week: `W${i + 1}`,
+        participation: Math.min(100, Math.round(scoresFn('participation') * scale)),
+        ownership: Math.min(100, Math.round(scoresFn('ownership') * scale)),
+        confidence: Math.min(100, Math.round(scoresFn('confidence') * scale)),
+        adoption: Math.min(100, Math.round(scoresFn('adoption') * scale)),
+        idealAdoption: Math.round(desiredTarget * timeProgressRatio),
+      };
+    });
+  };
+
+  const scoreTrends = buildTrendData(combinedStart, combinedEnd, (key) => avgScore(key as any));
 
   // Per-initiative trend data
   const initiativeOptions = activeInits.map(init => ({
@@ -67,19 +98,9 @@ const ChangeManagerDashboard: React.FC = () => {
     const initScores = endUserScores.filter(s => s.initiative_id === init.id);
     const initAvg = (key: string) =>
       initScores.length ? Math.round(initScores.reduce((sum, s) => sum + Number((s as any)[key] || 0), 0) / initScores.length) : avgScore(key as any);
-    const initProgress = Math.max(init.progress || 1, 1) / 100;
-    initiativeData[init.id] = Array.from({ length: totalWeeks }, (_, i) => {
-      const weekFraction = (i + 1) / totalWeeks;
-      const scale = weekFraction / initProgress;
-      return {
-        week: `W${i + 1}`,
-        participation: Math.min(100, Math.round(initAvg('participation') * scale)),
-        ownership: Math.min(100, Math.round(initAvg('ownership') * scale)),
-        confidence: Math.min(100, Math.round(initAvg('confidence') * scale)),
-        adoption: Math.min(100, Math.round(initAvg('adoption') * scale)),
-        idealAdoption: Math.round(desiredTarget * weekFraction),
-      };
-    });
+    const initStart = init.start_date ? new Date(init.start_date) : null;
+    const initEnd = init.end_date ? new Date(init.end_date) : null;
+    initiativeData[init.id] = buildTrendData(initStart, initEnd, initAvg);
   });
 
   return (
