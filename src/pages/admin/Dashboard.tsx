@@ -4,7 +4,8 @@ import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { endUsers, initiatives, riskFlags, scoreTrends, teamComparison } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Users, Target, AlertTriangle, TrendingUp } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import AdoptionTrendChart from '@/components/charts/AdoptionTrendChart';
 
 const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
   Math.round(endUsers.reduce((s, u) => s + u.scores[key], 0) / endUsers.length);
@@ -49,19 +50,7 @@ const SuperAdminDashboard: React.FC = () => {
         {/* Trend Chart */}
         <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
           <h3 className="font-heading font-semibold mb-4">Adoption Trend</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={scoreTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="week" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', fontSize: '12px' }} />
-              <Line type="monotone" dataKey="participation" stroke="hsl(var(--amp-participation))" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="ownership" stroke="hsl(var(--amp-ownership))" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="confidence" stroke="hsl(var(--amp-confidence))" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="adoption" name="Actual Adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="idealAdoption" name="Ideal Adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2} dot={false} strokeDasharray="6 4" opacity={0.4} />
-            </LineChart>
-          </ResponsiveContainer>
+          <AdoptionTrendChart data={scoreTrends} height={280} />
         </div>
 
         {/* Team Comparison */}
