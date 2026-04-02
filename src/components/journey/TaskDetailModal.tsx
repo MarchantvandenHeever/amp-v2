@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   CheckCircle2, Circle, Clock, Lock, Star, Upload, MessageSquare, Target,
@@ -22,6 +23,7 @@ interface TaskItem {
   execution_mode?: string;
   contributes_to?: string[] | null;
   content_item_id?: string | null;
+  journey_id?: string;
 }
 
 interface TaskDetailModalProps {
@@ -50,6 +52,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
   const [completing, setCompleting] = useState(false);
   const [starting, setStarting] = useState(false);
   const queryClient = useQueryClient();
+  const { user, refreshUser } = useAuth();
 
   if (!item) return null;
 
@@ -78,8 +81,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
   };
 
   const handleComplete = async () => {
+    if (!user) { toast.error('Not logged in'); return; }
     setCompleting(true);
     try {
+      // 1. Mark item completed
       const { error } = await supabase
         .from('journey_items')
         .update({
@@ -90,16 +95,101 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
         .eq('id', item.id);
       if (error) throw error;
 
-      // Log activity event
+      // 2. Log activity event with correct user profile id
       await supabase.from('activity_events').insert({
-        user_id: (await supabase.auth.getUser()).data.user?.id || item.id,
+        user_id: user.id,
         journey_item_id: item.id,
         event_type: 'task_completed',
         metadata: { type: item.type, title: item.title },
       });
 
-      await queryClient.invalidateQueries({ queryKey: ['journey_items'] });
-      toast.success('Task completed! 🎉', { description: `+${item.mandatory ? 20 : 10} points earned` });
+      // 3. Award points
+      const pointsEarned = item.mandatory ? 20 : 10;
+      await supabase.from('points_ledger').insert({
+        user_id: user.id,
+        points: pointsEarned,
+        journey_item_id: item.id,
+        reason: `Completed: ${item.title}`,
+      });
+
+      // 4. Update profile points and streak
+      const newPoints = (user.points || 0) + pointsEarned;
+      const newStreak = (user.streak || 0) + 1;
+      await supabase.from('profiles').update({
+        points: newPoints,
+        streak: newStreak,
+        updated_at: new Date().toISOString(),
+      }).eq('id', user.id);
+
+      // 5. Recalculate journey progress
+      if (item.journey_id) {
+        const { data: journeyItems } = await supabase
+          .from('journey_items')
+          .select('id, status, weight')
+          .eq('journey_id', item.journey_id);
+        if (journeyItems && journeyItems.length > 0) {
+          const totalWeight = journeyItems.reduce((s, i) => s + (i.weight || 1), 0);
+          const completedWeight = journeyItems
+            .filter(i => i.status === 'completed' || i.id === item.id) // include current
+            .reduce((s, i) => s + (i.weight || 1), 0);
+          const progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
+          await supabase.from('journeys').update({ progress }).eq('id', item.journey_id);
+        }
+      }
+
+      // 6. Update user scores based on contributions
+      const contribs = (item.contributes_to || []) as string[];
+      if (contribs.length > 0) {
+        const { data: currentScore } = await supabase
+          .from('scores')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const bump = 3; // points per contribution dimension
+        const newScores = {
+          participation: Number(currentScore?.participation || user.scores.participation) + (contribs.includes('participation') ? bump : 0),
+          ownership: Number(currentScore?.ownership || user.scores.ownership) + (contribs.includes('ownership') ? bump : 0),
+          confidence: Number(currentScore?.confidence || user.scores.confidence) + (contribs.includes('confidence') ? bump : 0),
+        };
+        // Cap at journey progress ceiling (ideal adoption logic)
+        const cappedScores = {
+          participation: Math.min(newScores.participation, 100),
+          ownership: Math.min(newScores.ownership, 100),
+          confidence: Math.min(newScores.confidence, 100),
+        };
+        const adoption = Math.round((cappedScores.participation + cappedScores.ownership + cappedScores.confidence) / 3);
+
+        if (currentScore) {
+          await supabase.from('scores').update({
+            ...cappedScores,
+            adoption,
+            calculated_at: new Date().toISOString(),
+          }).eq('id', currentScore.id);
+        } else {
+          await supabase.from('scores').insert({
+            user_id: user.id,
+            ...cappedScores,
+            adoption,
+          });
+        }
+      }
+
+      // 7. Invalidate all relevant caches
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['journey_items'] }),
+        queryClient.invalidateQueries({ queryKey: ['journeys'] }),
+        queryClient.invalidateQueries({ queryKey: ['scores'] }),
+        queryClient.invalidateQueries({ queryKey: ['score_history'] }),
+        queryClient.invalidateQueries({ queryKey: ['profiles'] }),
+        queryClient.invalidateQueries({ queryKey: ['points_ledger'] }),
+        queryClient.invalidateQueries({ queryKey: ['activity_events'] }),
+      ]);
+
+      // 8. Refresh the user context so dashboard reflects new points/scores
+      await refreshUser();
+
+      toast.success('Task completed! 🎉', { description: `+${pointsEarned} points earned` });
       onOpenChange(false);
     } catch (err: any) {
       toast.error('Failed to complete task: ' + err.message);
