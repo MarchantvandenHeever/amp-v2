@@ -69,25 +69,15 @@ const AdoptionTrendChart: React.FC<AdoptionTrendChartProps> = ({
     }
 
     if (prog != null && prog < 100 && rawData.length > 0) {
-      // Truncate data: only show data points up to the progress %
       const cutoffIndex = Math.max(1, Math.ceil((prog / 100) * rawData.length));
-      const truncated = rawData.slice(0, cutoffIndex);
-      
-      // Cap ideal adoption at progress-proportional value
-      const capped = truncated.map((point: any, idx: number) => {
-        const progressAtPoint = ((idx + 1) / rawData.length) * 100;
-        if (progressAtPoint > (prog ?? 100)) {
-          return { ...point, idealAdoption: undefined, adoption: undefined };
-        }
-        return point;
-      });
-
+      // Keep data points up to cutoff with all series intact
+      const visible = rawData.slice(0, cutoffIndex);
       // Fill remaining points as empty for axis continuity
       const remaining = rawData.slice(cutoffIndex).map((point: any) => ({
         [xDataKey]: point[xDataKey],
       }));
 
-      return { chartData: [...capped, ...remaining], activeProgress: prog };
+      return { chartData: [...visible, ...remaining], activeProgress: prog };
     }
 
     return { chartData: rawData, activeProgress: prog ?? 100 };
