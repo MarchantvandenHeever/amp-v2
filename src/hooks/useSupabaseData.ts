@@ -204,6 +204,34 @@ export function useContentItems() {
   });
 }
 
+export function useActivityEvents(userId?: string) {
+  return useQuery({
+    queryKey: ['activity_events', userId],
+    queryFn: async () => {
+      let query = supabase.from('activity_events').select('*').order('created_at', { ascending: false }).limit(50);
+      if (userId) query = query.eq('user_id', userId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+}
+
+export function usePointsLedger(userId?: string) {
+  return useQuery({
+    queryKey: ['points_ledger', userId],
+    queryFn: async () => {
+      let query = supabase.from('points_ledger').select('*').order('created_at', { ascending: false });
+      if (userId) query = query.eq('user_id', userId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+}
+
 // Helper functions (kept client-side for scoring)
 export type AppRole = 'super_admin' | 'change_manager' | 'team_lead' | 'end_user';
 
