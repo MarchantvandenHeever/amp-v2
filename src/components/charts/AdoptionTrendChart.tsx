@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface SeriesConfig {
   key: string;
@@ -68,25 +69,15 @@ const AdoptionTrendChart: React.FC<AdoptionTrendChartProps> = ({
     }
 
     if (prog != null && prog < 100 && rawData.length > 0) {
-      // Truncate data: only show data points up to the progress %
       const cutoffIndex = Math.max(1, Math.ceil((prog / 100) * rawData.length));
-      const truncated = rawData.slice(0, cutoffIndex);
-      
-      // Cap ideal adoption at progress-proportional value
-      const capped = truncated.map((point: any, idx: number) => {
-        const progressAtPoint = ((idx + 1) / rawData.length) * 100;
-        if (progressAtPoint > (prog ?? 100)) {
-          return { ...point, idealAdoption: undefined, adoption: undefined };
-        }
-        return point;
-      });
-
+      // Keep data points up to cutoff with all series intact
+      const visible = rawData.slice(0, cutoffIndex);
       // Fill remaining points as empty for axis continuity
       const remaining = rawData.slice(cutoffIndex).map((point: any) => ({
         [xDataKey]: point[xDataKey],
       }));
 
-      return { chartData: [...capped, ...remaining], activeProgress: prog };
+      return { chartData: [...visible, ...remaining], activeProgress: prog };
     }
 
     return { chartData: rawData, activeProgress: prog ?? 100 };
@@ -96,33 +87,22 @@ const AdoptionTrendChart: React.FC<AdoptionTrendChartProps> = ({
 
   return (
     <div>
-      {/* Initiative filter tabs */}
+      {/* Initiative filter dropdown */}
       {showInitiativeFilter && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <button
-            onClick={() => setSelectedInitiative('combined')}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-              selectedInitiative === 'combined'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Combined
-          </button>
-          {initiatives.map(init => (
-            <button
-              key={init.id}
-              onClick={() => setSelectedInitiative(init.id)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                selectedInitiative === init.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {init.name}
-              <span className="ml-1 opacity-60">({init.progress}%)</span>
-            </button>
-          ))}
+        <div className="mb-3 max-w-xs">
+          <Select value={selectedInitiative} onValueChange={setSelectedInitiative}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="Select initiative" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="combined">Combined</SelectItem>
+              {initiatives.map(init => (
+                <SelectItem key={init.id} value={init.id}>
+                  {init.name} ({init.progress}%)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
