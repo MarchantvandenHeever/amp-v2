@@ -45,9 +45,13 @@ const MyProgress: React.FC = () => {
   const totalTimeRemaining = userItems.filter((i: any) => i.status !== 'completed').reduce((sum: number, i: any) => sum + parseDuration(i.duration), 0);
 
   // Score trend data
-  const totalHistoryPoints = (scoreHistory || []).filter((s: any) => s.user_id === user.id).length;
-  const userHistory = (scoreHistory || [])
-    .filter((s: any) => s.user_id === user.id)
+  const userHistoryRaw = (scoreHistory || []).filter((s: any) => s.user_id === user.id);
+  const availablePoints = userHistoryRaw.length;
+  // Estimate full journey data points from progress so ideal adoption scales correctly
+  const progressFraction = (journeyProgress || 100) / 100;
+  const estimatedTotalPoints = progressFraction > 0 ? Math.round(availablePoints / progressFraction) : availablePoints;
+  const totalPoints = Math.max(estimatedTotalPoints, availablePoints);
+  const userHistory = userHistoryRaw
     .sort((a: any, b: any) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
     .map((s: any, idx: number) => ({
       week: s.week_label || '',
@@ -55,7 +59,7 @@ const MyProgress: React.FC = () => {
       ownership: Number(s.ownership || 0),
       confidence: Number(s.confidence || 0),
       adoption: Number(s.adoption || 0),
-      idealAdoption: totalHistoryPoints > 0 ? Math.round(desiredTarget * ((idx + 1) / totalHistoryPoints)) : 0,
+      idealAdoption: totalPoints > 0 ? Math.round(desiredTarget * ((idx + 1) / totalPoints)) : 0,
     }));
 
   // Radar data

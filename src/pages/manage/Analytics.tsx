@@ -59,6 +59,18 @@ const Analytics: React.FC = () => {
     };
   }, [scores, selectedInitiative]);
 
+  // Per-initiative data setup (needed by trendData)
+  const activeInits = initiatives?.filter(i => i.status === 'active') || [];
+  const initiativeOptions = activeInits.map(init => ({
+    id: init.id,
+    name: init.name,
+    progress: init.progress || 0,
+  }));
+
+  const combinedProgress = activeInits.length > 0
+    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
+    : 100;
+
   // Trend data (score_history by week)
   const trendData = useMemo(() => {
     if (!scoreHistory?.length) return [];
@@ -73,7 +85,10 @@ const Analytics: React.FC = () => {
       byWeek[week].confidence += Number(r.confidence) || 0;
       byWeek[week].adoption += Number(r.adoption) || 0;
     });
-    const totalWeeks = Object.keys(byWeek).length;
+    const availableWeeks = Object.keys(byWeek).length;
+    const progressFraction = (combinedProgress || 100) / 100;
+    const estimatedTotalWeeks = progressFraction > 0 ? Math.round(availableWeeks / progressFraction) : availableWeeks;
+    const totalWeeks = Math.max(estimatedTotalWeeks, availableWeeks);
     return Object.entries(byWeek).map(([week, v], idx) => ({
       week,
       participation: Math.round(v.participation / v.count),
@@ -82,19 +97,7 @@ const Analytics: React.FC = () => {
       adoption: Math.round(v.adoption / v.count),
       idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
     }));
-  }, [scoreHistory, selectedInitiative, desiredTarget]);
-
-  // Per-initiative trend data for the AdoptionTrendChart filter
-  const activeInits = initiatives?.filter(i => i.status === 'active') || [];
-  const initiativeOptions = activeInits.map(init => ({
-    id: init.id,
-    name: init.name,
-    progress: init.progress || 0,
-  }));
-
-  const combinedProgress = activeInits.length > 0
-    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
-    : 100;
+  }, [scoreHistory, selectedInitiative, desiredTarget, combinedProgress]);
 
   const perInitiativeTrendData = useMemo(() => {
     if (!scoreHistory?.length) return {} as Record<string, any[]>;
@@ -111,7 +114,10 @@ const Analytics: React.FC = () => {
         byWeek[week].confidence += Number(r.confidence) || 0;
         byWeek[week].adoption += Number(r.adoption) || 0;
       });
-      const totalWeeks = Object.keys(byWeek).length;
+      const availableWeeks = Object.keys(byWeek).length;
+      const initProgress = (init.progress || 100) / 100;
+      const estimatedTotalWeeks = initProgress > 0 ? Math.round(availableWeeks / initProgress) : availableWeeks;
+      const totalWeeks = Math.max(estimatedTotalWeeks, availableWeeks);
       result[init.id] = Object.entries(byWeek).map(([week, v], idx) => ({
         week,
         participation: Math.round(v.participation / v.count),
