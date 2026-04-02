@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { useScoreHistory, useScores, useAllJourneyItems, useAssignments, useJourneys, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
+import { useScoreHistory, useScores, useAllJourneyItems, useAssignments, useJourneys, useInitiatives, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -16,6 +16,7 @@ const MyProgress: React.FC = () => {
   const { data: allItems, isLoading: loadingItems } = useAllJourneyItems();
   const { data: allAssignments, isLoading: loadingAssignments } = useAssignments();
   const { data: allJourneys } = useJourneys();
+  const { data: initiatives } = useInitiatives();
   const { idealScore, journeyProgress, desiredTarget } = useIdealAdoptionScore(user?.id);
 
   if (!user) return null;
@@ -70,18 +71,52 @@ const MyProgress: React.FC = () => {
       };
     })
     .sort((a, b) => a.weekNum - b.weekNum);
-  // Estimate total journey weeks from progress to scale ideal adoption correctly
+  // Duration-based ideal adoption using initiative date ranges
+  // Find the user's initiative date ranges via their journeys
+  const userInitiativeIds = [...new Set((allJourneys || [])
+    .filter((j: any) => userJourneyIds.includes(j.id) && j.initiative_id)
+    .map((j: any) => j.initiative_id))];
+  const userInits = (initiatives || []).filter((i: any) => userInitiativeIds.includes(i.id) && i.status === 'active');
+  // Fallback to all active initiatives if user has none
+  const relevantInits = userInits.length > 0 ? userInits : (initiatives || []).filter((i: any) => i.status === 'active');
+  // Combined date range
+  const starts = relevantInits.map((i: any) => i.start_date).filter(Boolean) as string[];
+  const ends = relevantInits.map((i: any) => i.end_date).filter(Boolean) as string[];
+  const combinedStart = starts.length ? starts.sort()[0] : null;
+  const combinedEnd = ends.length ? ends.sort().reverse()[0] : null;
+
   const maxDataWeek = Math.max(...userHistory.map(h => h.weekNum), 1);
-  const jpFrac = Math.max(journeyProgress, 1) / 100;
-  const estimatedTotalWeeks = Math.max(Math.ceil(maxDataWeek / jpFrac), maxDataWeek);
-  const userHistoryWithIdeal = userHistory.map(h => ({
-    week: h.week,
-    participation: h.participation,
-    ownership: h.ownership,
-    confidence: h.confidence,
-    adoption: h.adoption,
-    idealAdoption: Math.round(desiredTarget * (h.weekNum / estimatedTotalWeeks)),
-  }));
+
+  // Estimate total weeks from duration
+  let estimatedTotalWeeks = maxDataWeek;
+  if (combinedStart && combinedEnd) {
+    const totalMs = new Date(combinedEnd).getTime() - new Date(combinedStart).getTime();
+    const elapsedMs = Math.max(0, Date.now() - new Date(combinedStart).getTime());
+    const progressFrac = totalMs > 0 ? Math.min(elapsedMs / totalMs, 1) : 1;
+    estimatedTotalWeeks = progressFrac > 0 ? Math.max(Math.ceil(maxDataWeek / progressFrac), maxDataWeek) : maxDataWeek;
+  }
+
+  const userHistoryWithIdeal = userHistory.map(h => {
+    let idealAdoption: number;
+    if (combinedStart && combinedEnd) {
+      const start = new Date(combinedStart).getTime();
+      const end = new Date(combinedEnd).getTime();
+      const totalDuration = end - start;
+      const weekPointMs = start + (h.weekNum / estimatedTotalWeeks) * totalDuration;
+      const elapsed = Math.max(0, Math.min(weekPointMs - start, totalDuration));
+      idealAdoption = Math.round(desiredTarget * (elapsed / totalDuration));
+    } else {
+      idealAdoption = Math.round(desiredTarget * (h.weekNum / estimatedTotalWeeks));
+    }
+    return {
+      week: h.week,
+      participation: h.participation,
+      ownership: h.ownership,
+      confidence: h.confidence,
+      adoption: h.adoption,
+      idealAdoption,
+    };
+  });
 
   // Radar data
   const radarData = [
