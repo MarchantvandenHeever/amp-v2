@@ -87,33 +87,22 @@ const AdoptionTrendChart: React.FC<AdoptionTrendChartProps> = ({
 
   return (
     <div>
-      {/* Initiative filter tabs */}
+      {/* Initiative filter dropdown */}
       {showInitiativeFilter && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <button
-            onClick={() => setSelectedInitiative('combined')}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-              selectedInitiative === 'combined'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Combined
-          </button>
-          {initiatives.map(init => (
-            <button
-              key={init.id}
-              onClick={() => setSelectedInitiative(init.id)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                selectedInitiative === init.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {init.name}
-              <span className="ml-1 opacity-60">({init.progress}%)</span>
-            </button>
-          ))}
+        <div className="mb-3 max-w-xs">
+          <Select value={selectedInitiative} onValueChange={setSelectedInitiative}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="Select initiative" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="combined">Combined</SelectItem>
+              {initiatives.map(init => (
+                <SelectItem key={init.id} value={init.id}>
+                  {init.name} ({init.progress}%)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
