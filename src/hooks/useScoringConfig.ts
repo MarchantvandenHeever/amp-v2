@@ -39,8 +39,10 @@ export function useUpdateScoringConfig() {
     mutationFn: async ({ key, value }: { key: string; value: any }) => {
       const { error } = await supabase
         .from('scoring_config')
-        .update({ config_value: value, updated_at: new Date().toISOString() })
-        .eq('config_key', key);
+        .upsert(
+          { config_key: key, config_value: value, category: 'general', updated_at: new Date().toISOString() },
+          { onConflict: 'config_key' }
+        );
       if (error) throw error;
     },
     onSuccess: () => {
