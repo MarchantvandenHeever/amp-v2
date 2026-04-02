@@ -1,0 +1,2 @@
+CREATE POLICY "Anon can update scoring_config" ON public.scoring_config FOR UPDATE TO anon USING (true);
+CREATE POLICY "Anon can insert scoring_config" ON public.scoring_config FOR INSERT TO anon WITH CHECK (true);
