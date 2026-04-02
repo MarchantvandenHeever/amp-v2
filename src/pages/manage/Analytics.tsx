@@ -85,13 +85,16 @@ const Analytics: React.FC = () => {
       byWeek[week].confidence += Number(r.confidence) || 0;
       byWeek[week].adoption += Number(r.adoption) || 0;
     });
-    // Parse week numbers to find the max week (total journey weeks)
+    // Parse week numbers and estimate total journey weeks from progress
     const weekEntries = Object.entries(byWeek);
     const weekNumbers = weekEntries.map(([w]) => {
       const m = w.match(/\d+/);
       return m ? parseInt(m[0]) : 0;
     });
-    const maxWeek = Math.max(...weekNumbers, 10); // at least 10
+    const maxDataWeek = Math.max(...weekNumbers, 1);
+    const progressFrac = Math.max(combinedProgress, 1) / 100;
+    // Estimate total journey length: if we have data up to W6 and progress is 60%, total ≈ 10
+    const estimatedTotalWeeks = Math.max(Math.ceil(maxDataWeek / progressFrac), maxDataWeek);
     return weekEntries.map(([week, v]) => {
       const m = week.match(/\d+/);
       const weekNum = m ? parseInt(m[0]) : 1;
@@ -101,10 +104,10 @@ const Analytics: React.FC = () => {
         ownership: Math.round(v.ownership / v.count),
         confidence: Math.round(v.confidence / v.count),
         adoption: Math.round(v.adoption / v.count),
-        idealAdoption: Math.round(desiredTarget * (weekNum / maxWeek)),
+        idealAdoption: Math.round(desiredTarget * (weekNum / estimatedTotalWeeks)),
       };
     });
-  }, [scoreHistory, selectedInitiative, desiredTarget]);
+  }, [scoreHistory, selectedInitiative, desiredTarget, combinedProgress]);
 
   const perInitiativeTrendData = useMemo(() => {
     if (!scoreHistory?.length) return {} as Record<string, any[]>;
@@ -126,7 +129,9 @@ const Analytics: React.FC = () => {
         const m = w.match(/\d+/);
         return m ? parseInt(m[0]) : 0;
       });
-      const maxWeek = Math.max(...weekNumbers, 10);
+      const maxDataWeek = Math.max(...weekNumbers, 1);
+      const initProgressFrac = Math.max(init.progress || 1, 1) / 100;
+      const estimatedTotalWeeks = Math.max(Math.ceil(maxDataWeek / initProgressFrac), maxDataWeek);
       result[init.id] = weekEntries.map(([week, v]) => {
         const m = week.match(/\d+/);
         const weekNum = m ? parseInt(m[0]) : 1;
@@ -136,7 +141,7 @@ const Analytics: React.FC = () => {
           ownership: Math.round(v.ownership / v.count),
           confidence: Math.round(v.confidence / v.count),
           adoption: Math.round(v.adoption / v.count),
-          idealAdoption: Math.round(desiredTarget * (weekNum / maxWeek)),
+          idealAdoption: Math.round(desiredTarget * (weekNum / estimatedTotalWeeks)),
         };
       });
     });

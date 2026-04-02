@@ -34,23 +34,26 @@ const ChangeManagerDashboard: React.FC = () => {
 
   const activeInits = initiatives?.filter(i => i.status === 'active') || [];
 
-  // Combined trend (weighted average across initiatives)
-  const scoreTrends = Array.from({ length: 10 }, (_, i) => {
-    const factor = (i + 1) / 10;
-    return {
-      week: `W${i + 1}`,
-      participation: Math.round(avgScore('participation') * factor),
-      ownership: Math.round(avgScore('ownership') * factor),
-      confidence: Math.round(avgScore('confidence') * factor),
-      adoption: Math.round(avgScore('adoption') * factor),
-      idealAdoption: Math.round(desiredTarget * factor),
-    };
-  });
-
   // Average progress across all active initiatives
   const combinedProgress = activeInits.length > 0
     ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
     : 100;
+
+  // Combined trend — scale so that at the progress-cutoff week the value equals the current actual score
+  const totalWeeks = 10;
+  const progressFraction = Math.max(combinedProgress, 1) / 100;
+  const scoreTrends = Array.from({ length: totalWeeks }, (_, i) => {
+    const weekFraction = (i + 1) / totalWeeks;
+    const scale = weekFraction / progressFraction;
+    return {
+      week: `W${i + 1}`,
+      participation: Math.min(100, Math.round(avgScore('participation') * scale)),
+      ownership: Math.min(100, Math.round(avgScore('ownership') * scale)),
+      confidence: Math.min(100, Math.round(avgScore('confidence') * scale)),
+      adoption: Math.min(100, Math.round(avgScore('adoption') * scale)),
+      idealAdoption: Math.round(desiredTarget * weekFraction),
+    };
+  });
 
   // Per-initiative trend data
   const initiativeOptions = activeInits.map(init => ({
@@ -64,15 +67,17 @@ const ChangeManagerDashboard: React.FC = () => {
     const initScores = endUserScores.filter(s => s.initiative_id === init.id);
     const initAvg = (key: string) =>
       initScores.length ? Math.round(initScores.reduce((sum, s) => sum + Number((s as any)[key] || 0), 0) / initScores.length) : avgScore(key as any);
-    initiativeData[init.id] = Array.from({ length: 10 }, (_, i) => {
-      const factor = (i + 1) / 10;
+    const initProgress = Math.max(init.progress || 1, 1) / 100;
+    initiativeData[init.id] = Array.from({ length: totalWeeks }, (_, i) => {
+      const weekFraction = (i + 1) / totalWeeks;
+      const scale = weekFraction / initProgress;
       return {
         week: `W${i + 1}`,
-        participation: Math.round(initAvg('participation') * factor),
-        ownership: Math.round(initAvg('ownership') * factor),
-        confidence: Math.round(initAvg('confidence') * factor),
-        adoption: Math.round(initAvg('adoption') * factor),
-        idealAdoption: Math.round(desiredTarget * factor),
+        participation: Math.min(100, Math.round(initAvg('participation') * scale)),
+        ownership: Math.min(100, Math.round(initAvg('ownership') * scale)),
+        confidence: Math.min(100, Math.round(initAvg('confidence') * scale)),
+        adoption: Math.min(100, Math.round(initAvg('adoption') * scale)),
+        idealAdoption: Math.round(desiredTarget * weekFraction),
       };
     });
   });
