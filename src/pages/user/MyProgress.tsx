@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { useScoreHistory, useScores, useAllJourneyItems, useAssignments, useJourneys, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
+import { useScoreHistory, useScores, useAllJourneyItems, useAssignments, useJourneys, useInitiatives, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
