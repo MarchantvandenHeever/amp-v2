@@ -276,36 +276,19 @@ const Analytics: React.FC = () => {
 
           {/* TRENDS TAB */}
           <TabsContent value="trends" className="space-y-4">
-            {/* Line chart */}
+            {/* Adoption Trend Chart with initiative filter */}
             <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
               <h3 className="font-heading font-semibold mb-4">Score Trend Over Time</h3>
               {trendData.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">No trend data available</p>
               ) : (
-                <ResponsiveContainer width="100%" height={320}>
-                  <AreaChart data={trendData}>
-                    <defs>
-                      {INDICES.filter(i => selectedIndices.has(i.key)).map(idx => (
-                        <linearGradient key={idx.key} id={`grad-${idx.key}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={idx.color} stopOpacity={0.2} />
-                          <stop offset="95%" stopColor={idx.color} stopOpacity={0} />
-                        </linearGradient>
-                      ))}
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="week" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', fontSize: '12px', background: 'hsl(var(--card))' }} />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    {INDICES.filter(i => selectedIndices.has(i.key)).map(idx => (
-                      <Area key={idx.key} type="monotone" dataKey={idx.key} name={idx.label}
-                        stroke={idx.color} strokeWidth={2} fill={`url(#grad-${idx.key})`} dot={false} />
-                    ))}
-                    {selectedIndices.has('adoption') && (
-                      <Line type="monotone" dataKey="idealAdoption" name="Ideal Adoption" stroke="hsl(var(--amp-adoption))" strokeWidth={2} dot={false} strokeDasharray="6 4" opacity={0.4} />
-                    )}
-                  </AreaChart>
-                </ResponsiveContainer>
+                <AdoptionTrendChart
+                  data={trendData}
+                  height={320}
+                  initiatives={initiativeOptions}
+                  initiativeData={perInitiativeTrendData}
+                  progress={combinedProgress}
+                />
               )}
             </div>
 
