@@ -125,7 +125,13 @@ const ChangeManagerDashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-4">Adoption Trend</h3>
-            <AdoptionTrendChart data={scoreTrends} height={240} />
+            <AdoptionTrendChart
+              data={scoreTrends}
+              height={240}
+              initiatives={initiativeOptions}
+              initiativeData={initiativeData}
+              progress={combinedProgress}
+            />
           </div>
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-4">Team Comparison</h3>

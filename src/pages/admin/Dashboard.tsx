@@ -51,7 +51,12 @@ const SuperAdminDashboard: React.FC = () => {
         {/* Trend Chart */}
         <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
           <h3 className="font-heading font-semibold mb-4">Adoption Trend</h3>
-          <AdoptionTrendChart data={scoreTrends} height={280} />
+          <AdoptionTrendChart
+            data={scoreTrends}
+            height={280}
+            initiatives={initiatives.filter(i => i.status === 'active').map(i => ({ id: i.id, name: i.name, progress: i.progress }))}
+            progress={Math.round(initiatives.filter(i => i.status === 'active').reduce((s, i) => s + i.progress, 0) / Math.max(1, initiatives.filter(i => i.status === 'active').length))}
+          />
         </div>
 
         {/* Team Comparison */}
