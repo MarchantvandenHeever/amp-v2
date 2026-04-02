@@ -67,9 +67,18 @@ const Analytics: React.FC = () => {
     progress: init.progress || 0,
   }));
 
-  const combinedProgress = activeInits.length > 0
-    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
-    : 100;
+  // Duration-based combined progress
+  const combinedProgress = useMemo(() => {
+    const now = Date.now();
+    const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
+    const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
+    if (!starts.length || !ends.length) return 100;
+    const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
+    const latest = Math.max(...ends.map(s => new Date(s).getTime()));
+    const totalDuration = latest - earliest;
+    if (totalDuration <= 0) return 100;
+    return Math.min(100, Math.round(((now - earliest) / totalDuration) * 100));
+  }, [activeInits]);
 
   // Duration-based helper: compute timeProgressRatio from initiative dates for a given week's recorded_at
   const getInitDateRange = (initId?: string) => {
