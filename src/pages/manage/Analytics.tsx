@@ -82,7 +82,47 @@ const Analytics: React.FC = () => {
       adoption: Math.round(v.adoption / v.count),
       idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
     }));
-  }, [scoreHistory, selectedInitiative]);
+  }, [scoreHistory, selectedInitiative, desiredTarget]);
+
+  // Per-initiative trend data for the AdoptionTrendChart filter
+  const activeInits = initiatives?.filter(i => i.status === 'active') || [];
+  const initiativeOptions = activeInits.map(init => ({
+    id: init.id,
+    name: init.name,
+    progress: init.progress || 0,
+  }));
+
+  const combinedProgress = activeInits.length > 0
+    ? Math.round(activeInits.reduce((s, i) => s + (i.progress || 0), 0) / activeInits.length)
+    : 100;
+
+  const perInitiativeTrendData = useMemo(() => {
+    if (!scoreHistory?.length) return {} as Record<string, any[]>;
+    const result: Record<string, any[]> = {};
+    activeInits.forEach(init => {
+      const filtered = scoreHistory.filter(s => s.initiative_id === init.id);
+      const byWeek: Record<string, { count: number; participation: number; ownership: number; confidence: number; adoption: number }> = {};
+      filtered.forEach(r => {
+        const week = r.week_label || 'Unknown';
+        if (!byWeek[week]) byWeek[week] = { count: 0, participation: 0, ownership: 0, confidence: 0, adoption: 0 };
+        byWeek[week].count++;
+        byWeek[week].participation += Number(r.participation) || 0;
+        byWeek[week].ownership += Number(r.ownership) || 0;
+        byWeek[week].confidence += Number(r.confidence) || 0;
+        byWeek[week].adoption += Number(r.adoption) || 0;
+      });
+      const totalWeeks = Object.keys(byWeek).length;
+      result[init.id] = Object.entries(byWeek).map(([week, v], idx) => ({
+        week,
+        participation: Math.round(v.participation / v.count),
+        ownership: Math.round(v.ownership / v.count),
+        confidence: Math.round(v.confidence / v.count),
+        adoption: Math.round(v.adoption / v.count),
+        idealAdoption: totalWeeks > 0 ? Math.round(desiredTarget * ((idx + 1) / totalWeeks)) : 0,
+      }));
+    });
+    return result;
+  }, [scoreHistory, activeInits, desiredTarget]);
 
   // Group breakdown (by team or persona)
   const groupData = useMemo(() => {
