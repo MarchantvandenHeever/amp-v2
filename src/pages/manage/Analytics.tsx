@@ -129,7 +129,9 @@ const Analytics: React.FC = () => {
         const m = w.match(/\d+/);
         return m ? parseInt(m[0]) : 0;
       });
-      const maxWeek = Math.max(...weekNumbers, 10);
+      const maxDataWeek = Math.max(...weekNumbers, 1);
+      const initProgressFrac = Math.max(init.progress || 1, 1) / 100;
+      const estimatedTotalWeeks = Math.max(Math.ceil(maxDataWeek / initProgressFrac), maxDataWeek);
       result[init.id] = weekEntries.map(([week, v]) => {
         const m = week.match(/\d+/);
         const weekNum = m ? parseInt(m[0]) : 1;
@@ -139,7 +141,7 @@ const Analytics: React.FC = () => {
           ownership: Math.round(v.ownership / v.count),
           confidence: Math.round(v.confidence / v.count),
           adoption: Math.round(v.adoption / v.count),
-          idealAdoption: Math.round(desiredTarget * (weekNum / maxWeek)),
+          idealAdoption: Math.round(desiredTarget * (weekNum / estimatedTotalWeeks)),
         };
       });
     });

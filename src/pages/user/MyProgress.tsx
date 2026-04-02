@@ -54,15 +54,17 @@ const MyProgress: React.FC = () => {
       const weekNum = m ? parseInt(m[0]) : 1;
       return { week: weekLabel, weekNum, participation: Number(s.participation || 0), ownership: Number(s.ownership || 0), confidence: Number(s.confidence || 0), adoption: Number(s.adoption || 0) };
     });
-  // Determine max week across all data points for correct ideal scaling
-  const maxWeekNum = Math.max(...userHistory.map(h => h.weekNum), 10);
+  // Estimate total journey weeks from progress to scale ideal adoption correctly
+  const maxDataWeek = Math.max(...userHistory.map(h => h.weekNum), 1);
+  const jpFrac = Math.max(journeyProgress, 1) / 100;
+  const estimatedTotalWeeks = Math.max(Math.ceil(maxDataWeek / jpFrac), maxDataWeek);
   const userHistoryWithIdeal = userHistory.map(h => ({
     week: h.week,
     participation: h.participation,
     ownership: h.ownership,
     confidence: h.confidence,
     adoption: h.adoption,
-    idealAdoption: Math.round(desiredTarget * (h.weekNum / maxWeekNum)),
+    idealAdoption: Math.round(desiredTarget * (h.weekNum / estimatedTotalWeeks)),
   }));
 
   // Radar data
