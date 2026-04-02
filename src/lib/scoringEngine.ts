@@ -198,10 +198,11 @@ export function dashboardScore(rawScore: number): number {
 }
 
 /**
- * Calculate adoption score from P, O, C dimension scores
- * using phase-specific weights
+ * Calculate Behavioural Readiness (BR) on a 0–1 basis.
+ * BR = (w_P × P_n) + (w_O × O_n) + (w_C × C_n)
+ * where P_n = P_d / 100, etc.
  */
-export function adoptionScore(
+export function behaviouralReadiness(
   participation: number,
   ownership: number,
   confidence: number,
@@ -211,11 +212,64 @@ export function adoptionScore(
   const weights = phaseWeights[phase] || phaseWeights['training_testing'] || {
     participation: 0.20, ownership: 0.40, confidence: 0.40,
   };
-  return Math.round(
-    participation * weights.participation +
-    ownership * weights.ownership +
-    confidence * weights.confidence
-  );
+  const pn = participation / 100;
+  const on = ownership / 100;
+  const cn = confidence / 100;
+  return (pn * weights.participation) + (on * weights.ownership) + (cn * weights.confidence);
+}
+
+/**
+ * Duration Progress Ratio: DPR(t) = min((t - t_start) / (t_end - t_start), 1)
+ */
+export function durationProgressRatio(
+  scoringDate: Date,
+  startDate: Date,
+  endDate: Date
+): number {
+  const total = endDate.getTime() - startDate.getTime();
+  if (total <= 0) return 1;
+  const elapsed = scoringDate.getTime() - startDate.getTime();
+  if (elapsed <= 0) return 0;
+  return Math.min(elapsed / total, 1);
+}
+
+/**
+ * Actual Progressed Adoption: A_prog(t) = BR × DPR(t)
+ * Returns value on 0–1 scale.
+ */
+export function progressedAdoption(br: number, dpr: number): number {
+  return br * dpr;
+}
+
+/**
+ * Ideal Progressed Adoption: I_prog(t) = I_target × DPR(t)
+ * Returns value on 0–1 scale. Default I_target = 0.85.
+ */
+export function idealProgressedAdoption(idealTarget: number, dpr: number): number {
+  return idealTarget * dpr;
+}
+
+/**
+ * Adoption Gap: Gap(t) = A_prog(t) - I_prog(t)
+ */
+export function adoptionGap(aProg: number, iProg: number): number {
+  return aProg - iProg;
+}
+
+/**
+ * Legacy adoption score (displayed 0–100 scale).
+ * This is BR × 100 (without DPR applied) for backward compat with
+ * pillar-level KPI cards. For progressed adoption, use progressedAdoption().
+ */
+export function adoptionScore(
+  participation: number,
+  ownership: number,
+  confidence: number,
+  phase: string,
+  phaseWeights: Record<string, PhaseWeights>
+): number {
+  const br = behaviouralReadiness(participation, ownership, confidence, phase, phaseWeights);
+  return Math.round(br * 100);
 }
 
 /**
