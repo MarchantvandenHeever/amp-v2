@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScoreHistory, useScores, useAllJourneyItems, useAssignments, useJourneys, useInitiatives, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
@@ -96,12 +96,30 @@ const MyProgress: React.FC = () => {
   })();
   const combinedProgressValue = Math.round(currentTP * 100);
 
-  // TP-factored scores for KPI display
+  const currentUserScores = useMemo(() => {
+    const userScoreRows = (scores || []).filter((score: any) => score.user_id === user.id);
+
+    if (userScoreRows.length === 0) {
+      return user.scores;
+    }
+
+    const average = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
+      Math.round(userScoreRows.reduce((sum: number, row: any) => sum + Number(row[key] || 0), 0) / userScoreRows.length);
+
+    return {
+      participation: average('participation'),
+      ownership: average('ownership'),
+      confidence: average('confidence'),
+      adoption: average('adoption'),
+    };
+  }, [scores, user.id, user.scores]);
+
+  // TP-factored scores for KPI display using the same aggregated score source as the trend inputs
   const tpScores = {
-    participation: Math.round(user.scores.participation * currentTP),
-    ownership: Math.round(user.scores.ownership * currentTP),
-    confidence: Math.round(user.scores.confidence * currentTP),
-    adoption: Math.round(user.scores.adoption * currentTP),
+    participation: Math.round(currentUserScores.participation * currentTP),
+    ownership: Math.round(currentUserScores.ownership * currentTP),
+    confidence: Math.round(currentUserScores.confidence * currentTP),
+    adoption: Math.round(currentUserScores.adoption * currentTP),
   };
 
   const userHistoryWithIdeal = userHistory.map(h => {

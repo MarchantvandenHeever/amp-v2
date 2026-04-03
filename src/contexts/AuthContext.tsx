@@ -55,13 +55,25 @@ async function fetchDemoUser(profileId: string): Promise<DemoUser> {
     .single();
   if (error || !profile) throw error;
 
-  // Fetch scores
-  const { data: scores } = await supabase
+  // Fetch scores aggregated across all current score rows for this user
+  const { data: scoreRows } = await supabase
     .from('scores')
     .select('participation, ownership, confidence, adoption')
-    .eq('user_id', profileId)
-    .limit(1)
-    .maybeSingle();
+    .eq('user_id', profileId);
+
+  const averagedScores = (scoreRows && scoreRows.length > 0)
+    ? {
+        participation: Math.round(scoreRows.reduce((sum, row) => sum + Number(row.participation || 0), 0) / scoreRows.length),
+        ownership: Math.round(scoreRows.reduce((sum, row) => sum + Number(row.ownership || 0), 0) / scoreRows.length),
+        confidence: Math.round(scoreRows.reduce((sum, row) => sum + Number(row.confidence || 0), 0) / scoreRows.length),
+        adoption: Math.round(scoreRows.reduce((sum, row) => sum + Number(row.adoption || 0), 0) / scoreRows.length),
+      }
+    : {
+        participation: 0,
+        ownership: 0,
+        confidence: 0,
+        adoption: 0,
+      };
 
   // Fetch badges
   const { data: userBadges } = await supabase
@@ -83,12 +95,7 @@ async function fetchDemoUser(profileId: string): Promise<DemoUser> {
     role: profile.role as UserRole,
     team: profile.team || undefined,
     persona: profile.persona || undefined,
-    scores: {
-      participation: Number(scores?.participation || 0),
-      ownership: Number(scores?.ownership || 0),
-      confidence: Number(scores?.confidence || 0),
-      adoption: Number(scores?.adoption || 0),
-    },
+    scores: averagedScores,
     streak: profile.streak || 0,
     points: profile.points || 0,
     badges: (userBadges || []).map((ub: any) => ub.badges?.name).filter(Boolean),
