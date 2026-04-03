@@ -205,16 +205,16 @@ const MyProgress: React.FC = () => {
         {/* Scores + Radar */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
-            <AdoptionScoreRing score={user.scores.adoption} size={160} idealScore={idealScore} />
+            <AdoptionScoreRing score={tpScores.adoption} size={160} idealScore={idealScore} />
             <p className="text-sm font-semibold mt-3">Adoption Score</p>
-            <p className={cn("text-xs font-medium mt-0.5", getScoreColor(user.scores.adoption))}>{getScoreLabel(user.scores.adoption)}</p>
+            <p className={cn("text-xs font-medium mt-0.5", getScoreColor(tpScores.adoption))}>{getScoreLabel(tpScores.adoption)}</p>
           </div>
           <div className="lg:col-span-3 bg-card border border-border rounded-xl p-5 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-3 text-sm">Score Breakdown</h3>
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <ScoreCard label="Participation" score={user.scores.participation} color="participation" size="sm" />
-              <ScoreCard label="Ownership" score={user.scores.ownership} color="ownership" size="sm" />
-              <ScoreCard label="Confidence" score={user.scores.confidence} color="confidence" size="sm" />
+              <ScoreCard label="Participation" score={tpScores.participation} color="participation" size="sm" />
+              <ScoreCard label="Ownership" score={tpScores.ownership} color="ownership" size="sm" />
+              <ScoreCard label="Confidence" score={tpScores.confidence} color="confidence" size="sm" />
             </div>
             <ResponsiveContainer width="100%" height={180}>
               <RadarChart data={radarData}>
