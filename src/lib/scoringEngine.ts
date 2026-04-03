@@ -1,24 +1,35 @@
 /**
- * AMP Behavioural Adoption Scoring Engine
+ * AMP Unified Scoring Algorithm Framework
  * 
- * Implements the scoring framework from:
- * - AMP Behavioural Adoption Scoring Model
- * - Participation Scoring Algorithm Framework
- * - Ownership Scoring Algorithm Framework
- * - Confidence Scoring Algorithm Framework
+ * Implements the unified practical technical model specification for
+ * Participation, Ownership, Confidence, and composite Adoption.
  * 
- * Core formulas:
- *   Decay:      d_e = e^(-λ * age_days)
- *   λ:          ln(2) / half_life_days
- *   Trait:      X_i = Σ(x_ie * d_e) / Σ(d_e)
- *   Scaled:     S_i = clip((X_i - μ_i) / ((1 + CV_i) * σ_i), -1, 1)
- *   CV:         σ_i / max(μ_i, ε)
- *   Raw:        Score_raw = Σ(w_i * S_i)
- *   Dashboard:  Score_100 = 50 * (Score_raw + 1)
- *   Adoption:   A = P*w_p + O*w_o + C*w_c (phase-weighted)
+ * CRITICAL MODELLING RULE:
+ * Duration-based progression is applied only to the Participation, Ownership,
+ * and Confidence pillar metrics. The Adoption layer combines the final pillar
+ * outputs and must NOT apply a second duration factor.
+ * 
+ * Core formulas (Section 3):
+ *   Decay-weighted trait:  X_i = Σ(x_i,e × d_e) / Σ(d_e)
+ *   Event-level decay:     d_e = exp(-λ × a_e)
+ *   Coefficient of var:    CV_i = σ_i / max(μ_i, ε)
+ *   Scaled trait score:    S_i = (X_i - μ_i) / (σ_i × (1 + CV_i) + ε)
+ *   Raw pillar score:      RawPillar = Σ(S_i × w_i)
+ *   Dashboard pillar:      DispPillar = max(0, min(100, 50 + 25 × RawPillar))
+ * 
+ * Duration (Section 4):
+ *   TP(t) = min(ElapsedDuration(t) / TotalPlannedDuration, 1)
+ *   IdealPillarProg(t)  = IdealPillarTarget × TP(t)
+ *   ActualPillarProg(t) = (DispPillar(t) / 100) × TP(t)
+ * 
+ * Adoption (Section 8):
+ *   A_dash = (w_P × P_n) + (w_O × O_n) + (w_C × C_n)   [P_n = P_disp/100]
+ *   A_prog = (w_P × P_p) + (w_O × O_p) + (w_C × C_p)   [P_p = P_prog(t)]
+ *   !! A_prog must NOT be multiplied by TP(t) again !!
  */
 
 // ─── Types ──────────────────────────────────────────────────────
+
 export interface TraitConfig {
   weight: number;
   label: string;
@@ -51,59 +62,72 @@ export interface ScoringConfig {
   score_bands: Record<string, { label: string; color: string; raw_range: string }>;
 }
 
-// ─── Default Config (matches framework documents) ───────────────
+// ─── Default Config (Unified Framework, Sections 5-8) ───────────
+
 export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
+  // Section 8.3: Baseline composite weights
+  // Section 8.4: Optional phase-based weight variants
   phase_weights: {
-    design_build: { participation: 0.35, ownership: 0.35, confidence: 0.30 },
+    default:          { participation: 0.20, ownership: 0.40, confidence: 0.40 },
+    design_build:     { participation: 0.35, ownership: 0.35, confidence: 0.30 },
     training_testing: { participation: 0.20, ownership: 0.40, confidence: 0.40 },
-    post_go_live: { participation: 0.10, ownership: 0.45, confidence: 0.45 },
+    post_go_live:     { participation: 0.10, ownership: 0.45, confidence: 0.45 },
   },
+
   decay_settings: {
     default_window_days: 14,
     default_half_life_days: 7,
     presets: {
-      '7': { half_life: 4, label: 'Fast (Go-live readiness)' },
-      '14': { half_life: 7, label: 'Moderate (Default tracking)' },
+      '7':  { half_life: 4,  label: 'Fast (Go-live readiness)' },
+      '14': { half_life: 7,  label: 'Moderate (Default tracking)' },
       '30': { half_life: 14, label: 'Slower (Longer formation windows)' },
     },
   },
+
+  // Section 5.2 + 5.3: Participation traits
   participation_traits: {
-    P_CA: { weight: 0.16, label: 'Content Access', baseline_mean: 0.85, baseline_sd: 0.10 },
-    P_ET: { weight: 0.12, label: 'Engagement Timeliness', baseline_mean: 0.70, baseline_sd: 0.15 },
-    P_DQ: { weight: 0.12, label: 'Content Dwell Quality', baseline_mean: 0.65, baseline_sd: 0.15 },
-    P_CC: { weight: 0.16, label: 'Completion Coverage', baseline_mean: 0.80, baseline_sd: 0.12 },
-    P_EC: { weight: 0.10, label: 'Engagement Consistency', baseline_mean: 0.65, baseline_sd: 0.15 },
-    P_BE: { weight: 0.08, label: 'Breadth of Engagement', baseline_mean: 0.60, baseline_sd: 0.15 },
-    P_RB: { weight: 0.07, label: 'Revisit Behaviour', baseline_mean: 0.35, baseline_sd: 0.15 },
-    P_NR: { weight: 0.07, label: 'Nudge Responsiveness', baseline_mean: 0.55, baseline_sd: 0.20 },
-    P_AE: { weight: 0.06, label: 'Active Engagement Depth', baseline_mean: 0.50, baseline_sd: 0.20 },
+    P_CA: { weight: 0.16, label: 'Content Access',           baseline_mean: 0.85, baseline_sd: 0.10 },
+    P_ET: { weight: 0.12, label: 'Engagement Timeliness',    baseline_mean: 0.70, baseline_sd: 0.15 },
+    P_DQ: { weight: 0.12, label: 'Content Dwell Quality',    baseline_mean: 0.65, baseline_sd: 0.15 },
+    P_CC: { weight: 0.16, label: 'Completion Coverage',      baseline_mean: 0.80, baseline_sd: 0.12 },
+    P_EC: { weight: 0.10, label: 'Engagement Consistency',   baseline_mean: 0.65, baseline_sd: 0.15 },
+    P_BE: { weight: 0.08, label: 'Breadth of Engagement',    baseline_mean: 0.60, baseline_sd: 0.15 },
+    P_RB: { weight: 0.07, label: 'Revisit Behaviour',        baseline_mean: 0.35, baseline_sd: 0.15 },
+    P_NR: { weight: 0.07, label: 'Nudge Responsiveness',     baseline_mean: 0.55, baseline_sd: 0.20 },
+    P_AE: { weight: 0.06, label: 'Active Engagement Depth',  baseline_mean: 0.50, baseline_sd: 0.20 },
     P_PC: { weight: 0.06, label: 'Participation Continuity', baseline_mean: 0.65, baseline_sd: 0.15 },
   },
+
+  // Section 6.2 + 6.3: Ownership traits
   ownership_traits: {
-    O_QQ: { weight: 0.16, label: 'Task Completion Quality', baseline_mean: 0.75, baseline_sd: 0.10 },
-    O_TE: { weight: 0.14, label: 'Timeliness of Execution', baseline_mean: 0.70, baseline_sd: 0.15 },
-    O_EA: { weight: 0.14, label: 'Evidence of Application', baseline_mean: 0.60, baseline_sd: 0.20 },
-    O_IT: { weight: 0.08, label: 'Improvement Over Time', baseline_mean: 0.10, baseline_sd: 0.10 },
-    O_VE: { weight: 0.08, label: 'Voluntary Engagement', baseline_mean: 0.25, baseline_sd: 0.15 },
+    O_QQ: { weight: 0.16, label: 'Task Completion Quality',     baseline_mean: 0.75, baseline_sd: 0.10 },
+    O_TE: { weight: 0.14, label: 'Timeliness of Execution',     baseline_mean: 0.70, baseline_sd: 0.15 },
+    O_EA: { weight: 0.14, label: 'Evidence of Application',     baseline_mean: 0.60, baseline_sd: 0.20 },
+    O_IT: { weight: 0.08, label: 'Improvement Over Time',       baseline_mean: 0.10, baseline_sd: 0.10 },
+    O_VE: { weight: 0.08, label: 'Voluntary Engagement',        baseline_mean: 0.25, baseline_sd: 0.15 },
     O_IR: { weight: 0.14, label: 'Independence from Reminders', baseline_mean: 0.70, baseline_sd: 0.15 },
-    O_BC: { weight: 0.10, label: 'Behavioural Consistency', baseline_mean: 0.65, baseline_sd: 0.15 },
-    O_PR: { weight: 0.06, label: 'Problem Resolution', baseline_mean: 0.60, baseline_sd: 0.20 },
-    O_VC: { weight: 0.04, label: 'Volunteer as Change Agent', baseline_mean: 0.10, baseline_sd: 0.10 },
-    O_TW: { weight: 0.03, label: 'Teamwork', baseline_mean: 0.50, baseline_sd: 0.20 },
-    O_VI: { weight: 0.03, label: 'Voluntary Insights', baseline_mean: 0.20, baseline_sd: 0.15 },
+    O_BC: { weight: 0.10, label: 'Behavioural Consistency',     baseline_mean: 0.65, baseline_sd: 0.15 },
+    O_PR: { weight: 0.06, label: 'Problem Resolution',          baseline_mean: 0.60, baseline_sd: 0.20 },
+    O_VC: { weight: 0.04, label: 'Volunteer as Change Agent',   baseline_mean: 0.10, baseline_sd: 0.10 },
+    O_TW: { weight: 0.03, label: 'Teamwork',                    baseline_mean: 0.55, baseline_sd: 0.20 },
+    O_VI: { weight: 0.03, label: 'Voluntary Insights',          baseline_mean: 0.15, baseline_sd: 0.10 },
   },
+
+  // Section 7.2 + 7.3: Confidence traits
   confidence_traits: {
-    C_SR: { weight: 0.10, label: 'Self-Rated Readiness', baseline_mean: 0.70, baseline_sd: 0.15 },
-    C_CA: { weight: 0.18, label: 'Calibration Accuracy', baseline_mean: 0.65, baseline_sd: 0.15 },
-    C_RD: { weight: 0.08, label: 'Response Decisiveness', baseline_mean: 0.60, baseline_sd: 0.20 },
-    C_CS: { weight: 0.12, label: 'Confidence Stability', baseline_mean: 0.65, baseline_sd: 0.15 },
-    C_SC: { weight: 0.18, label: 'Scenario Performance', baseline_mean: 0.60, baseline_sd: 0.20 },
-    C_RF: { weight: 0.08, label: 'Recovery After Mistakes', baseline_mean: 0.55, baseline_sd: 0.20 },
-    C_HD: { weight: 0.10, label: 'Help Dependency (inverse)', baseline_mean: 0.65, baseline_sd: 0.15 },
-    C_CG: { weight: 0.08, label: 'Confidence Growth', baseline_mean: 0.10, baseline_sd: 0.10 },
-    C_AT: { weight: 0.04, label: 'Advanced Task Participation', baseline_mean: 0.20, baseline_sd: 0.15 },
-    C_TV: { weight: 0.04, label: 'Training Volunteering', baseline_mean: 0.10, baseline_sd: 0.10 },
+    C_SR: { weight: 0.10, label: 'Self-Rated Readiness',          baseline_mean: 0.70, baseline_sd: 0.15 },
+    C_CA: { weight: 0.18, label: 'Calibration Accuracy',          baseline_mean: 0.65, baseline_sd: 0.15 },
+    C_RD: { weight: 0.08, label: 'Response Decisiveness',         baseline_mean: 0.60, baseline_sd: 0.20 },
+    C_CS: { weight: 0.12, label: 'Confidence Stability',          baseline_mean: 0.65, baseline_sd: 0.15 },
+    C_SC: { weight: 0.18, label: 'Scenario Performance',          baseline_mean: 0.60, baseline_sd: 0.20 },
+    C_RF: { weight: 0.08, label: 'Recovery After Mistakes',       baseline_mean: 0.55, baseline_sd: 0.20 },
+    C_HD: { weight: 0.10, label: 'Help Dependency (inverse)',     baseline_mean: 0.65, baseline_sd: 0.15 },
+    C_CG: { weight: 0.08, label: 'Confidence Growth',             baseline_mean: 0.10, baseline_sd: 0.10 },
+    C_AT: { weight: 0.04, label: 'Advanced Task Participation',   baseline_mean: 0.20, baseline_sd: 0.15 },
+    C_TV: { weight: 0.04, label: 'Training Volunteering',         baseline_mean: 0.10, baseline_sd: 0.10 },
   },
+
+  // Section 5.4, 7.4: Negative signal layers
   negative_signals: {
     participation: {
       superficial_dwell_weight: 0.25,
@@ -117,37 +141,34 @@ export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
       volatility_gamma: 0.3,
     },
   },
+
+  // Score interpretation bands
   score_bands: {
-    '0-20': { label: 'Materially Below', color: 'destructive', raw_range: '-1.00 to -0.60' },
-    '21-40': { label: 'Below Expected', color: 'warning', raw_range: '-0.59 to -0.20' },
-    '41-59': { label: 'Baseline', color: 'info', raw_range: '-0.19 to 0.19' },
-    '60-79': { label: 'Above Expected', color: 'success', raw_range: '0.20 to 0.59' },
-    '80-100': { label: 'Strong', color: 'success', raw_range: '0.60 to 1.00' },
+    '0-20':  { label: 'Materially Below', color: 'destructive', raw_range: '-1.00 to -0.60' },
+    '21-40': { label: 'Below Expected',   color: 'warning',     raw_range: '-0.59 to -0.20' },
+    '41-59': { label: 'Baseline',         color: 'info',        raw_range: '-0.19 to 0.19' },
+    '60-79': { label: 'Above Expected',   color: 'success',     raw_range: '0.20 to 0.59' },
+    '80-100':{ label: 'Strong',           color: 'success',     raw_range: '0.60 to 1.00' },
   },
 };
 
-// ─── Core Math Functions ────────────────────────────────────────
+// ─── Shared Mathematical Foundation (Section 3) ─────────────────
 
 const EPSILON = 0.01;
 
-/** Calculate decay rate λ from half-life: λ = ln(2) / h */
+/** Decay rate: λ = ln(2) / half_life_days */
 export function decayRate(halfLifeDays: number): number {
   return Math.LN2 / halfLifeDays;
 }
 
-/** Calculate decay weight for an event: d_e = e^(-λ * age_days) */
+/** Event-level decay: d_e = exp(-λ × a_e) */
 export function decayWeight(ageDays: number, lambda: number): number {
   return Math.exp(-lambda * ageDays);
 }
 
-/** Clip value to [-1, 1] range */
-function clip(value: number, min = -1, max = 1): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-/** 
- * Calculate decay-weighted trait value
- * X_i = Σ(x_ie * d_e) / Σ(d_e)
+/**
+ * Decay-weighted trait value (Section 3 step 1-2):
+ * X_i = Σ(x_i,e × d_e) / Σ(d_e)
  */
 export function decayWeightedTrait(
   events: { value: number; ageDays: number }[],
@@ -165,9 +186,9 @@ export function decayWeightedTrait(
 }
 
 /**
- * Scale a trait value relative to baseline
- * S_i = clip((X_i - μ_i) / ((1 + CV_i) * σ_i), -1, 1)
+ * Scale trait value relative to baseline (Section 3 step 3):
  * CV_i = σ_i / max(μ_i, ε)
+ * S_i = (X_i - μ_i) / (σ_i × (1 + CV_i) + ε)
  */
 export function scaleTraitValue(
   observedValue: number,
@@ -175,13 +196,13 @@ export function scaleTraitValue(
   baselineSd: number
 ): number {
   const cv = baselineSd / Math.max(baselineMean, EPSILON);
-  const denominator = (1 + cv) * baselineSd + EPSILON;
-  return clip((observedValue - baselineMean) / denominator);
+  const denominator = baselineSd * (1 + cv) + EPSILON;
+  return (observedValue - baselineMean) / denominator;
 }
 
 /**
- * Calculate raw dimension score from scaled traits
- * Score_raw = Σ(w_i * S_i)
+ * Raw pillar score (Section 3 step 4):
+ * RawPillar = Σ(S_i × w_i)
  */
 export function rawDimensionScore(
   scaledTraits: { scaled: number; weight: number }[]
@@ -190,56 +211,17 @@ export function rawDimensionScore(
 }
 
 /**
- * Convert raw score [-1, 1] to dashboard score [0, 100]
- * Per framework docs: Score_disp = max(0, min(100, 50 + 25 × Score_raw))
+ * Dashboard pillar score (Section 3 step 5):
+ * DispPillar = max(0, min(100, 50 + 25 × RawPillar))
  */
 export function dashboardScore(rawScore: number): number {
   return Math.round(Math.max(0, Math.min(100, 50 + 25 * rawScore)));
 }
 
-/**
- * Pillar Progressive Score (for trend charts)
- * ActualPillarProgression(t) = (PillarDashScore / 100) × TP(t)
- * Returns value on 0–1 scale.
- * NOTE: This is for DISPLAY on trend charts only.
- * Pillar KPI cards show the raw dashboard score WITHOUT DPR.
- */
-export function pillarProgression(pillarDashScore: number, dpr: number): number {
-  return (pillarDashScore / 100) * dpr;
-}
+// ─── Duration-Based Progression (Section 4) ─────────────────────
 
 /**
- * Ideal Pillar Progressive Score
- * IdealPillarProgression(t) = IdealPillarScore × TP(t)
- * Where IdealPillarScore is the admin-configured target (0–1 scale).
- */
-export function idealPillarProgression(idealPillarScore: number, dpr: number): number {
-  return idealPillarScore * dpr;
-}
-
-/**
- * Calculate Behavioural Readiness (BR) on a 0–1 basis.
- * BR = (w_P × P_n) + (w_O × O_n) + (w_C × C_n)
- * where P_n = P_d / 100, etc.
- */
-export function behaviouralReadiness(
-  participation: number,
-  ownership: number,
-  confidence: number,
-  phase: string,
-  phaseWeights: Record<string, PhaseWeights>
-): number {
-  const weights = phaseWeights[phase] || phaseWeights['training_testing'] || {
-    participation: 0.20, ownership: 0.40, confidence: 0.40,
-  };
-  const pn = participation / 100;
-  const on = ownership / 100;
-  const cn = confidence / 100;
-  return (pn * weights.participation) + (on * weights.ownership) + (cn * weights.confidence);
-}
-
-/**
- * Duration Progress Ratio: DPR(t) = min((t - t_start) / (t_end - t_start), 1)
+ * Time Progress Ratio: TP(t) = min(ElapsedDuration(t) / TotalPlannedDuration, 1)
  */
 export function durationProgressRatio(
   scoringDate: Date,
@@ -254,19 +236,72 @@ export function durationProgressRatio(
 }
 
 /**
- * Actual Progressed Adoption: A_prog(t) = BR × DPR(t)
- * Returns value on 0–1 scale.
+ * Ideal pillar progression: IdealPillarProg(t) = IdealPillarTarget × TP(t)
  */
-export function progressedAdoption(br: number, dpr: number): number {
-  return br * dpr;
+export function idealPillarProgression(idealPillarTarget: number, tp: number): number {
+  return idealPillarTarget * tp;
 }
 
 /**
- * Ideal Progressed Adoption: I_prog(t) = I_target × DPR(t)
- * Returns value on 0–1 scale. Default I_target = 0.85.
+ * Actual pillar progression: ActualPillarProg(t) = (DispPillar / 100) × TP(t)
  */
-export function idealProgressedAdoption(idealTarget: number, dpr: number): number {
-  return idealTarget * dpr;
+export function pillarProgression(pillarDashScore: number, tp: number): number {
+  return (pillarDashScore / 100) * tp;
+}
+
+// ─── Composite Adoption (Section 8) ─────────────────────────────
+
+/**
+ * Dashboard Adoption (Section 8.2 Option A):
+ * A_dash = (w_P × P_n) + (w_O × O_n) + (w_C × C_n)
+ * where P_n = P_disp / 100, etc.
+ * 
+ * Returns value on 0–100 scale.
+ * NO duration factor applied here — pillar outputs are already final.
+ */
+export function dashboardAdoption(
+  participationDisp: number,
+  ownershipDisp: number,
+  confidenceDisp: number,
+  phase: string,
+  phaseWeights: Record<string, PhaseWeights>
+): number {
+  const weights = phaseWeights[phase] || phaseWeights['default'] || phaseWeights['training_testing'] || {
+    participation: 0.20, ownership: 0.40, confidence: 0.40,
+  };
+  const pn = participationDisp / 100;
+  const on = ownershipDisp / 100;
+  const cn = confidenceDisp / 100;
+  return Math.round(((pn * weights.participation) + (on * weights.ownership) + (cn * weights.confidence)) * 100);
+}
+
+/**
+ * Progressed Adoption (Section 8.2 Option B):
+ * A_prog = (w_P × P_prog) + (w_O × O_prog) + (w_C × C_prog)
+ * 
+ * Because each P_prog already includes TP(t), this must NOT be
+ * multiplied by TP(t) again.
+ * 
+ * Returns value on 0–1 scale.
+ */
+export function progressedAdoption(
+  pProg: number,
+  oProg: number,
+  cProg: number,
+  phase: string,
+  phaseWeights: Record<string, PhaseWeights>
+): number {
+  const weights = phaseWeights[phase] || phaseWeights['default'] || {
+    participation: 0.20, ownership: 0.40, confidence: 0.40,
+  };
+  return (pProg * weights.participation) + (oProg * weights.ownership) + (cProg * weights.confidence);
+}
+
+/**
+ * Ideal Progressed Adoption: I_prog(t) = I_target × TP(t)
+ */
+export function idealProgressedAdoption(idealTarget: number, tp: number): number {
+  return idealTarget * tp;
 }
 
 /**
@@ -276,11 +311,9 @@ export function adoptionGap(aProg: number, iProg: number): number {
   return aProg - iProg;
 }
 
-/**
- * Legacy adoption score (displayed 0–100 scale).
- * This is BR × 100 (without DPR applied) for backward compat with
- * pillar-level KPI cards. For progressed adoption, use progressedAdoption().
- */
+// ─── Legacy / backward-compatible aliases ───────────────────────
+
+/** Alias for dashboardAdoption — used by useSupabaseData helpers */
 export function adoptionScore(
   participation: number,
   ownership: number,
@@ -288,17 +321,29 @@ export function adoptionScore(
   phase: string,
   phaseWeights: Record<string, PhaseWeights>
 ): number {
-  const br = behaviouralReadiness(participation, ownership, confidence, phase, phaseWeights);
-  return Math.round(br * 100);
+  return dashboardAdoption(participation, ownership, confidence, phase, phaseWeights);
 }
 
+/** Alias kept for backward compat */
+export function behaviouralReadiness(
+  participation: number,
+  ownership: number,
+  confidence: number,
+  phase: string,
+  phaseWeights: Record<string, PhaseWeights>
+): number {
+  return dashboardAdoption(participation, ownership, confidence, phase, phaseWeights) / 100;
+}
+
+// ─── Utility Functions ──────────────────────────────────────────
+
 /**
- * Calculate a full dimension score from trait observations
+ * Calculate a full dimension score from trait observations.
  */
 export function calculateDimensionScore(
   traitObservations: Record<string, number>,
   traitConfig: Record<string, TraitConfig>,
-  lambda: number
+  _lambda: number
 ): { dashboard: number; raw: number; traitDetails: Record<string, { observed: number; scaled: number; weight: number }> } {
   const traitDetails: Record<string, { observed: number; scaled: number; weight: number }> = {};
   const scaledTraits: { scaled: number; weight: number }[] = [];
@@ -317,7 +362,7 @@ export function calculateDimensionScore(
 }
 
 /**
- * Get score interpretation band
+ * Score interpretation band (Section 8.5)
  */
 export function getScoreBand(score: number): { label: string; color: string } {
   if (score >= 80) return { label: 'Strong', color: 'amp-success' };
