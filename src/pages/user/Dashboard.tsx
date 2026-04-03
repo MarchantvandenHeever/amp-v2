@@ -47,6 +47,20 @@ const EndUserDashboard: React.FC = () => {
   const { data: userBadges } = useUserBadges(user?.id);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const { idealScore } = useIdealAdoptionScore(user?.id);
+  const { data: initiatives } = useInitiatives();
+
+  // Compute current TP for KPI display
+  const currentTP = useMemo(() => {
+    const activeInits = initiatives?.filter(i => i.status === 'active') || [];
+    const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
+    const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
+    if (!starts.length || !ends.length) return 1;
+    const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
+    const latest = Math.max(...ends.map(s => new Date(s).getTime()));
+    const totalDuration = latest - earliest;
+    if (totalDuration <= 0) return 1;
+    return Math.min(1, (Date.now() - earliest) / totalDuration);
+  }, [initiatives]);
 
   const { todayTasks, upcomingTasks, todayTimeMinutes } = useMemo(() => {
     if (!allItems) return { todayTasks: [], upcomingTasks: [], todayTimeMinutes: 0 };
