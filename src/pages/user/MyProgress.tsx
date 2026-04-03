@@ -19,8 +19,6 @@ const MyProgress: React.FC = () => {
   const { data: initiatives } = useInitiatives();
   const { idealScore, journeyProgress, desiredTarget } = useIdealAdoptionScore(user?.id);
 
-  if (!user) return null;
-
   const isLoading = loadingHistory || loadingItems || loadingAssignments;
 
   // User's assignments → journey IDs
@@ -97,6 +95,15 @@ const MyProgress: React.FC = () => {
   const combinedProgressValue = Math.round(currentTP * 100);
 
   const currentUserScores = useMemo(() => {
+    if (!user) {
+      return {
+        participation: 0,
+        ownership: 0,
+        confidence: 0,
+        adoption: 0,
+      };
+    }
+
     const userScoreRows = (scores || []).filter((score: any) => score.user_id === user.id);
 
     if (userScoreRows.length === 0) {
@@ -112,7 +119,7 @@ const MyProgress: React.FC = () => {
       confidence: average('confidence'),
       adoption: average('adoption'),
     };
-  }, [scores, user.id, user.scores]);
+  }, [scores, user]);
 
   // TP-factored scores for KPI display using the same aggregated score source as the trend inputs
   const tpScores = {
@@ -121,6 +128,8 @@ const MyProgress: React.FC = () => {
     confidence: Math.round(currentUserScores.confidence * currentTP),
     adoption: Math.round(currentUserScores.adoption * currentTP),
   };
+
+  if (!user) return null;
 
   const userHistoryWithIdeal = userHistory.map(h => {
     // Calendar-based TP: weekNum weeks from initiative start
