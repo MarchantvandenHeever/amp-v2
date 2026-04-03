@@ -68,17 +68,26 @@ const Analytics: React.FC = () => {
   }));
 
   // Duration-based combined progress
-  const combinedProgress = useMemo(() => {
+  const currentTP = useMemo(() => {
     const now = Date.now();
     const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
     const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
-    if (!starts.length || !ends.length) return 100;
+    if (!starts.length || !ends.length) return 1;
     const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
     const latest = Math.max(...ends.map(s => new Date(s).getTime()));
     const totalDuration = latest - earliest;
-    if (totalDuration <= 0) return 100;
-    return Math.min(100, Math.round(((now - earliest) / totalDuration) * 100));
+    if (totalDuration <= 0) return 1;
+    return Math.min(1, (now - earliest) / totalDuration);
   }, [activeInits]);
+  const combinedProgress = Math.round(currentTP * 100);
+
+  // KPI scores factored by current TP(t)
+  const avgScores = useMemo(() => ({
+    participation: Math.round(avgScoresRaw.participation * currentTP),
+    ownership: Math.round(avgScoresRaw.ownership * currentTP),
+    confidence: Math.round(avgScoresRaw.confidence * currentTP),
+    adoption: Math.round(avgScoresRaw.adoption * currentTP),
+  }), [avgScoresRaw, currentTP]);
 
   // Duration-based helper: compute timeProgressRatio from initiative dates for a given week's recorded_at
   const getInitDateRange = (initId?: string) => {
