@@ -127,9 +127,9 @@ const MyProgress: React.FC = () => {
 
   // Radar data
   const radarData = [
-    { dimension: 'Participation', value: user.scores.participation, fullMark: 100 },
-    { dimension: 'Ownership', value: user.scores.ownership, fullMark: 100 },
-    { dimension: 'Confidence', value: user.scores.confidence, fullMark: 100 },
+    { dimension: 'Participation', value: tpScores.participation, fullMark: 100 },
+    { dimension: 'Ownership', value: tpScores.ownership, fullMark: 100 },
+    { dimension: 'Confidence', value: tpScores.confidence, fullMark: 100 },
   ];
 
   // Completion by type
