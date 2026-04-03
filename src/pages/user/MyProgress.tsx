@@ -86,14 +86,23 @@ const MyProgress: React.FC = () => {
   const combinedEndStr = ends.length ? ends.sort().reverse()[0] : null;
 
   // Duration-based combined progress for truncating chart
-  const combinedProgressValue = (() => {
-    if (!combinedStartStr || !combinedEndStr) return 100;
+  const currentTP = (() => {
+    if (!combinedStartStr || !combinedEndStr) return 1;
     const startMs = new Date(combinedStartStr).getTime();
     const endMs = new Date(combinedEndStr).getTime();
     const totalDuration = endMs - startMs;
-    if (totalDuration <= 0) return 100;
-    return Math.min(100, Math.round(((Date.now() - startMs) / totalDuration) * 100));
+    if (totalDuration <= 0) return 1;
+    return Math.min(1, (Date.now() - startMs) / totalDuration);
   })();
+  const combinedProgressValue = Math.round(currentTP * 100);
+
+  // TP-factored scores for KPI display
+  const tpScores = {
+    participation: Math.round(user.scores.participation * currentTP),
+    ownership: Math.round(user.scores.ownership * currentTP),
+    confidence: Math.round(user.scores.confidence * currentTP),
+    adoption: Math.round(user.scores.adoption * currentTP),
+  };
 
   const userHistoryWithIdeal = userHistory.map(h => {
     let tp = 0;
