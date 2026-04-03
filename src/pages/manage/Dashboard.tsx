@@ -114,7 +114,7 @@ const ChangeManagerDashboard: React.FC = () => {
   activeInits.forEach(init => {
     const initScores = endUserScores.filter(s => s.initiative_id === init.id);
     const initAvg = (key: string) =>
-      initScores.length ? Math.round(initScores.reduce((sum, s) => sum + Number((s as any)[key] || 0), 0) / initScores.length) : avgScore(key as any);
+      initScores.length ? Math.round(initScores.reduce((sum, s) => sum + Number((s as any)[key] || 0), 0) / initScores.length) : avgScoreRaw(key as any);
     const initStart = init.start_date ? new Date(init.start_date) : null;
     const initEnd = init.end_date ? new Date(init.end_date) : null;
     initiativeData[init.id] = buildTrendData(initStart, initEnd, initAvg);
