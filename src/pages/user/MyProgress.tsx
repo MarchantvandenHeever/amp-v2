@@ -96,25 +96,23 @@ const MyProgress: React.FC = () => {
   })();
 
   const userHistoryWithIdeal = userHistory.map(h => {
-    let idealAdoption: number;
+    let tp = 0;
     if (combinedStartStr && combinedEndStr) {
       const startMs = new Date(combinedStartStr).getTime();
       const endMs = new Date(combinedEndStr).getTime();
       const totalDuration = endMs - startMs;
-      // Each week label maps to a calendar date: start + weekNum * 7 days
       const weekDateMs = startMs + h.weekNum * 7 * 24 * 60 * 60 * 1000;
       const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
-      idealAdoption = totalDuration > 0 ? Math.round(desiredTarget * (elapsed / totalDuration)) : 0;
-    } else {
-      idealAdoption = 0;
+      tp = totalDuration > 0 ? elapsed / totalDuration : 0;
     }
+    // Apply TP to get progressed scores: A_prog = A_dash × TP(t)
     return {
       week: h.week,
-      participation: h.participation,
-      ownership: h.ownership,
-      confidence: h.confidence,
-      adoption: h.adoption,
-      idealAdoption,
+      participation: Math.round(h.participation * tp),
+      ownership: Math.round(h.ownership * tp),
+      confidence: Math.round(h.confidence * tp),
+      adoption: Math.round(h.adoption * tp),
+      idealAdoption: Math.round(desiredTarget * tp),
     };
   });
 

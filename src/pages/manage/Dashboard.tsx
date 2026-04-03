@@ -78,16 +78,20 @@ const ChangeManagerDashboard: React.FC = () => {
 
     return Array.from({ length: totalWeeks }, (_, i) => {
       const weekFraction = (i + 1) / totalWeeks;
-      // timeProgressRatio at this week point
-      const timeProgressRatio = Math.min(weekFraction, 1);
+      // Map week to calendar time to get TP(t_week)
+      const weekDateMs = startDate!.getTime() + weekFraction * totalDuration;
+      const elapsedAtWeek = Math.max(0, Math.min(weekDateMs - startDate!.getTime(), totalDuration));
+      const tp = totalDuration > 0 ? elapsedAtWeek / totalDuration : 0;
+      // Scale behavioral scores to this week proportionally
       const scale = progressFrac > 0 ? weekFraction / progressFrac : 0;
+      // Apply TP to get progressed scores: A_prog = A_dash × TP(t)
       return {
         week: `W${i + 1}`,
-        participation: Math.min(100, Math.round(scoresFn('participation') * scale)),
-        ownership: Math.min(100, Math.round(scoresFn('ownership') * scale)),
-        confidence: Math.min(100, Math.round(scoresFn('confidence') * scale)),
-        adoption: Math.min(100, Math.round(scoresFn('adoption') * scale)),
-        idealAdoption: Math.round(desiredTarget * timeProgressRatio),
+        participation: Math.min(100, Math.round(Math.min(100, scoresFn('participation') * scale) * tp)),
+        ownership: Math.min(100, Math.round(Math.min(100, scoresFn('ownership') * scale) * tp)),
+        confidence: Math.min(100, Math.round(Math.min(100, scoresFn('confidence') * scale) * tp)),
+        adoption: Math.min(100, Math.round(Math.min(100, scoresFn('adoption') * scale) * tp)),
+        idealAdoption: Math.round(desiredTarget * tp),
       };
     });
   };
