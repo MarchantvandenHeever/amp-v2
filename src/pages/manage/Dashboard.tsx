@@ -101,7 +101,7 @@ const ChangeManagerDashboard: React.FC = () => {
     });
   };
 
-  const scoreTrends = buildTrendData(combinedStart, combinedEnd, (key) => avgScore(key as any));
+  const scoreTrends = buildTrendData(combinedStart, combinedEnd, (key) => avgScoreRaw(key as any));
 
   // Per-initiative trend data
   const initiativeOptions = activeInits.map(init => ({
