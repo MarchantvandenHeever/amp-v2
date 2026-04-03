@@ -105,14 +105,13 @@ const MyProgress: React.FC = () => {
       const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
       tp = totalDuration > 0 ? elapsed / totalDuration : 0;
     }
-    // Show behavioral readiness scores directly (no TP multiplication)
-    // Only idealAdoption uses TP scaling
+    // Apply TP to get progressed scores: score × TP(t_week)
     return {
       week: h.week,
-      participation: h.participation,
-      ownership: h.ownership,
-      confidence: h.confidence,
-      adoption: h.adoption,
+      participation: Math.round(h.participation * tp),
+      ownership: Math.round(h.ownership * tp),
+      confidence: Math.round(h.confidence * tp),
+      adoption: Math.round(h.adoption * tp),
       idealAdoption: Math.round(desiredTarget * tp),
     };
   });

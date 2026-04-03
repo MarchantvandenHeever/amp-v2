@@ -21,7 +21,7 @@ const ChangeManagerDashboard: React.FC = () => {
   }
 
   const endUserScores = scores?.filter(s => profiles?.some(p => p.id === s.user_id)) || [];
-  const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
+  const avgScoreRaw = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
     endUserScores.length ? Math.round(endUserScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / endUserScores.length) : 0;
 
   const teams = [...new Set(profiles?.map(p => p.team).filter(Boolean) || [])];
