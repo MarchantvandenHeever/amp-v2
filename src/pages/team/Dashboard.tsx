@@ -43,15 +43,20 @@ const TeamDashboard: React.FC = () => {
     const s = teamScores.find(sc => sc.user_id === u.id);
     return {
       name: u.display_name.split(' ')[0],
-      participation: Number(s?.participation || 0),
-      ownership: Number(s?.ownership || 0),
-      confidence: Number(s?.confidence || 0),
+      participation: Math.round(Number(s?.participation || 0) * currentTP),
+      ownership: Math.round(Number(s?.ownership || 0) * currentTP),
+      confidence: Math.round(Number(s?.confidence || 0) * currentTP),
     };
   });
 
   const membersWithScores = teamMembers.map(m => {
     const s = teamScores.find(sc => sc.user_id === m.id);
-    return { ...m, scores: { participation: Number(s?.participation || 0), ownership: Number(s?.ownership || 0), confidence: Number(s?.confidence || 0), adoption: Number(s?.adoption || 0) } };
+    return { ...m, scores: {
+      participation: Math.round(Number(s?.participation || 0) * currentTP),
+      ownership: Math.round(Number(s?.ownership || 0) * currentTP),
+      confidence: Math.round(Number(s?.confidence || 0) * currentTP),
+      adoption: Math.round(Number(s?.adoption || 0) * currentTP),
+    }};
   }).sort((a, b) => b.scores.adoption - a.scores.adoption);
 
   return (
