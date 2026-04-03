@@ -141,18 +141,15 @@ const Analytics: React.FC = () => {
         const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
         tp = totalDuration > 0 ? elapsed / totalDuration : 0;
       }
-      // Apply TP to get progressed scores: A_prog = A_dash × TP(t)
-      const partDash = Math.round(v.participation / v.count);
-      const ownDash = Math.round(v.ownership / v.count);
-      const confDash = Math.round(v.confidence / v.count);
-      const adoptDash = Math.round(v.adoption / v.count);
+      // Show behavioral readiness scores directly (no TP multiplication)
+      // Only idealAdoption uses TP scaling
       return {
         week,
         weekNum,
-        participation: Math.round(partDash * tp),
-        ownership: Math.round(ownDash * tp),
-        confidence: Math.round(confDash * tp),
-        adoption: Math.round(adoptDash * tp),
+        participation: Math.round(v.participation / v.count),
+        ownership: Math.round(v.ownership / v.count),
+        confidence: Math.round(v.confidence / v.count),
+        adoption: Math.round(v.adoption / v.count),
         idealAdoption: Math.round(desiredTarget * tp),
       };
     }).sort((a, b) => a.weekNum - b.weekNum).map(({ weekNum, ...rest }) => rest);
