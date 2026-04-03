@@ -150,14 +150,13 @@ const Analytics: React.FC = () => {
         const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
         tp = totalDuration > 0 ? elapsed / totalDuration : 0;
       }
-      // Apply TP to get progressed scores: score × TP(t_week)
       return {
         week,
         weekNum,
-        participation: Math.round((v.participation / v.count) * tp),
-        ownership: Math.round((v.ownership / v.count) * tp),
-        confidence: Math.round((v.confidence / v.count) * tp),
-        adoption: Math.round((v.adoption / v.count) * tp),
+        participation: Math.round(v.participation / v.count),
+        ownership: Math.round(v.ownership / v.count),
+        confidence: Math.round(v.confidence / v.count),
+        adoption: Math.round(v.adoption / v.count),
         idealAdoption: Math.round(desiredTarget * tp),
       };
     }).sort((a, b) => a.weekNum - b.weekNum).map(({ weekNum, ...rest }) => rest);
