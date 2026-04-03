@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScoreHistory, useScores, useAllJourneyItems, useAssignments, useJourneys, useInitiatives, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
@@ -18,8 +18,6 @@ const MyProgress: React.FC = () => {
   const { data: allJourneys } = useJourneys();
   const { data: initiatives } = useInitiatives();
   const { idealScore, journeyProgress, desiredTarget } = useIdealAdoptionScore(user?.id);
-
-  if (!user) return null;
 
   const isLoading = loadingHistory || loadingItems || loadingAssignments;
 
@@ -96,13 +94,42 @@ const MyProgress: React.FC = () => {
   })();
   const combinedProgressValue = Math.round(currentTP * 100);
 
-  // TP-factored scores for KPI display
+  const currentUserScores = useMemo(() => {
+    if (!user) {
+      return {
+        participation: 0,
+        ownership: 0,
+        confidence: 0,
+        adoption: 0,
+      };
+    }
+
+    const userScoreRows = (scores || []).filter((score: any) => score.user_id === user.id);
+
+    if (userScoreRows.length === 0) {
+      return user.scores;
+    }
+
+    const average = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
+      Math.round(userScoreRows.reduce((sum: number, row: any) => sum + Number(row[key] || 0), 0) / userScoreRows.length);
+
+    return {
+      participation: average('participation'),
+      ownership: average('ownership'),
+      confidence: average('confidence'),
+      adoption: average('adoption'),
+    };
+  }, [scores, user]);
+
+  // TP-factored scores for KPI display using the same aggregated score source as the trend inputs
   const tpScores = {
-    participation: Math.round(user.scores.participation * currentTP),
-    ownership: Math.round(user.scores.ownership * currentTP),
-    confidence: Math.round(user.scores.confidence * currentTP),
-    adoption: Math.round(user.scores.adoption * currentTP),
+    participation: Math.round(currentUserScores.participation * currentTP),
+    ownership: Math.round(currentUserScores.ownership * currentTP),
+    confidence: Math.round(currentUserScores.confidence * currentTP),
+    adoption: Math.round(currentUserScores.adoption * currentTP),
   };
+
+  if (!user) return null;
 
   const userHistoryWithIdeal = userHistory.map(h => {
     // Calendar-based TP: weekNum weeks from initiative start
@@ -127,11 +154,25 @@ const MyProgress: React.FC = () => {
     };
   });
 
+  const visibleTrendData = (() => {
+    if (combinedProgressValue >= 100 || userHistoryWithIdeal.length === 0) return userHistoryWithIdeal;
+    const cutoffIndex = Math.max(1, Math.ceil((combinedProgressValue / 100) * userHistoryWithIdeal.length));
+    return userHistoryWithIdeal.slice(0, cutoffIndex);
+  })();
+
+  const currentTrendPoint = visibleTrendData[visibleTrendData.length - 1] ?? {
+    participation: tpScores.participation,
+    ownership: tpScores.ownership,
+    confidence: tpScores.confidence,
+    adoption: tpScores.adoption,
+    idealAdoption: idealScore,
+  };
+
   // Radar data
   const radarData = [
-    { dimension: 'Participation', value: tpScores.participation, fullMark: 100 },
-    { dimension: 'Ownership', value: tpScores.ownership, fullMark: 100 },
-    { dimension: 'Confidence', value: tpScores.confidence, fullMark: 100 },
+    { dimension: 'Participation', value: currentTrendPoint.participation, fullMark: 100 },
+    { dimension: 'Ownership', value: currentTrendPoint.ownership, fullMark: 100 },
+    { dimension: 'Confidence', value: currentTrendPoint.confidence, fullMark: 100 },
   ];
 
   // Completion by type
@@ -207,16 +248,16 @@ const MyProgress: React.FC = () => {
         {/* Scores + Radar */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
-            <AdoptionScoreRing score={tpScores.adoption} size={160} idealScore={idealScore} />
+            <AdoptionScoreRing score={currentTrendPoint.adoption} size={160} idealScore={currentTrendPoint.idealAdoption} />
             <p className="text-sm font-semibold mt-3">Adoption Score</p>
-            <p className={cn("text-xs font-medium mt-0.5", getScoreColor(tpScores.adoption))}>{getScoreLabel(tpScores.adoption)}</p>
+            <p className={cn("text-xs font-medium mt-0.5", getScoreColor(currentTrendPoint.adoption))}>{getScoreLabel(currentTrendPoint.adoption)}</p>
           </div>
           <div className="lg:col-span-3 bg-card border border-border rounded-xl p-5 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-3 text-sm">Score Breakdown</h3>
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <ScoreCard label="Participation" score={tpScores.participation} color="participation" size="sm" />
-              <ScoreCard label="Ownership" score={tpScores.ownership} color="ownership" size="sm" />
-              <ScoreCard label="Confidence" score={tpScores.confidence} color="confidence" size="sm" />
+              <ScoreCard label="Participation" score={currentTrendPoint.participation} color="participation" size="sm" />
+              <ScoreCard label="Ownership" score={currentTrendPoint.ownership} color="ownership" size="sm" />
+              <ScoreCard label="Confidence" score={currentTrendPoint.confidence} color="confidence" size="sm" />
             </div>
             <ResponsiveContainer width="100%" height={180}>
               <RadarChart data={radarData}>

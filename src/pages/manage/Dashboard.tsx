@@ -94,6 +94,14 @@ const ChangeManagerDashboard: React.FC = () => {
   };
 
   const scoreTrends = buildTrendData(combinedStart, combinedEnd, (key) => avgScoreRaw(key as any));
+  const visibleScoreTrends = progressVisibleData(scoreTrends, combinedProgress);
+  const currentTrendPoint = visibleScoreTrends[visibleScoreTrends.length - 1] ?? {
+    participation: avgScore('participation'),
+    ownership: avgScore('ownership'),
+    confidence: avgScore('confidence'),
+    adoption: avgScore('adoption'),
+    idealAdoption: currentIdeal,
+  };
 
   // Per-initiative trend data
   const initiativeOptions = activeInits.map(init => ({
@@ -112,6 +120,12 @@ const ChangeManagerDashboard: React.FC = () => {
     initiativeData[init.id] = buildTrendData(initStart, initEnd, initAvg);
   });
 
+  function progressVisibleData<T>(rows: T[], progressValue?: number) {
+    if (progressValue == null || progressValue >= 100 || rows.length === 0) return rows;
+    const cutoffIndex = Math.max(1, Math.ceil((progressValue / 100) * rows.length));
+    return rows.slice(0, cutoffIndex);
+  }
+
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -122,12 +136,12 @@ const ChangeManagerDashboard: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
-            <AdoptionScoreRing score={avgScore('adoption')} size={140} idealScore={currentIdeal} />
+            <AdoptionScoreRing score={currentTrendPoint.adoption} size={140} idealScore={currentTrendPoint.idealAdoption} />
             <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">Overall Adoption</p>
           </div>
-          <ScoreCard label="Participation" score={avgScore('participation')} color="participation" trend={5} />
-          <ScoreCard label="Ownership" score={avgScore('ownership')} color="ownership" trend={3} />
-          <ScoreCard label="Confidence" score={avgScore('confidence')} color="confidence" trend={2} />
+          <ScoreCard label="Participation" score={currentTrendPoint.participation} color="participation" trend={5} />
+          <ScoreCard label="Ownership" score={currentTrendPoint.ownership} color="ownership" trend={3} />
+          <ScoreCard label="Confidence" score={currentTrendPoint.confidence} color="confidence" trend={2} />
         </div>
 
         <div>
