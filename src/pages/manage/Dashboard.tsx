@@ -70,15 +70,18 @@ const ChangeManagerDashboard: React.FC = () => {
 
   const buildTrendData = (startDate: Date | null, endDate: Date | null, scoresFn: (key: string) => number) => {
     if (!startDate || !endDate) {
-      // Fallback: evenly spaced
       return Array.from({ length: totalWeeks }, (_, i) => ({
         week: `W${i + 1}`,
         participation: 0, ownership: 0, confidence: 0, adoption: 0,
         idealAdoption: Math.round(desiredTarget * ((i + 1) / totalWeeks)),
       }));
     }
+    const totalDuration = endDate.getTime() - startDate.getTime();
     return Array.from({ length: totalWeeks }, (_, i) => {
-      const weekTP = (i + 1) / totalWeeks;
+      // Each synthetic week maps to a calendar point
+      const weekDateMs = startDate.getTime() + ((i + 1) / totalWeeks) * totalDuration;
+      const elapsed = Math.max(0, Math.min(weekDateMs - startDate.getTime(), totalDuration));
+      const weekTP = totalDuration > 0 ? elapsed / totalDuration : 0;
       return {
         week: `W${i + 1}`,
         participation: Math.min(100, Math.round(scoresFn('participation') * weekTP)),
