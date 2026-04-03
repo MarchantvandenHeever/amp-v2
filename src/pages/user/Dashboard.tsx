@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { useJourneys, useAllJourneyItems, useAnnouncements, useBadges, useUserBadges, getTierFromPoints, getScoreLabel } from '@/hooks/useSupabaseData';
+import { useJourneys, useAllJourneyItems, useAnnouncements, useBadges, useUserBadges, useInitiatives, getTierFromPoints, getScoreLabel } from '@/hooks/useSupabaseData';
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { TaskDetailModal } from '@/components/journey/TaskDetailModal';
 import { motion } from 'framer-motion';
@@ -47,6 +47,20 @@ const EndUserDashboard: React.FC = () => {
   const { data: userBadges } = useUserBadges(user?.id);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const { idealScore } = useIdealAdoptionScore(user?.id);
+  const { data: initiatives } = useInitiatives();
+
+  // Compute current TP for KPI display
+  const currentTP = useMemo(() => {
+    const activeInits = initiatives?.filter(i => i.status === 'active') || [];
+    const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
+    const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
+    if (!starts.length || !ends.length) return 1;
+    const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
+    const latest = Math.max(...ends.map(s => new Date(s).getTime()));
+    const totalDuration = latest - earliest;
+    if (totalDuration <= 0) return 1;
+    return Math.min(1, (Date.now() - earliest) / totalDuration);
+  }, [initiatives]);
 
   const { todayTasks, upcomingTasks, todayTimeMinutes } = useMemo(() => {
     if (!allItems) return { todayTasks: [], upcomingTasks: [], todayTimeMinutes: 0 };
@@ -123,8 +137,8 @@ const EndUserDashboard: React.FC = () => {
         {/* Quick stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center">
-            <AdoptionScoreRing score={user.scores.adoption} size={60} idealScore={idealScore} />
-            <p className="text-[10px] text-muted-foreground mt-1">Adoption · {getScoreLabel(user.scores.adoption)}</p>
+            <AdoptionScoreRing score={Math.round(user.scores.adoption * currentTP)} size={60} idealScore={idealScore} />
+            <p className="text-[10px] text-muted-foreground mt-1">Adoption · {getScoreLabel(Math.round(user.scores.adoption * currentTP))}</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center">
             <p className="font-heading text-2xl font-bold text-foreground">{todayTasks.length}</p>

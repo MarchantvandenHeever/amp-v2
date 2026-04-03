@@ -86,14 +86,23 @@ const MyProgress: React.FC = () => {
   const combinedEndStr = ends.length ? ends.sort().reverse()[0] : null;
 
   // Duration-based combined progress for truncating chart
-  const combinedProgressValue = (() => {
-    if (!combinedStartStr || !combinedEndStr) return 100;
+  const currentTP = (() => {
+    if (!combinedStartStr || !combinedEndStr) return 1;
     const startMs = new Date(combinedStartStr).getTime();
     const endMs = new Date(combinedEndStr).getTime();
     const totalDuration = endMs - startMs;
-    if (totalDuration <= 0) return 100;
-    return Math.min(100, Math.round(((Date.now() - startMs) / totalDuration) * 100));
+    if (totalDuration <= 0) return 1;
+    return Math.min(1, (Date.now() - startMs) / totalDuration);
   })();
+  const combinedProgressValue = Math.round(currentTP * 100);
+
+  // TP-factored scores for KPI display
+  const tpScores = {
+    participation: Math.round(user.scores.participation * currentTP),
+    ownership: Math.round(user.scores.ownership * currentTP),
+    confidence: Math.round(user.scores.confidence * currentTP),
+    adoption: Math.round(user.scores.adoption * currentTP),
+  };
 
   const userHistoryWithIdeal = userHistory.map(h => {
     let tp = 0;
@@ -105,23 +114,22 @@ const MyProgress: React.FC = () => {
       const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
       tp = totalDuration > 0 ? elapsed / totalDuration : 0;
     }
-    // Show behavioral readiness scores directly (no TP multiplication)
-    // Only idealAdoption uses TP scaling
+    // Apply TP to get progressed scores: score × TP(t_week)
     return {
       week: h.week,
-      participation: h.participation,
-      ownership: h.ownership,
-      confidence: h.confidence,
-      adoption: h.adoption,
+      participation: Math.round(h.participation * tp),
+      ownership: Math.round(h.ownership * tp),
+      confidence: Math.round(h.confidence * tp),
+      adoption: Math.round(h.adoption * tp),
       idealAdoption: Math.round(desiredTarget * tp),
     };
   });
 
   // Radar data
   const radarData = [
-    { dimension: 'Participation', value: user.scores.participation, fullMark: 100 },
-    { dimension: 'Ownership', value: user.scores.ownership, fullMark: 100 },
-    { dimension: 'Confidence', value: user.scores.confidence, fullMark: 100 },
+    { dimension: 'Participation', value: tpScores.participation, fullMark: 100 },
+    { dimension: 'Ownership', value: tpScores.ownership, fullMark: 100 },
+    { dimension: 'Confidence', value: tpScores.confidence, fullMark: 100 },
   ];
 
   // Completion by type
@@ -197,16 +205,16 @@ const MyProgress: React.FC = () => {
         {/* Scores + Radar */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
-            <AdoptionScoreRing score={user.scores.adoption} size={160} idealScore={idealScore} />
+            <AdoptionScoreRing score={tpScores.adoption} size={160} idealScore={idealScore} />
             <p className="text-sm font-semibold mt-3">Adoption Score</p>
-            <p className={cn("text-xs font-medium mt-0.5", getScoreColor(user.scores.adoption))}>{getScoreLabel(user.scores.adoption)}</p>
+            <p className={cn("text-xs font-medium mt-0.5", getScoreColor(tpScores.adoption))}>{getScoreLabel(tpScores.adoption)}</p>
           </div>
           <div className="lg:col-span-3 bg-card border border-border rounded-xl p-5 amp-shadow-card">
             <h3 className="font-heading font-semibold mb-3 text-sm">Score Breakdown</h3>
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <ScoreCard label="Participation" score={user.scores.participation} color="participation" size="sm" />
-              <ScoreCard label="Ownership" score={user.scores.ownership} color="ownership" size="sm" />
-              <ScoreCard label="Confidence" score={user.scores.confidence} color="confidence" size="sm" />
+              <ScoreCard label="Participation" score={tpScores.participation} color="participation" size="sm" />
+              <ScoreCard label="Ownership" score={tpScores.ownership} color="ownership" size="sm" />
+              <ScoreCard label="Confidence" score={tpScores.confidence} color="confidence" size="sm" />
             </div>
             <ResponsiveContainer width="100%" height={180}>
               <RadarChart data={radarData}>

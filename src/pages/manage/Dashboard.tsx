@@ -21,7 +21,7 @@ const ChangeManagerDashboard: React.FC = () => {
   }
 
   const endUserScores = scores?.filter(s => profiles?.some(p => p.id === s.user_id)) || [];
-  const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
+  const avgScoreRaw = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
     endUserScores.length ? Math.round(endUserScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / endUserScores.length) : 0;
 
   const teams = [...new Set(profiles?.map(p => p.team).filter(Boolean) || [])];
@@ -36,16 +36,21 @@ const ChangeManagerDashboard: React.FC = () => {
 
   // Duration-based combined progress
   const now = new Date();
-  const combinedProgress = (() => {
+  const currentTP = (() => {
     const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
     const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
-    if (!starts.length || !ends.length) return 100;
+    if (!starts.length || !ends.length) return 1;
     const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
     const latest = Math.max(...ends.map(s => new Date(s).getTime()));
     const totalDuration = latest - earliest;
-    if (totalDuration <= 0) return 100;
-    return Math.min(100, Math.round(((now.getTime() - earliest) / totalDuration) * 100));
+    if (totalDuration <= 0) return 1;
+    return Math.min(1, (now.getTime() - earliest) / totalDuration);
   })();
+  const combinedProgress = Math.round(currentTP * 100);
+
+  // KPI scores factored by current TP
+  const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
+    Math.round(avgScoreRaw(key) * currentTP);
 
   // Duration-based trend using initiative date ranges
   // Find combined date range across active initiatives
@@ -84,20 +89,19 @@ const ChangeManagerDashboard: React.FC = () => {
       const tp = totalDuration > 0 ? elapsedAtWeek / totalDuration : 0;
       // Scale behavioral scores proportionally through the journey
       const scale = progressFrac > 0 ? Math.min(weekFraction / progressFrac, 1) : 0;
-      // Show behavioral readiness scores directly (no TP multiplication)
-      // Only idealAdoption uses TP scaling
+      // Apply TP to get progressed scores: score × TP(t_week)
       return {
         week: `W${i + 1}`,
-        participation: Math.min(100, Math.round(scoresFn('participation') * scale)),
-        ownership: Math.min(100, Math.round(scoresFn('ownership') * scale)),
-        confidence: Math.min(100, Math.round(scoresFn('confidence') * scale)),
-        adoption: Math.min(100, Math.round(scoresFn('adoption') * scale)),
+        participation: Math.min(100, Math.round(Math.min(100, scoresFn('participation') * scale) * tp)),
+        ownership: Math.min(100, Math.round(Math.min(100, scoresFn('ownership') * scale) * tp)),
+        confidence: Math.min(100, Math.round(Math.min(100, scoresFn('confidence') * scale) * tp)),
+        adoption: Math.min(100, Math.round(Math.min(100, scoresFn('adoption') * scale) * tp)),
         idealAdoption: Math.round(desiredTarget * tp),
       };
     });
   };
 
-  const scoreTrends = buildTrendData(combinedStart, combinedEnd, (key) => avgScore(key as any));
+  const scoreTrends = buildTrendData(combinedStart, combinedEnd, (key) => avgScoreRaw(key as any));
 
   // Per-initiative trend data
   const initiativeOptions = activeInits.map(init => ({
@@ -110,7 +114,7 @@ const ChangeManagerDashboard: React.FC = () => {
   activeInits.forEach(init => {
     const initScores = endUserScores.filter(s => s.initiative_id === init.id);
     const initAvg = (key: string) =>
-      initScores.length ? Math.round(initScores.reduce((sum, s) => sum + Number((s as any)[key] || 0), 0) / initScores.length) : avgScore(key as any);
+      initScores.length ? Math.round(initScores.reduce((sum, s) => sum + Number((s as any)[key] || 0), 0) / initScores.length) : avgScoreRaw(key as any);
     const initStart = init.start_date ? new Date(init.start_date) : null;
     const initEnd = init.end_date ? new Date(init.end_date) : null;
     initiativeData[init.id] = buildTrendData(initStart, initEnd, initAvg);

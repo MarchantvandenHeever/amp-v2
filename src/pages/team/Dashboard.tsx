@@ -2,7 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing, ScoreRow } from '@/components/scores/ScoreCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEndUsers, useRiskFlags, useScores } from '@/hooks/useSupabaseData';
+import { useEndUsers, useRiskFlags, useScores, useInitiatives } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -13,31 +13,50 @@ const TeamDashboard: React.FC = () => {
   const { data: allProfiles, isLoading: loadingProfiles } = useEndUsers();
   const { data: riskFlags } = useRiskFlags();
   const { data: scores, isLoading: loadingScores } = useScores();
+  const { data: initiatives } = useInitiatives();
 
   if (loadingProfiles || loadingScores) {
     return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
   }
+
+  // Compute current TP
+  const activeInits = initiatives?.filter(i => i.status === 'active') || [];
+  const currentTP = (() => {
+    const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
+    const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
+    if (!starts.length || !ends.length) return 1;
+    const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
+    const latest = Math.max(...ends.map(s => new Date(s).getTime()));
+    const totalDuration = latest - earliest;
+    if (totalDuration <= 0) return 1;
+    return Math.min(1, (Date.now() - earliest) / totalDuration);
+  })();
 
   const teamMembers = allProfiles?.filter(u => u.team === teamName) || [];
   const teamRisks = riskFlags?.filter(r => teamMembers.some(m => m.id === r.user_id)) || [];
 
   const teamScores = scores?.filter(s => teamMembers.some(m => m.id === s.user_id)) || [];
   const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
-    teamScores.length ? Math.round(teamScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / teamScores.length) : 0;
+    Math.round((teamScores.length ? teamScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / teamScores.length : 0) * currentTP);
 
   const chartData = teamMembers.map(u => {
     const s = teamScores.find(sc => sc.user_id === u.id);
     return {
       name: u.display_name.split(' ')[0],
-      participation: Number(s?.participation || 0),
-      ownership: Number(s?.ownership || 0),
-      confidence: Number(s?.confidence || 0),
+      participation: Math.round(Number(s?.participation || 0) * currentTP),
+      ownership: Math.round(Number(s?.ownership || 0) * currentTP),
+      confidence: Math.round(Number(s?.confidence || 0) * currentTP),
     };
   });
 
   const membersWithScores = teamMembers.map(m => {
     const s = teamScores.find(sc => sc.user_id === m.id);
-    return { ...m, scores: { participation: Number(s?.participation || 0), ownership: Number(s?.ownership || 0), confidence: Number(s?.confidence || 0), adoption: Number(s?.adoption || 0) } };
+    return { ...m, scores: {
+      participation: Math.round(Number(s?.participation || 0) * currentTP),
+      ownership: Math.round(Number(s?.ownership || 0) * currentTP),
+      confidence: Math.round(Number(s?.confidence || 0) * currentTP),
+      adoption: Math.round(Number(s?.adoption || 0) * currentTP),
+    }};
   }).sort((a, b) => b.scores.adoption - a.scores.adoption);
 
   return (

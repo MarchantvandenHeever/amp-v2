@@ -46,8 +46,8 @@ const Analytics: React.FC = () => {
     });
   };
 
-  // Compute averages
-  const avgScores = useMemo(() => {
+  // Compute raw averages (behavioral readiness, before TP)
+  const avgScoresRaw = useMemo(() => {
     if (!scores?.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
     const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
     if (!filtered.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
@@ -68,17 +68,26 @@ const Analytics: React.FC = () => {
   }));
 
   // Duration-based combined progress
-  const combinedProgress = useMemo(() => {
+  const currentTP = useMemo(() => {
     const now = Date.now();
     const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
     const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
-    if (!starts.length || !ends.length) return 100;
+    if (!starts.length || !ends.length) return 1;
     const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
     const latest = Math.max(...ends.map(s => new Date(s).getTime()));
     const totalDuration = latest - earliest;
-    if (totalDuration <= 0) return 100;
-    return Math.min(100, Math.round(((now - earliest) / totalDuration) * 100));
+    if (totalDuration <= 0) return 1;
+    return Math.min(1, (now - earliest) / totalDuration);
   }, [activeInits]);
+  const combinedProgress = Math.round(currentTP * 100);
+
+  // KPI scores factored by current TP(t)
+  const avgScores = useMemo(() => ({
+    participation: Math.round(avgScoresRaw.participation * currentTP),
+    ownership: Math.round(avgScoresRaw.ownership * currentTP),
+    confidence: Math.round(avgScoresRaw.confidence * currentTP),
+    adoption: Math.round(avgScoresRaw.adoption * currentTP),
+  }), [avgScoresRaw, currentTP]);
 
   // Duration-based helper: compute timeProgressRatio from initiative dates for a given week's recorded_at
   const getInitDateRange = (initId?: string) => {
@@ -141,15 +150,14 @@ const Analytics: React.FC = () => {
         const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
         tp = totalDuration > 0 ? elapsed / totalDuration : 0;
       }
-      // Show behavioral readiness scores directly (no TP multiplication)
-      // Only idealAdoption uses TP scaling
+      // Apply TP to get progressed scores: score × TP(t_week)
       return {
         week,
         weekNum,
-        participation: Math.round(v.participation / v.count),
-        ownership: Math.round(v.ownership / v.count),
-        confidence: Math.round(v.confidence / v.count),
-        adoption: Math.round(v.adoption / v.count),
+        participation: Math.round((v.participation / v.count) * tp),
+        ownership: Math.round((v.ownership / v.count) * tp),
+        confidence: Math.round((v.confidence / v.count) * tp),
+        adoption: Math.round((v.adoption / v.count) * tp),
         idealAdoption: Math.round(desiredTarget * tp),
       };
     }).sort((a, b) => a.weekNum - b.weekNum).map(({ weekNum, ...rest }) => rest);
