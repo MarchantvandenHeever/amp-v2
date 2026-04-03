@@ -84,14 +84,13 @@ const ChangeManagerDashboard: React.FC = () => {
       const tp = totalDuration > 0 ? elapsedAtWeek / totalDuration : 0;
       // Scale behavioral scores proportionally through the journey
       const scale = progressFrac > 0 ? Math.min(weekFraction / progressFrac, 1) : 0;
-      // Show behavioral readiness scores directly (no TP multiplication)
-      // Only idealAdoption uses TP scaling
+      // Apply TP to get progressed scores: score × TP(t_week)
       return {
         week: `W${i + 1}`,
-        participation: Math.min(100, Math.round(scoresFn('participation') * scale)),
-        ownership: Math.min(100, Math.round(scoresFn('ownership') * scale)),
-        confidence: Math.min(100, Math.round(scoresFn('confidence') * scale)),
-        adoption: Math.min(100, Math.round(scoresFn('adoption') * scale)),
+        participation: Math.min(100, Math.round(Math.min(100, scoresFn('participation') * scale) * tp)),
+        ownership: Math.min(100, Math.round(Math.min(100, scoresFn('ownership') * scale) * tp)),
+        confidence: Math.min(100, Math.round(Math.min(100, scoresFn('confidence') * scale) * tp)),
+        adoption: Math.min(100, Math.round(Math.min(100, scoresFn('adoption') * scale) * tp)),
         idealAdoption: Math.round(desiredTarget * tp),
       };
     });
