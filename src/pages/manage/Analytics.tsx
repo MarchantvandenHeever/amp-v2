@@ -132,25 +132,28 @@ const Analytics: React.FC = () => {
     return weekEntries.map(([week, v]) => {
       const m = week.match(/\d+/);
       const weekNum = m ? parseInt(m[0]) : 1;
-      let idealAdoption: number;
+      let tp = 0;
       if (startDate && endDate) {
         const startMs = new Date(startDate).getTime();
         const endMs = new Date(endDate).getTime();
         const totalDuration = endMs - startMs;
         const weekDateMs = startMs + weekNum * 7 * 24 * 60 * 60 * 1000;
         const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
-        idealAdoption = totalDuration > 0 ? Math.round(desiredTarget * (elapsed / totalDuration)) : 0;
-      } else {
-        idealAdoption = 0;
+        tp = totalDuration > 0 ? elapsed / totalDuration : 0;
       }
+      // Apply TP to get progressed scores: A_prog = A_dash × TP(t)
+      const partDash = Math.round(v.participation / v.count);
+      const ownDash = Math.round(v.ownership / v.count);
+      const confDash = Math.round(v.confidence / v.count);
+      const adoptDash = Math.round(v.adoption / v.count);
       return {
         week,
         weekNum,
-        participation: Math.round(v.participation / v.count),
-        ownership: Math.round(v.ownership / v.count),
-        confidence: Math.round(v.confidence / v.count),
-        adoption: Math.round(v.adoption / v.count),
-        idealAdoption,
+        participation: Math.round(partDash * tp),
+        ownership: Math.round(ownDash * tp),
+        confidence: Math.round(confDash * tp),
+        adoption: Math.round(adoptDash * tp),
+        idealAdoption: Math.round(desiredTarget * tp),
       };
     }).sort((a, b) => a.weekNum - b.weekNum).map(({ weekNum, ...rest }) => rest);
   };
