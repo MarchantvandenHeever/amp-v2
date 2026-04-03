@@ -77,10 +77,6 @@ const ChangeManagerDashboard: React.FC = () => {
         idealAdoption: Math.round(desiredTarget * ((i + 1) / totalWeeks)),
       }));
     }
-    const totalDuration = endDate.getTime() - startDate.getTime();
-    const elapsed = Math.max(0, Math.min(now.getTime() - startDate.getTime(), totalDuration));
-    const progressFrac = totalDuration > 0 ? elapsed / totalDuration : 1;
-
     return Array.from({ length: totalWeeks }, (_, i) => {
       const weekTP = (i + 1) / totalWeeks;
       return {
