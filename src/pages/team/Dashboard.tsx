@@ -2,7 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing, ScoreRow } from '@/components/scores/ScoreCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEndUsers, useRiskFlags, useScores } from '@/hooks/useSupabaseData';
+import { useEndUsers, useRiskFlags, useScores, useInitiatives } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
