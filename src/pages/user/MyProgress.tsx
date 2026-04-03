@@ -104,9 +104,19 @@ const MyProgress: React.FC = () => {
     adoption: Math.round(user.scores.adoption * currentTP),
   };
 
-  const totalDataWeeks = userHistory.length;
-  const userHistoryWithIdeal = userHistory.map((h, idx) => {
-    const weekTP = (idx + 1) / totalDataWeeks;
+  const userHistoryWithIdeal = userHistory.map(h => {
+    // Calendar-based TP: weekNum weeks from initiative start
+    let weekTP = 0;
+    if (combinedStartStr && combinedEndStr) {
+      const startMs = new Date(combinedStartStr).getTime();
+      const endMs = new Date(combinedEndStr).getTime();
+      const totalDuration = endMs - startMs;
+      if (totalDuration > 0) {
+        const weekDateMs = startMs + h.weekNum * 7 * 24 * 60 * 60 * 1000;
+        const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
+        weekTP = elapsed / totalDuration;
+      }
+    }
     return {
       week: h.week,
       participation: Math.round(h.participation * weekTP),

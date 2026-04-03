@@ -134,18 +134,23 @@ const Analytics: React.FC = () => {
       if (r.recorded_at < byWeek[week].earliestDate) byWeek[week].earliestDate = r.recorded_at;
     });
     const weekEntries = Object.entries(byWeek);
-    const weekNumbers = weekEntries.map(([w]) => {
-      const m = w.match(/\d+/);
-      return m ? parseInt(m[0]) : 0;
-    });
-    const totalDataWeeks = weekEntries.length;
-    return weekEntries.map(([week, v], idx) => {
+    const startMs = startDate ? new Date(startDate).getTime() : 0;
+    const endMs = endDate ? new Date(endDate).getTime() : 0;
+    const totalDuration = endMs - startMs;
+
+    return weekEntries.map(([week, v]) => {
       const m = week.match(/\d+/);
       const weekNum = m ? parseInt(m[0]) : 1;
-      return { week, weekNum, idx, v };
-    }).sort((a, b) => a.weekNum - b.weekNum).map((entry, sortedIdx) => {
-      const weekTP = (sortedIdx + 1) / totalDataWeeks;
-      const { week, v } = entry;
+      return { week, weekNum, v };
+    }).sort((a, b) => a.weekNum - b.weekNum).map((entry) => {
+      const { week, weekNum, v } = entry;
+      // Calendar-based TP: weekNum weeks from start
+      let weekTP = 0;
+      if (totalDuration > 0) {
+        const weekDateMs = startMs + weekNum * 7 * 24 * 60 * 60 * 1000;
+        const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
+        weekTP = elapsed / totalDuration;
+      }
       return {
         week,
         participation: Math.round((v.participation / v.count) * weekTP),
