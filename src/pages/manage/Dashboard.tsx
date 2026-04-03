@@ -36,16 +36,21 @@ const ChangeManagerDashboard: React.FC = () => {
 
   // Duration-based combined progress
   const now = new Date();
-  const combinedProgress = (() => {
+  const currentTP = (() => {
     const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
     const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
-    if (!starts.length || !ends.length) return 100;
+    if (!starts.length || !ends.length) return 1;
     const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
     const latest = Math.max(...ends.map(s => new Date(s).getTime()));
     const totalDuration = latest - earliest;
-    if (totalDuration <= 0) return 100;
-    return Math.min(100, Math.round(((now.getTime() - earliest) / totalDuration) * 100));
+    if (totalDuration <= 0) return 1;
+    return Math.min(1, (now.getTime() - earliest) / totalDuration);
   })();
+  const combinedProgress = Math.round(currentTP * 100);
+
+  // KPI scores factored by current TP
+  const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
+    Math.round(avgScoreRaw(key) * currentTP);
 
   // Duration-based trend using initiative date ranges
   // Find combined date range across active initiatives
