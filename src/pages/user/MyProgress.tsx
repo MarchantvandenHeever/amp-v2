@@ -104,23 +104,16 @@ const MyProgress: React.FC = () => {
     adoption: Math.round(user.scores.adoption * currentTP),
   };
 
-  const userHistoryWithIdeal = userHistory.map(h => {
-    let tp = 0;
-    if (combinedStartStr && combinedEndStr) {
-      const startMs = new Date(combinedStartStr).getTime();
-      const endMs = new Date(combinedEndStr).getTime();
-      const totalDuration = endMs - startMs;
-      const weekDateMs = startMs + h.weekNum * 7 * 24 * 60 * 60 * 1000;
-      const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
-      tp = totalDuration > 0 ? elapsed / totalDuration : 0;
-    }
+  const totalDataWeeks = userHistory.length;
+  const userHistoryWithIdeal = userHistory.map((h, idx) => {
+    const weekTP = (idx + 1) / totalDataWeeks;
     return {
       week: h.week,
-      participation: h.participation,
-      ownership: h.ownership,
-      confidence: h.confidence,
-      adoption: h.adoption,
-      idealAdoption: Math.round(desiredTarget * tp),
+      participation: Math.round(h.participation * weekTP),
+      ownership: Math.round(h.ownership * weekTP),
+      confidence: Math.round(h.confidence * weekTP),
+      adoption: Math.round(h.adoption * weekTP),
+      idealAdoption: Math.round(desiredTarget * weekTP),
     };
   });
 

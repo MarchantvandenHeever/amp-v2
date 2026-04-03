@@ -138,28 +138,23 @@ const Analytics: React.FC = () => {
       const m = w.match(/\d+/);
       return m ? parseInt(m[0]) : 0;
     });
-    return weekEntries.map(([week, v]) => {
+    const totalDataWeeks = weekEntries.length;
+    return weekEntries.map(([week, v], idx) => {
       const m = week.match(/\d+/);
       const weekNum = m ? parseInt(m[0]) : 1;
-      let tp = 0;
-      if (startDate && endDate) {
-        const startMs = new Date(startDate).getTime();
-        const endMs = new Date(endDate).getTime();
-        const totalDuration = endMs - startMs;
-        const weekDateMs = startMs + weekNum * 7 * 24 * 60 * 60 * 1000;
-        const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
-        tp = totalDuration > 0 ? elapsed / totalDuration : 0;
-      }
+      return { week, weekNum, idx, v };
+    }).sort((a, b) => a.weekNum - b.weekNum).map((entry, sortedIdx) => {
+      const weekTP = (sortedIdx + 1) / totalDataWeeks;
+      const { week, v } = entry;
       return {
         week,
-        weekNum,
-        participation: Math.round(v.participation / v.count),
-        ownership: Math.round(v.ownership / v.count),
-        confidence: Math.round(v.confidence / v.count),
-        adoption: Math.round(v.adoption / v.count),
-        idealAdoption: Math.round(desiredTarget * tp),
+        participation: Math.round((v.participation / v.count) * weekTP),
+        ownership: Math.round((v.ownership / v.count) * weekTP),
+        confidence: Math.round((v.confidence / v.count) * weekTP),
+        adoption: Math.round((v.adoption / v.count) * weekTP),
+        idealAdoption: Math.round(desiredTarget * weekTP),
       };
-    }).sort((a, b) => a.weekNum - b.weekNum).map(({ weekNum, ...rest }) => rest);
+    });
   };
 
   // Trend data (score_history by week)
