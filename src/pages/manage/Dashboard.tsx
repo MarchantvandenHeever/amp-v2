@@ -82,20 +82,14 @@ const ChangeManagerDashboard: React.FC = () => {
     const progressFrac = totalDuration > 0 ? elapsed / totalDuration : 1;
 
     return Array.from({ length: totalWeeks }, (_, i) => {
-      const weekFraction = (i + 1) / totalWeeks;
-      // Map week to calendar time to get TP(t_week)
-      const weekDateMs = startDate!.getTime() + weekFraction * totalDuration;
-      const elapsedAtWeek = Math.max(0, Math.min(weekDateMs - startDate!.getTime(), totalDuration));
-      const tp = totalDuration > 0 ? elapsedAtWeek / totalDuration : 0;
-      // Scale behavioral scores proportionally through the journey
-      const scale = progressFrac > 0 ? Math.min(weekFraction / progressFrac, 1) : 0;
+      const weekTP = (i + 1) / totalWeeks;
       return {
         week: `W${i + 1}`,
-        participation: Math.min(100, Math.round(scoresFn('participation') * scale)),
-        ownership: Math.min(100, Math.round(scoresFn('ownership') * scale)),
-        confidence: Math.min(100, Math.round(scoresFn('confidence') * scale)),
-        adoption: Math.min(100, Math.round(scoresFn('adoption') * scale)),
-        idealAdoption: Math.round(desiredTarget * tp),
+        participation: Math.min(100, Math.round(scoresFn('participation') * weekTP)),
+        ownership: Math.min(100, Math.round(scoresFn('ownership') * weekTP)),
+        confidence: Math.min(100, Math.round(scoresFn('confidence') * weekTP)),
+        adoption: Math.min(100, Math.round(scoresFn('adoption') * weekTP)),
+        idealAdoption: Math.round(desiredTarget * weekTP),
       };
     });
   };
