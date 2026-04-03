@@ -46,8 +46,8 @@ const Analytics: React.FC = () => {
     });
   };
 
-  // Compute averages
-  const avgScores = useMemo(() => {
+  // Compute raw averages (behavioral readiness, before TP)
+  const avgScoresRaw = useMemo(() => {
     if (!scores?.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
     const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
     if (!filtered.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
