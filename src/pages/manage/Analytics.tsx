@@ -80,6 +80,9 @@ const Analytics: React.FC = () => {
     return Math.min(1, (now - earliest) / totalDuration);
   }, [activeInits]);
   const combinedProgress = Math.round(currentTP * 100);
+  const selectedInitiativeProgress = selectedInitiative === 'all'
+    ? combinedProgress
+    : (activeInits.find(i => i.id === selectedInitiative)?.progress ?? combinedProgress);
 
   // KPI scores factored by current TP(t)
   const avgScores = useMemo(() => ({
@@ -170,6 +173,21 @@ const Analytics: React.FC = () => {
     return buildTrendFromHistory(filtered, start, end);
   }, [scoreHistory, selectedInitiative, desiredTarget, activeInits]);
 
+  const visibleTrendData = useMemo(() => {
+    if (!trendData.length) return trendData;
+    if (selectedInitiativeProgress >= 100) return trendData;
+    const cutoffIndex = Math.max(1, Math.ceil((selectedInitiativeProgress / 100) * trendData.length));
+    return trendData.slice(0, cutoffIndex);
+  }, [trendData, selectedInitiativeProgress]);
+
+  const currentTrendPoint = visibleTrendData[visibleTrendData.length - 1] ?? {
+    participation: avgScores.participation,
+    ownership: avgScores.ownership,
+    confidence: avgScores.confidence,
+    adoption: avgScores.adoption,
+    idealAdoption: currentIdeal,
+  };
+
   const perInitiativeTrendData = useMemo(() => {
     if (!scoreHistory?.length) return {} as Record<string, any[]>;
     const result: Record<string, any[]> = {};
@@ -230,7 +248,7 @@ const Analytics: React.FC = () => {
   const radarData = useMemo(() => {
     return INDICES.filter(i => selectedIndices.has(i.key)).map(i => ({
       index: i.label,
-      score: avgScores[i.key],
+      score: currentTrendPoint[i.key],
       fullMark: 100,
     }));
   }, [avgScores, selectedIndices]);
@@ -297,7 +315,7 @@ const Analytics: React.FC = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {INDICES.filter(i => selectedIndices.has(i.key)).map((idx, i) => (
             <motion.div key={idx.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <ScoreCard label={idx.label} score={avgScores[idx.key]} color={idx.key} />
+              <ScoreCard label={idx.label} score={currentTrendPoint[idx.key]} color={idx.key} />
             </motion.div>
           ))}
         </div>
@@ -308,7 +326,7 @@ const Analytics: React.FC = () => {
             { label: 'Total Users', value: userTable.length, icon: Users, cls: 'bg-primary/10 text-primary' },
             { label: 'Active Initiatives', value: initiatives?.filter(i => i.status === 'active').length || 0, icon: Target, cls: 'bg-amp-ownership/10 text-amp-ownership' },
             { label: 'High Risk Flags', value: riskCount, icon: AlertTriangle, cls: 'bg-amp-risk/10 text-amp-risk' },
-            { label: 'Avg Adoption', value: `${avgScores.adoption}%`, icon: BarChart3, cls: 'bg-amp-adoption/10 text-amp-adoption' },
+            { label: 'Avg Adoption', value: `${currentTrendPoint.adoption}%`, icon: BarChart3, cls: 'bg-amp-adoption/10 text-amp-adoption' },
           ].map(s => (
             <div key={s.label} className="bg-card border border-border rounded-xl p-4 amp-shadow-card flex items-center gap-3">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${s.cls}`}>
@@ -343,7 +361,7 @@ const Analytics: React.FC = () => {
                   height={320}
                   initiatives={initiativeOptions}
                   initiativeData={perInitiativeTrendData}
-                  progress={combinedProgress}
+                  progress={selectedInitiativeProgress}
                 />
               )}
             </div>
@@ -363,9 +381,9 @@ const Analytics: React.FC = () => {
               </div>
               <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
                 <h3 className="font-heading font-semibold mb-4">Overall Adoption</h3>
-                <AdoptionScoreRing score={avgScores.adoption} size={180} idealScore={currentIdeal} />
-                <p className={`mt-3 text-sm font-semibold ${getScoreColor(avgScores.adoption)}`}>
-                  {getScoreLabel(avgScores.adoption)}
+                <AdoptionScoreRing score={currentTrendPoint.adoption} size={180} idealScore={currentTrendPoint.idealAdoption} />
+                <p className={`mt-3 text-sm font-semibold ${getScoreColor(currentTrendPoint.adoption)}`}>
+                  {getScoreLabel(currentTrendPoint.adoption)}
                 </p>
               </div>
             </div>
