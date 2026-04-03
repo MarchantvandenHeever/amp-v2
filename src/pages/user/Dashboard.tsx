@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { useJourneys, useAllJourneyItems, useAnnouncements, useBadges, useUserBadges, getTierFromPoints, getScoreLabel } from '@/hooks/useSupabaseData';
+import { useJourneys, useAllJourneyItems, useAnnouncements, useBadges, useUserBadges, useInitiatives, getTierFromPoints, getScoreLabel } from '@/hooks/useSupabaseData';
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { TaskDetailModal } from '@/components/journey/TaskDetailModal';
 import { motion } from 'framer-motion';
