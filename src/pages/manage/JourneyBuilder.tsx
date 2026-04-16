@@ -35,7 +35,7 @@ const JourneyBuilder: React.FC = () => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [itemModal, setItemModal] = useState<{ open: boolean; item: any | null }>({ open: false, item: null });
   const [assignModal, setAssignModal] = useState(false);
-  const [newJourneyModal, setNewJourneyModal] = useState(false);
+  const [journeyModal, setJourneyModal] = useState<{ open: boolean; journey: any | null }>({ open: false, journey: null });
   const [phaseModal, setPhaseModal] = useState<{ open: boolean; phase: any | null }>({ open: false, phase: null });
   const [subJourneyModal, setSubJourneyModal] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'gantt'>('list');
@@ -104,8 +104,19 @@ const JourneyBuilder: React.FC = () => {
     };
 
     if (item.id && items?.find(i => i.id === item.id)) {
+      const existing = items.find(i => i.id === item.id);
       const { error } = await supabase.from('journey_items').update(payload).eq('id', item.id);
       if (error) { toast.error('Failed to update'); return; }
+
+      await supabase.from('ai_change_log').insert({
+        change_type: 'edit_journey_item',
+        journey_id: selectedId,
+        journey_item_id: item.id,
+        before_state: existing,
+        after_state: { ...existing, ...payload },
+        rationale: 'Manual edit by admin/change manager',
+      });
+
       toast.success('Item updated');
     } else {
       const { error } = await supabase.from('journey_items').insert({
@@ -260,7 +271,7 @@ const JourneyBuilder: React.FC = () => {
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${aiPanelOpen ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>
               <Sparkles className="w-4 h-4" /> AI Agent
             </button>
-            <button onClick={() => setNewJourneyModal(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+            <button onClick={() => setJourneyModal({ open: true, journey: null })} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
               + New Journey
             </button>
           </div>
@@ -271,12 +282,24 @@ const JourneyBuilder: React.FC = () => {
           <div className="space-y-2">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Journeys</h3>
             {(journeys || []).filter(j => !(j as any).parent_journey_id).map(j => (
-              <button key={j.id} onClick={() => { setSelectedId(j.id); setExpandedItem(null); }}
-                className={cn("w-full text-left p-3 rounded-lg border transition-all text-sm",
-                  selectedId === j.id ? "border-primary bg-primary/5 amp-shadow-card" : "border-border hover:border-primary/30 hover:bg-secondary/50")}>
-                <p className="font-medium">{j.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{j.progress || 0}% · {j.status}</p>
-              </button>
+              <div key={j.id} className={cn("w-full text-left p-3 rounded-lg border transition-all text-sm group",
+                selectedId === j.id ? "border-primary bg-primary/5 amp-shadow-card" : "border-border hover:border-primary/30 hover:bg-secondary/50")}>
+                <div className="flex items-start justify-between">
+                  <button onClick={() => { setSelectedId(j.id); setExpandedItem(null); }} className="flex-1 text-left">
+                    <p className="font-medium">{j.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{j.progress || 0}% · {j.status}</p>
+                  </button>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => setJourneyModal({ open: true, journey: j })} className="p-1 rounded hover:bg-secondary"><Edit className="w-3 h-3 text-muted-foreground" /></button>
+                    <button onClick={async () => {
+                      if (!confirm('Delete this journey?')) return;
+                      await supabase.from('journeys').delete().eq('id', j.id);
+                      toast.success('Journey deleted'); refetchJourneys();
+                      if (selectedId === j.id) setSelectedId(null);
+                    }} className="p-1 rounded hover:bg-destructive/10"><Trash2 className="w-3 h-3 text-destructive" /></button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
 
@@ -291,6 +314,10 @@ const JourneyBuilder: React.FC = () => {
                       <p className="text-sm text-muted-foreground mt-0.5">{selectedJourney.description}</p>
                     </div>
                     <div className="flex items-center gap-2">
+                      <button onClick={() => setJourneyModal({ open: true, journey: selectedJourney })}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border font-medium hover:bg-secondary transition-colors">
+                        <Edit className="w-3.5 h-3.5" /> Edit
+                      </button>
                       <button onClick={() => setAssignModal(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border font-medium hover:bg-secondary transition-colors">
                         <Users className="w-3.5 h-3.5" /> Assign
                       </button>
@@ -459,7 +486,7 @@ const JourneyBuilder: React.FC = () => {
           />
         </>
       )}
-      <NewJourneyModal open={newJourneyModal} onClose={() => setNewJourneyModal(false)} onCreated={() => refetchJourneys()} />
+      <NewJourneyModal open={journeyModal.open} onClose={() => setJourneyModal({ open: false, journey: null })} onCreated={() => refetchJourneys()} journey={journeyModal.journey} />
     </AppLayout>
   );
 };
