@@ -7,7 +7,7 @@ import {
   UserCog, Building2, Milestone, Award, Gauge, Trophy, Brain, Sparkles, History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import ampLogo from '@/assets/amp-logo-orange-transparent.png';
+import ampLogo from '@/assets/amp-logo-colour.png';
 
 interface NavItem {
   label: string;
