@@ -10,15 +10,31 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // --- Auth check ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const callerUserId = claimsData.claims.sub;
+
     const { messages, user_context, conversation_id } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Use verified caller ID, not client-supplied user_id
     const ctx = user_context || {};
+    const verifiedUserId = callerUserId;
 
     const systemPrompt = `You are the AMP Support Agent — an embedded AI assistant helping end users navigate their adoption journey.
 
@@ -137,13 +153,13 @@ After each response, also extract any behavioural signals from the user's messag
         structured_output: extractedSignals.length > 0 ? { signals: extractedSignals } : null,
       });
 
-      // Save extracted signals as insight_records
+      // Save extracted signals as insight_records using verified user ID
       if (extractedSignals.length > 0 && ctx.initiative_id) {
         for (const signal of extractedSignals) {
           await supabase.from("insight_records").insert({
             initiative_id: ctx.initiative_id,
             journey_id: ctx.journey_id || null,
-            user_id: ctx.user_id || null,
+            user_id: verifiedUserId,
             persona: ctx.persona || null,
             team: ctx.team || null,
             insight_type: signal.insight_type,
@@ -166,7 +182,7 @@ After each response, also extract any behavioural signals from the user's messag
     });
   } catch (e) {
     console.error("ai-support-agent error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

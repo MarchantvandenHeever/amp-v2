@@ -29,7 +29,7 @@ const MyProgress: React.FC = () => {
   const inProgressItems = userItems.filter((i: any) => i.status === 'in_progress');
   const totalItems = userItems.length;
 
-  console.log('[MyProgress] user.id:', user.id, 'assignments:', userAssignments.length, 'journeyIds:', userJourneyIds, 'userItems:', userItems.length, 'completed:', completedItems.length);
+  
 
   // Parse durations
   const parseDuration = (d: string | null) => {
