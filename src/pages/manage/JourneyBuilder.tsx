@@ -3,7 +3,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useJourneys, useJourneyItems, useJourneyPhases } from '@/hooks/useSupabaseData';
 import { NewJourneyModal } from '@/components/journey/NewJourneyModal';
 import { supabase } from '@/integrations/supabase/client';
-import { GripVertical, Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, Upload, MessageSquare, Star, Target, FileText, Trash2, Edit, Users, Copy, Loader2, BarChart3, List, Layers, Link2, Power, PowerOff } from 'lucide-react';
+import { GripVertical, Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, Upload, MessageSquare, Star, Target, FileText, Trash2, Edit, Users, Copy, Loader2, BarChart3, List, Layers, Link2, Power, PowerOff, Sparkles } from 'lucide-react';
+import { JourneyBuilderAgent } from '@/components/ai/JourneyBuilderAgent';
 import { cn } from '@/lib/utils';
 import { JourneyItemModal } from '@/components/journey/JourneyItemModal';
 import { AssignJourneyModal } from '@/components/journey/AssignJourneyModal';
@@ -38,6 +39,7 @@ const JourneyBuilder: React.FC = () => {
   const [phaseModal, setPhaseModal] = useState<{ open: boolean; phase: any | null }>({ open: false, phase: null });
   const [subJourneyModal, setSubJourneyModal] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'gantt'>('list');
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
