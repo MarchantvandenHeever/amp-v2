@@ -255,9 +255,15 @@ const JourneyBuilder: React.FC = () => {
             <h1 className="font-heading text-2xl font-bold">Journey Builder</h1>
             <p className="text-sm text-muted-foreground mt-1">Design behavioural adoption journeys with phases, dependencies & parallel execution</p>
           </div>
-          <button onClick={() => setNewJourneyModal(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
-            + New Journey
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setAiPanelOpen(!aiPanelOpen)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${aiPanelOpen ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>
+              <Sparkles className="w-4 h-4" /> AI Agent
+            </button>
+            <button onClick={() => setNewJourneyModal(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+              + New Journey
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
