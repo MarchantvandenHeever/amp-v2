@@ -475,7 +475,7 @@ const JourneyBuilder: React.FC = () => {
 
       {selectedJourney && (
         <>
-          <AssignJourneyModal open={assignModal} onClose={() => setAssignModal(false)} journeyName={selectedJourney.name} />
+          <AssignJourneyModal open={assignModal} onClose={() => setAssignModal(false)} journeyName={selectedJourney.name} journeyId={selectedJourney.id} />
           <SubJourneyModal
             open={subJourneyModal}
             onClose={() => setSubJourneyModal(false)}
