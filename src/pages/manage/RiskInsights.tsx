@@ -1,28 +1,22 @@
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useRiskFlags } from '@/hooks/useSupabaseData';
+import { useRecommendations } from '@/hooks/useRecommendations';
 import { AlertTriangle, TrendingDown, Eye, Lightbulb, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ImplementRecommendationModal } from '@/components/risk/ImplementRecommendationModal';
 import { useQueryClient } from '@tanstack/react-query';
-
-const interventions = [
-  { action: 'Increase reminders', target: 'Disengaging users', impact: 'High', users: 2 },
-  { action: 'Add proof-based task', target: 'Low ownership users', impact: 'High', users: 3 },
-  { action: 'Trigger manager coaching', target: 'Low confidence users', impact: 'Medium', users: 2 },
-  { action: 'Add repetition cycle', target: 'Unstable confidence', impact: 'Medium', users: 1 },
-  { action: 'Boost starter reinforcement', target: 'Reminder-dependent', impact: 'Medium', users: 2 },
-  { action: 'Simplify journey', target: 'Evidence-missing users', impact: 'Low', users: 1 },
-];
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const RiskInsights: React.FC = () => {
   const { data: riskFlags, isLoading, refetch } = useRiskFlags();
+  const { data: recommendations, isLoading: loadingRecs, refetch: refetchRecs } = useRecommendations();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState<any>(null);
   const [selectedIntervention, setSelectedIntervention] = useState<any>(null);
-  const [implementedInterventions, setImplementedInterventions] = useState<Set<number>>(new Set());
 
   const handleImplementRisk = (flag: any) => {
     setSelectedRisk(flag);
@@ -30,23 +24,27 @@ const RiskInsights: React.FC = () => {
     setModalOpen(true);
   };
 
-  const handleImplementIntervention = (intv: any, index: number) => {
+  const handleImplementIntervention = (rec: any) => {
     setSelectedRisk(null);
-    setSelectedIntervention({ ...intv, _index: index });
+    setSelectedIntervention({ action: rec.title, target: rec.description || rec.rationale, impact: rec.severity, _id: rec.id });
     setModalOpen(true);
+  };
+
+  const handleDismissRecommendation = async (id: string) => {
+    await supabase.from('recommendation_records').update({ review_status: 'dismissed' }).eq('id', id);
+    toast.success('Recommendation dismissed');
+    refetchRecs();
   };
 
   const handleImplemented = () => {
     refetch();
+    refetchRecs();
     queryClient.invalidateQueries({ queryKey: ['content_items'] });
     queryClient.invalidateQueries({ queryKey: ['journey_items'] });
     queryClient.invalidateQueries({ queryKey: ['journeys'] });
-    if (selectedIntervention?._index !== undefined) {
-      setImplementedInterventions(prev => new Set(prev).add(selectedIntervention._index));
-    }
   };
 
-  if (isLoading) {
+  if (isLoading || loadingRecs) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center py-20">
@@ -59,6 +57,10 @@ const RiskInsights: React.FC = () => {
   const flags = riskFlags || [];
   const highRisk = flags.filter(r => r.severity === 'high');
   const medRisk = flags.filter(r => r.severity === 'medium');
+
+  // Show pending and saved recommendations as interventions
+  const pendingRecs = (recommendations || []).filter(r => r.review_status === 'pending' || r.review_status === 'saved');
+  const appliedRecs = (recommendations || []).filter(r => r.review_status === 'approved');
 
   return (
     <AppLayout>
@@ -124,14 +126,8 @@ const RiskInsights: React.FC = () => {
                       </td>
                       <td className="py-2.5 px-3 text-primary text-xs font-medium max-w-xs">{flag.recommendation}</td>
                       <td className="py-2.5 px-3 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5 text-xs"
-                          onClick={() => handleImplementRisk(flag)}
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          Implement
+                        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleImplementRisk(flag)}>
+                          <Sparkles className="w-3.5 h-3.5" /> Implement
                         </Button>
                       </td>
                     </tr>
@@ -145,48 +141,48 @@ const RiskInsights: React.FC = () => {
           </div>
         </div>
 
-        {/* Intervention recommendations */}
+        {/* Intervention recommendations from DB */}
         <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
           <div className="flex items-center gap-2 mb-4">
             <Lightbulb className="w-4 h-4 text-amp-confidence" />
             <h3 className="font-heading font-semibold">Recommended Interventions</h3>
           </div>
           <div className="space-y-2">
-            {interventions.map((intv, i) => {
-              const isImplemented = implementedInterventions.has(i);
-              return (
-                <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                  className={`flex items-center gap-4 p-3 rounded-lg border border-border transition-colors ${
-                    isImplemented ? 'bg-amp-success/5 border-amp-success/20' : 'hover:bg-secondary/30'
-                  }`}>
-                  <div className="flex-1">
-                    <p className={`text-sm font-medium ${isImplemented ? 'line-through text-muted-foreground' : ''}`}>{intv.action}</p>
-                    <p className="text-xs text-muted-foreground">{intv.target}</p>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    intv.impact === 'High' ? 'bg-amp-risk/10 text-amp-risk' :
-                    intv.impact === 'Medium' ? 'bg-amp-warning/10 text-amp-confidence' :
-                    'bg-secondary text-muted-foreground'
-                  }`}>{intv.impact} impact</span>
-                  <span className="text-xs text-muted-foreground">{intv.users} users</span>
-                  {isImplemented ? (
-                    <span className="flex items-center gap-1 text-xs text-amp-success font-medium px-3 py-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Done
-                    </span>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 text-xs"
-                      onClick={() => handleImplementIntervention(intv, i)}
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Implement
-                    </Button>
-                  )}
-                </motion.div>
-              );
-            })}
+            {pendingRecs.length === 0 && appliedRecs.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">No recommendations yet. Run the AI insight miner to generate recommendations.</p>
+            )}
+            {pendingRecs.map((rec, i) => (
+              <motion.div key={rec.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-secondary/30 transition-colors">
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{rec.title}</p>
+                  <p className="text-xs text-muted-foreground">{rec.rationale || rec.description}</p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  rec.severity === 'high' ? 'bg-amp-risk/10 text-amp-risk' :
+                  rec.severity === 'medium' ? 'bg-amp-warning/10 text-amp-confidence' :
+                  'bg-secondary text-muted-foreground'
+                }`}>{rec.severity}</span>
+                <span className="text-xs text-muted-foreground capitalize">{rec.recommendation_type.replace(/_/g, ' ')}</span>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleImplementIntervention(rec)}>
+                  <Sparkles className="w-3.5 h-3.5" /> Implement
+                </Button>
+                <Button size="sm" variant="ghost" className="text-xs text-muted-foreground" onClick={() => handleDismissRecommendation(rec.id)}>
+                  Dismiss
+                </Button>
+              </motion.div>
+            ))}
+            {appliedRecs.map((rec) => (
+              <div key={rec.id} className="flex items-center gap-4 p-3 rounded-lg border border-amp-success/20 bg-amp-success/5">
+                <div className="flex-1">
+                  <p className="text-sm font-medium line-through text-muted-foreground">{rec.title}</p>
+                  <p className="text-xs text-muted-foreground">{rec.rationale || rec.description}</p>
+                </div>
+                <span className="flex items-center gap-1 text-xs text-amp-success font-medium px-3 py-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Applied
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
