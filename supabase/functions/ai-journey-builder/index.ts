@@ -10,13 +10,34 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // --- Auth check: require change_manager or super_admin ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const callerUserId = claimsData.claims.sub;
+
+    // Role check via service role client
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: roleCheck } = await supabase.rpc("has_role", { _user_id: callerUserId, _role: "change_manager" });
+    const { data: adminCheck } = await supabase.rpc("has_role", { _user_id: callerUserId, _role: "super_admin" });
+    if (!roleCheck && !adminCheck) {
+      return new Response(JSON.stringify({ error: "Forbidden: requires change_manager or super_admin role" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { messages, initiative_id, journey_id, personas, milestones, existing_items, conversation_id } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Build context for the AI
     const systemPrompt = `You are the AMP Journey Builder Agent — an AI copilot embedded in the AMP behavioural adoption platform.
@@ -102,8 +123,6 @@ Current context:
 
     if (!response.ok) {
       const status = response.status;
-      const text = await response.text();
-      console.error("AI gateway error:", status, text);
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -160,7 +179,7 @@ Current context:
     });
   } catch (e) {
     console.error("ai-journey-builder error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
