@@ -416,6 +416,20 @@ const JourneyBuilder: React.FC = () => {
         </div>
       </div>
 
+      {/* AI Agent Panel */}
+      {aiPanelOpen && selectedId && (
+        <div className="w-[400px] shrink-0 h-[calc(100vh-8rem)]">
+          <JourneyBuilderAgent
+            journeyId={selectedId}
+            initiativeId={selectedJourney?.initiative_id || undefined}
+            existingItems={sortedItems}
+            onItemInserted={() => refetchItems()}
+            onClose={() => setAiPanelOpen(false)}
+          />
+        </div>
+      )}
+      </div>
+
       <JourneyItemModal
         open={itemModal.open}
         onClose={() => setItemModal({ open: false, item: null })}
