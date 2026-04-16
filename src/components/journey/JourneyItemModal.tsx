@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useContentItems } from '@/hooks/useSupabaseData';
-import { JourneyItem } from '@/data/mockData';
+
 import { FileText, Search } from 'lucide-react';
 
 const itemTypes = [
