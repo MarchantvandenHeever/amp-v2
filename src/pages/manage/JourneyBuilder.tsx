@@ -303,6 +303,10 @@ const JourneyBuilder: React.FC = () => {
                       <p className="text-sm text-muted-foreground mt-0.5">{selectedJourney.description}</p>
                     </div>
                     <div className="flex items-center gap-2">
+                      <button onClick={() => setJourneyModal({ open: true, journey: selectedJourney })}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border font-medium hover:bg-secondary transition-colors">
+                        <Edit className="w-3.5 h-3.5" /> Edit
+                      </button>
                       <button onClick={() => setAssignModal(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border font-medium hover:bg-secondary transition-colors">
                         <Users className="w-3.5 h-3.5" /> Assign
                       </button>
