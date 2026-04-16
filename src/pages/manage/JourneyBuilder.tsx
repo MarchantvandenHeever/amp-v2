@@ -104,8 +104,19 @@ const JourneyBuilder: React.FC = () => {
     };
 
     if (item.id && items?.find(i => i.id === item.id)) {
+      const existing = items.find(i => i.id === item.id);
       const { error } = await supabase.from('journey_items').update(payload).eq('id', item.id);
       if (error) { toast.error('Failed to update'); return; }
+
+      await supabase.from('ai_change_log').insert({
+        change_type: 'edit_journey_item',
+        journey_id: selectedId,
+        journey_item_id: item.id,
+        before_state: existing,
+        after_state: { ...existing, ...payload },
+        rationale: 'Manual edit by admin/change manager',
+      });
+
       toast.success('Item updated');
     } else {
       const { error } = await supabase.from('journey_items').insert({
