@@ -56,6 +56,170 @@ export type Database = {
           },
         ]
       }
+      agent_conversations: {
+        Row: {
+          context_type: string
+          created_at: string
+          id: string
+          initiative_id: string | null
+          journey_id: string | null
+          metadata: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context_type?: string
+          created_at?: string
+          id?: string
+          initiative_id?: string | null
+          journey_id?: string | null
+          metadata?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context_type?: string
+          created_at?: string
+          id?: string
+          initiative_id?: string | null
+          journey_id?: string | null
+          metadata?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_conversations_initiative_id_fkey"
+            columns: ["initiative_id"]
+            isOneToOne: false
+            referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_conversations_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          structured_output: Json | null
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role?: string
+          structured_output?: Json | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          structured_output?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "agent_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_change_log: {
+        Row: {
+          after_state: Json | null
+          approved_by: string | null
+          before_state: Json | null
+          change_type: string
+          created_at: string
+          id: string
+          journey_id: string | null
+          journey_item_id: string | null
+          rationale: string | null
+          recommendation_id: string | null
+          rolled_back_at: string | null
+        }
+        Insert: {
+          after_state?: Json | null
+          approved_by?: string | null
+          before_state?: Json | null
+          change_type: string
+          created_at?: string
+          id?: string
+          journey_id?: string | null
+          journey_item_id?: string | null
+          rationale?: string | null
+          recommendation_id?: string | null
+          rolled_back_at?: string | null
+        }
+        Update: {
+          after_state?: Json | null
+          approved_by?: string | null
+          before_state?: Json | null
+          change_type?: string
+          created_at?: string
+          id?: string
+          journey_id?: string | null
+          journey_item_id?: string | null
+          rationale?: string | null
+          recommendation_id?: string | null
+          rolled_back_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_change_log_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_change_log_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_change_log_journey_item_id_fkey"
+            columns: ["journey_item_id"]
+            isOneToOne: false
+            referencedRelation: "journey_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_change_log_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "recommendation_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           active: boolean | null
@@ -314,6 +478,114 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insight_records: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          id: string
+          inferred_dimension: string | null
+          inferred_issue: string | null
+          initiative_id: string | null
+          insight_type: string
+          is_sample: boolean | null
+          journey_id: string | null
+          journey_item_id: string | null
+          milestone_id: string | null
+          persona: string | null
+          severity: string
+          source_type: string
+          status: string
+          suggested_intervention: string | null
+          summary: string
+          supporting_evidence_summary: string | null
+          team: string | null
+          topic: string | null
+          user_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          inferred_dimension?: string | null
+          inferred_issue?: string | null
+          initiative_id?: string | null
+          insight_type: string
+          is_sample?: boolean | null
+          journey_id?: string | null
+          journey_item_id?: string | null
+          milestone_id?: string | null
+          persona?: string | null
+          severity?: string
+          source_type?: string
+          status?: string
+          suggested_intervention?: string | null
+          summary: string
+          supporting_evidence_summary?: string | null
+          team?: string | null
+          topic?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          inferred_dimension?: string | null
+          inferred_issue?: string | null
+          initiative_id?: string | null
+          insight_type?: string
+          is_sample?: boolean | null
+          journey_id?: string | null
+          journey_item_id?: string | null
+          milestone_id?: string | null
+          persona?: string | null
+          severity?: string
+          source_type?: string
+          status?: string
+          suggested_intervention?: string | null
+          summary?: string
+          supporting_evidence_summary?: string | null
+          team?: string | null
+          topic?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insight_records_initiative_id_fkey"
+            columns: ["initiative_id"]
+            isOneToOne: false
+            referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insight_records_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insight_records_journey_item_id_fkey"
+            columns: ["journey_item_id"]
+            isOneToOne: false
+            referencedRelation: "journey_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insight_records_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insight_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -681,6 +953,131 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prompt_templates: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          template_key: string
+          template_text: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          template_key: string
+          template_text?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          template_key?: string
+          template_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      recommendation_records: {
+        Row: {
+          applied_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string | null
+          expected_impact: string | null
+          id: string
+          impacted_items: string[] | null
+          impacted_personas: string[] | null
+          initiative_id: string | null
+          is_sample: boolean | null
+          journey_id: string | null
+          linked_insight_ids: string[] | null
+          milestone_id: string | null
+          priority: number | null
+          proposed_change_json: Json | null
+          rationale: string | null
+          recommendation_type: string
+          review_status: string
+          severity: string
+          title: string
+        }
+        Insert: {
+          applied_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          expected_impact?: string | null
+          id?: string
+          impacted_items?: string[] | null
+          impacted_personas?: string[] | null
+          initiative_id?: string | null
+          is_sample?: boolean | null
+          journey_id?: string | null
+          linked_insight_ids?: string[] | null
+          milestone_id?: string | null
+          priority?: number | null
+          proposed_change_json?: Json | null
+          rationale?: string | null
+          recommendation_type: string
+          review_status?: string
+          severity?: string
+          title: string
+        }
+        Update: {
+          applied_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          expected_impact?: string | null
+          id?: string
+          impacted_items?: string[] | null
+          impacted_personas?: string[] | null
+          initiative_id?: string | null
+          is_sample?: boolean | null
+          journey_id?: string | null
+          linked_insight_ids?: string[] | null
+          milestone_id?: string | null
+          priority?: number | null
+          proposed_change_json?: Json | null
+          rationale?: string | null
+          recommendation_type?: string
+          review_status?: string
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_records_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_records_initiative_id_fkey"
+            columns: ["initiative_id"]
+            isOneToOne: false
+            referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_records_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_records_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
             referencedColumns: ["id"]
           },
         ]

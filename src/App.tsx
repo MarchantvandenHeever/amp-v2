@@ -15,6 +15,9 @@ import ContentLibrary from "./pages/manage/ContentLibrary";
 import AnnouncementManagement from "./pages/manage/Announcements";
 import RiskInsights from "./pages/manage/RiskInsights";
 import Analytics from "./pages/manage/Analytics";
+import InsightConsole from "./pages/manage/InsightConsole";
+import Recommendations from "./pages/manage/Recommendations";
+import AIChangeLog from "./pages/manage/AIChangeLog";
 import TeamDashboard from "./pages/team/Dashboard";
 import EndUserDashboard from "./pages/user/Dashboard";
 import MyInitiatives from "./pages/user/MyInitiatives";
@@ -53,6 +56,9 @@ const AppRoutes = () => {
       <Route path="/manage/announcements" element={<ProtectedRoute><AnnouncementManagement /></ProtectedRoute>} />
       <Route path="/manage/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
       <Route path="/manage/risk" element={<ProtectedRoute><RiskInsights /></ProtectedRoute>} />
+      <Route path="/manage/insights" element={<ProtectedRoute><InsightConsole /></ProtectedRoute>} />
+      <Route path="/manage/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
+      <Route path="/manage/ai-changelog" element={<ProtectedRoute><AIChangeLog /></ProtectedRoute>} />
 
       {/* Team Lead */}
       <Route path="/team" element={<ProtectedRoute><TeamDashboard /></ProtectedRoute>} />

@@ -4,7 +4,7 @@ import { useAuth, getRoleLabel } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, Users, Target, Route, FileText, Bell, BarChart3,
   Settings, LogOut, ChevronLeft, ChevronRight, Megaphone, Shield,
-  UserCog, Building2, Milestone, Award, Gauge, Trophy
+  UserCog, Building2, Milestone, Award, Gauge, Trophy, Brain, Sparkles, History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +32,9 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Announcements', path: '/manage/announcements', icon: Megaphone },
     { label: 'Analytics', path: '/manage/analytics', icon: BarChart3 },
     { label: 'Risk & Insights', path: '/manage/risk', icon: Shield },
+    { label: 'Insight Console', path: '/manage/insights', icon: Brain },
+    { label: 'AI Recommendations', path: '/manage/recommendations', icon: Sparkles },
+    { label: 'AI Change Log', path: '/manage/ai-changelog', icon: History },
     { label: 'Leaderboard', path: '/leaderboard', icon: Trophy },
   ],
   team_lead: [

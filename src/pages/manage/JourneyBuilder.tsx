@@ -3,7 +3,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useJourneys, useJourneyItems, useJourneyPhases } from '@/hooks/useSupabaseData';
 import { NewJourneyModal } from '@/components/journey/NewJourneyModal';
 import { supabase } from '@/integrations/supabase/client';
-import { GripVertical, Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, Upload, MessageSquare, Star, Target, FileText, Trash2, Edit, Users, Copy, Loader2, BarChart3, List, Layers, Link2, Power, PowerOff } from 'lucide-react';
+import { GripVertical, Plus, ChevronDown, ChevronUp, CheckCircle2, Circle, Upload, MessageSquare, Star, Target, FileText, Trash2, Edit, Users, Copy, Loader2, BarChart3, List, Layers, Link2, Power, PowerOff, Sparkles } from 'lucide-react';
+import { JourneyBuilderAgent } from '@/components/ai/JourneyBuilderAgent';
 import { cn } from '@/lib/utils';
 import { JourneyItemModal } from '@/components/journey/JourneyItemModal';
 import { AssignJourneyModal } from '@/components/journey/AssignJourneyModal';
@@ -38,6 +39,7 @@ const JourneyBuilder: React.FC = () => {
   const [phaseModal, setPhaseModal] = useState<{ open: boolean; phase: any | null }>({ open: false, phase: null });
   const [subJourneyModal, setSubJourneyModal] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'gantt'>('list');
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
@@ -246,15 +248,22 @@ const JourneyBuilder: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="flex gap-0">
+      <div className={`${aiPanelOpen ? 'flex-1 min-w-0' : 'w-full'} max-w-6xl mx-auto space-y-6`}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-heading text-2xl font-bold">Journey Builder</h1>
             <p className="text-sm text-muted-foreground mt-1">Design behavioural adoption journeys with phases, dependencies & parallel execution</p>
           </div>
-          <button onClick={() => setNewJourneyModal(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
-            + New Journey
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setAiPanelOpen(!aiPanelOpen)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${aiPanelOpen ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>
+              <Sparkles className="w-4 h-4" /> AI Agent
+            </button>
+            <button onClick={() => setNewJourneyModal(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+              + New Journey
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -405,6 +414,20 @@ const JourneyBuilder: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* AI Agent Panel */}
+      {aiPanelOpen && selectedId && (
+        <div className="w-[400px] shrink-0 h-[calc(100vh-8rem)]">
+          <JourneyBuilderAgent
+            journeyId={selectedId}
+            initiativeId={selectedJourney?.initiative_id || undefined}
+            existingItems={sortedItems}
+            onItemInserted={() => refetchItems()}
+            onClose={() => setAiPanelOpen(false)}
+          />
+        </div>
+      )}
       </div>
 
       <JourneyItemModal

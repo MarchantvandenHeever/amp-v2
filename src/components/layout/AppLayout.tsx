@@ -2,6 +2,7 @@ import React from 'react';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Bell } from 'lucide-react';
+import { SupportAgentChat } from '@/components/ai/SupportAgentChat';
 
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           {children}
         </div>
       </main>
+      <SupportAgentChat />
     </div>
   );
 };
