@@ -260,7 +260,7 @@ const JourneyBuilder: React.FC = () => {
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${aiPanelOpen ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>
               <Sparkles className="w-4 h-4" /> AI Agent
             </button>
-            <button onClick={() => setNewJourneyModal(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+            <button onClick={() => setJourneyModal({ open: true, journey: null })} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
               + New Journey
             </button>
           </div>
@@ -459,7 +459,7 @@ const JourneyBuilder: React.FC = () => {
           />
         </>
       )}
-      <NewJourneyModal open={newJourneyModal} onClose={() => setNewJourneyModal(false)} onCreated={() => refetchJourneys()} />
+      <NewJourneyModal open={journeyModal.open} onClose={() => setJourneyModal({ open: false, journey: null })} onCreated={() => refetchJourneys()} journey={journeyModal.journey} />
     </AppLayout>
   );
 };
