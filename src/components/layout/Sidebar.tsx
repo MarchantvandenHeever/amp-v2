@@ -7,6 +7,7 @@ import {
   UserCog, Building2, Milestone, Award, Gauge, Trophy, Brain, Sparkles, History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ampLogo from '@/assets/amp-logo-orange-transparent.png';
 
 interface NavItem {
   label: string;
@@ -73,20 +74,11 @@ export const Sidebar: React.FC = () => {
       collapsed ? "w-16" : "w-60"
     )}>
       {/* Logo */}
-      <div className="flex items-center gap-2 px-4 h-16 border-b border-sidebar-border">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg amp-gradient-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-heading font-bold text-sm">A</span>
-            </div>
-            <span className="font-heading font-bold text-sidebar-foreground text-lg tracking-tight">AMP</span>
-            <span className="text-[10px] font-medium text-sidebar-muted bg-sidebar-accent px-1.5 py-0.5 rounded">v2</span>
-          </div>
-        )}
-        {collapsed && (
-          <div className="w-8 h-8 rounded-lg amp-gradient-primary flex items-center justify-center mx-auto">
-            <span className="text-primary-foreground font-heading font-bold text-sm">A</span>
-          </div>
+      <div className="flex items-center px-4 h-16 border-b border-sidebar-border">
+        {!collapsed ? (
+          <img src={ampLogo} alt="AMP — powered by Change Logic" className="h-10 object-contain" />
+        ) : (
+          <img src={ampLogo} alt="AMP" className="h-8 object-contain mx-auto" />
         )}
       </div>
 

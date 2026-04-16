@@ -4,6 +4,8 @@ import { useAuth, getRoleDashboardPath, getRoleLabel, UserRole } from '@/context
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { ArrowRight, Shield, Users, BarChart3, User, Loader2 } from 'lucide-react';
+import ampLogo from '@/assets/amp-logo-orange.png';
+import ampLogoTransparent from '@/assets/amp-logo-orange-transparent.png';
 
 const roleConfig: Record<UserRole, { icon: React.ElementType; description: string; color: string }> = {
   super_admin: { icon: Shield, description: 'Platform-wide settings, customers, and analytics', color: 'bg-amp-participation/10 text-amp-participation' },
@@ -79,10 +81,8 @@ const Login: React.FC = () => {
             />
           ))}
         </div>
-        <div className="relative z-10 max-w-md text-center">
-          <div className="w-16 h-16 rounded-2xl amp-gradient-primary flex items-center justify-center mx-auto mb-8">
-            <span className="text-primary-foreground font-heading font-bold text-2xl">A</span>
-          </div>
+         <div className="relative z-10 max-w-md text-center">
+          <img src={ampLogoTransparent} alt="AMP — powered by Change Logic" className="h-20 object-contain mx-auto mb-8" />
           <h1 className="font-heading text-4xl font-bold text-primary-foreground mb-4 tracking-tight">
             Adoption Management Platform
           </h1>
@@ -109,10 +109,7 @@ const Login: React.FC = () => {
           className="w-full max-w-md"
         >
           <div className="lg:hidden mb-8 text-center">
-            <div className="w-12 h-12 rounded-xl amp-gradient-primary flex items-center justify-center mx-auto mb-4">
-              <span className="text-primary-foreground font-heading font-bold text-lg">A</span>
-            </div>
-            <h1 className="font-heading text-2xl font-bold">AMP v2</h1>
+            <img src={ampLogo} alt="AMP — powered by Change Logic" className="h-14 object-contain mx-auto mb-4" />
           </div>
 
           <h2 className="font-heading text-2xl font-bold mb-2">Sign in to AMP</h2>
