@@ -271,12 +271,24 @@ const JourneyBuilder: React.FC = () => {
           <div className="space-y-2">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Journeys</h3>
             {(journeys || []).filter(j => !(j as any).parent_journey_id).map(j => (
-              <button key={j.id} onClick={() => { setSelectedId(j.id); setExpandedItem(null); }}
-                className={cn("w-full text-left p-3 rounded-lg border transition-all text-sm",
-                  selectedId === j.id ? "border-primary bg-primary/5 amp-shadow-card" : "border-border hover:border-primary/30 hover:bg-secondary/50")}>
-                <p className="font-medium">{j.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{j.progress || 0}% · {j.status}</p>
-              </button>
+              <div key={j.id} className={cn("w-full text-left p-3 rounded-lg border transition-all text-sm group",
+                selectedId === j.id ? "border-primary bg-primary/5 amp-shadow-card" : "border-border hover:border-primary/30 hover:bg-secondary/50")}>
+                <div className="flex items-start justify-between">
+                  <button onClick={() => { setSelectedId(j.id); setExpandedItem(null); }} className="flex-1 text-left">
+                    <p className="font-medium">{j.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{j.progress || 0}% · {j.status}</p>
+                  </button>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => setJourneyModal({ open: true, journey: j })} className="p-1 rounded hover:bg-secondary"><Edit className="w-3 h-3 text-muted-foreground" /></button>
+                    <button onClick={async () => {
+                      if (!confirm('Delete this journey?')) return;
+                      await supabase.from('journeys').delete().eq('id', j.id);
+                      toast.success('Journey deleted'); refetchJourneys();
+                      if (selectedId === j.id) setSelectedId(null);
+                    }} className="p-1 rounded hover:bg-destructive/10"><Trash2 className="w-3 h-3 text-destructive" /></button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
 
