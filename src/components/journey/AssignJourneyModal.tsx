@@ -3,27 +3,30 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { endUsers, teamLeads, DemoUser } from '@/data/mockData';
-import { Search, Users, User } from 'lucide-react';
+import { useProfiles } from '@/hooks/useSupabaseData';
+import { supabase } from '@/integrations/supabase/client';
+import { Search, Users, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AssignJourneyModalProps {
   open: boolean;
   onClose: () => void;
   journeyName: string;
+  journeyId?: string;
 }
 
-const allAssignable = [...teamLeads, ...endUsers];
-
-export const AssignJourneyModal: React.FC<AssignJourneyModalProps> = ({ open, onClose, journeyName }) => {
+export const AssignJourneyModal: React.FC<AssignJourneyModalProps> = ({ open, onClose, journeyName, journeyId }) => {
+  const { data: profiles, isLoading } = useProfiles();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState(false);
 
-  const teams = [...new Set(allAssignable.map(u => u.team).filter(Boolean))] as string[];
+  const assignable = (profiles || []).filter(p => p.role !== 'super_admin');
+  const teams = [...new Set(assignable.map(u => u.team).filter(Boolean))] as string[];
 
-  const filtered = allAssignable.filter(u => {
-    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
+  const filtered = assignable.filter(u => {
+    const matchSearch = u.display_name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
     const matchTeam = !filterTeam || u.team === filterTeam;
     return matchSearch && matchTeam;
   });
@@ -44,7 +47,29 @@ export const AssignJourneyModal: React.FC<AssignJourneyModalProps> = ({ open, on
     }
   };
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
+    if (!journeyId || selected.size === 0) {
+      toast.success(`Assigned "${journeyName}" to ${selected.size} user${selected.size !== 1 ? 's' : ''}`);
+      setSelected(new Set());
+      onClose();
+      return;
+    }
+
+    setAssigning(true);
+    const rows = [...selected].map(userId => ({
+      journey_id: journeyId,
+      user_id: userId,
+      status: 'assigned',
+    }));
+
+    const { error } = await supabase.from('assignments').insert(rows);
+    setAssigning(false);
+
+    if (error) {
+      toast.error('Failed to assign users');
+      return;
+    }
+
     toast.success(`Assigned "${journeyName}" to ${selected.size} user${selected.size !== 1 ? 's' : ''}`);
     setSelected(new Set());
     onClose();
@@ -84,7 +109,9 @@ export const AssignJourneyModal: React.FC<AssignJourneyModalProps> = ({ open, on
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-1 min-h-0 border rounded-lg p-2">
-            {filtered.map(u => (
+            {isLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+            ) : filtered.map(u => (
               <label key={u.id}
                 className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${selected.has(u.id) ? 'bg-primary/5 border border-primary/20' : 'hover:bg-secondary border border-transparent'}`}>
                 <Checkbox checked={selected.has(u.id)} onCheckedChange={() => toggle(u.id)} />
@@ -93,13 +120,13 @@ export const AssignJourneyModal: React.FC<AssignJourneyModalProps> = ({ open, on
                     <User className="w-3.5 h-3.5 text-muted-foreground" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{u.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{u.team} · {u.persona}</p>
+                    <p className="text-sm font-medium truncate">{u.display_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{u.team || '—'} · {u.persona || u.role}</p>
                   </div>
                 </div>
               </label>
             ))}
-            {filtered.length === 0 && (
+            {!isLoading && filtered.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-6">No users match your search</p>
             )}
           </div>
@@ -107,8 +134,8 @@ export const AssignJourneyModal: React.FC<AssignJourneyModalProps> = ({ open, on
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleAssign} disabled={selected.size === 0}>
-            <Users className="w-4 h-4 mr-1.5" />
+          <Button onClick={handleAssign} disabled={selected.size === 0 || assigning}>
+            {assigning ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Users className="w-4 h-4 mr-1.5" />}
             Assign ({selected.size})
           </Button>
         </DialogFooter>
