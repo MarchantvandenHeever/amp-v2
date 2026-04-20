@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useContentItems } from '@/hooks/useSupabaseData';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Video, Image, Mic, MessageSquare, Star, Plus, Search, Loader2, ExternalLink, Eye, X, Download } from 'lucide-react';
+import { FileText, Video, Image, Mic, MessageSquare, Star, Plus, Search, Loader2, ExternalLink, Eye, X, Download, Sparkles } from 'lucide-react';
 import { NewContentModal } from '@/components/content/NewContentModal';
+import { ImportFormFromDocModal } from '@/components/content/ImportFormFromDocModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const typeIcons: Record<string, React.ElementType> = {
@@ -32,6 +33,7 @@ const ContentLibrary: React.FC = () => {
   const { data: contentItems, isLoading, refetch } = useContentItems();
   const [search, setSearch] = React.useState('');
   const [showNew, setShowNew] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [selected, setSelected] = useState<ContentItem | null>(null);
 
   const filtered = (contentItems || []).filter(c => c.title.toLowerCase().includes(search.toLowerCase()));
@@ -99,9 +101,14 @@ const ContentLibrary: React.FC = () => {
             <h1 className="font-heading text-2xl font-bold">Content Library</h1>
             <p className="text-sm text-muted-foreground mt-1">{(contentItems || []).length} content items</p>
           </div>
-          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
-            <Plus className="w-4 h-4 inline mr-1" /> Add Content
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowImport(true)} className="px-4 py-2 rounded-lg border border-primary/30 text-primary bg-primary/5 text-sm font-medium hover:bg-primary/10 transition-colors flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4" /> Generate Form from Document
+            </button>
+            <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+              <Plus className="w-4 h-4 inline mr-1" /> Add Content
+            </button>
+          </div>
         </div>
 
         <div className="relative">
@@ -144,6 +151,7 @@ const ContentLibrary: React.FC = () => {
       </div>
 
       <NewContentModal open={showNew} onClose={() => setShowNew(false)} onCreated={() => refetch()} />
+      <ImportFormFromDocModal open={showImport} onClose={() => setShowImport(false)} onCreated={() => refetch()} />
 
       {/* Content Preview Dialog */}
       <Dialog open={!!selected} onOpenChange={v => !v && setSelected(null)}>
