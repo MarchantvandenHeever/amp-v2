@@ -121,7 +121,7 @@ const EndUserDashboard: React.FC = () => {
         size="md"
       />
 
-      <div className="max-w-7xl mx-auto px-6 md:px-10 -mt-12 pb-16 space-y-6">
+      <div className="max-w-7xl mx-auto px-6 md:px-10 pt-8 pb-16 space-y-6">
         {/* KPI row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KpiTile icon={<Star className="w-6 h-6" />} iconTone="warning" value={user.points} label="Points" />

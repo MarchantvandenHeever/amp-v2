@@ -19,22 +19,20 @@ const variantMap = {
   dark: "bg-nav text-nav-foreground hover:bg-nav/90",
 };
 
-export const IconCircleButton: React.FC<IconCircleButtonProps> = ({
-  icon,
-  size = "md",
-  variant = "outline",
-  className,
-  ...props
-}) => (
-  <button
-    {...props}
-    className={cn(
-      "inline-flex items-center justify-center rounded-full transition-colors shrink-0",
-      sizeMap[size],
-      variantMap[variant],
-      className,
-    )}
-  >
-    {icon}
-  </button>
+export const IconCircleButton = React.forwardRef<HTMLButtonElement, IconCircleButtonProps>(
+  ({ icon, size = "md", variant = "outline", className, ...props }, ref) => (
+    <button
+      ref={ref}
+      {...props}
+      className={cn(
+        "inline-flex items-center justify-center rounded-full transition-colors shrink-0",
+        sizeMap[size],
+        variantMap[variant],
+        className,
+      )}
+    >
+      {icon}
+    </button>
+  ),
 );
+IconCircleButton.displayName = "IconCircleButton";
