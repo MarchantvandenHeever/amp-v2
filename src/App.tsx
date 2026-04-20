@@ -12,6 +12,7 @@ import InitiativeList from "./pages/manage/Initiatives";
 import JourneyBuilder from "./pages/manage/JourneyBuilder";
 import UserManagement from "./pages/manage/Users";
 import ContentLibrary from "./pages/manage/ContentLibrary";
+import FormExtractor from "./pages/manage/FormExtractor";
 import AnnouncementManagement from "./pages/manage/Announcements";
 import RiskInsights from "./pages/manage/RiskInsights";
 import Analytics from "./pages/manage/Analytics";
@@ -53,6 +54,7 @@ const AppRoutes = () => {
       <Route path="/manage/journeys" element={<ProtectedRoute><JourneyBuilder /></ProtectedRoute>} />
       <Route path="/manage/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
       <Route path="/manage/content" element={<ProtectedRoute><ContentLibrary /></ProtectedRoute>} />
+      <Route path="/manage/forms/extract" element={<ProtectedRoute><FormExtractor /></ProtectedRoute>} />
       <Route path="/manage/announcements" element={<ProtectedRoute><AnnouncementManagement /></ProtectedRoute>} />
       <Route path="/manage/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
       <Route path="/manage/risk" element={<ProtectedRoute><RiskInsights /></ProtectedRoute>} />
