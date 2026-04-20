@@ -37,9 +37,9 @@ export const ProjectSummaryCard: React.FC<ProjectSummaryCardProps> = ({
   const visibleMembers = members.slice(0, 3);
   const remaining = (totalMembers ?? members.length) - visibleMembers.length;
   const scoreTone = adoptionScore === null ? "text-muted-foreground"
-    : adoptionScore >= 70 ? "text-emerald-700"
-    : adoptionScore >= 50 ? "text-amber-600"
-    : "text-red-600";
+    : adoptionScore >= 70 ? "text-amp-success"
+    : adoptionScore >= 50 ? "text-amp-warning"
+    : "text-amp-risk";
 
   return (
     <article className={cn("cl-card p-6 flex flex-col h-full transition-shadow hover:cl-card-hover", className)}>
@@ -70,7 +70,7 @@ export const ProjectSummaryCard: React.FC<ProjectSummaryCardProps> = ({
             </div>
             {typeof averageScore === "number" && (
               <span className="ml-2 text-xs">
-                <span className={cn("font-semibold", averageScore >= 60 ? "text-emerald-700" : "text-amber-600")}>
+                <span className={cn("font-semibold", averageScore >= 60 ? "text-amp-success" : "text-amp-warning")}>
                   {averageScore}%
                 </span>{" "}
                 <span className="text-muted-foreground">average</span>

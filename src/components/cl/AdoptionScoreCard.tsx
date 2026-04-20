@@ -42,7 +42,7 @@ export const AdoptionScoreCard: React.FC<AdoptionScoreCardProps> = ({
         {dimensions.map((d) => {
           const delta = formatDelta(d.delta);
           const deltaTone =
-            d.delta === undefined ? "" : d.delta >= 0 ? "text-emerald-700" : "text-red-600";
+            d.delta === undefined ? "" : d.delta >= 0 ? "text-amp-success" : "text-amp-risk";
           return (
             <li key={d.key} className="flex items-center justify-between py-3.5">
               <div className="flex items-center gap-3 min-w-0">

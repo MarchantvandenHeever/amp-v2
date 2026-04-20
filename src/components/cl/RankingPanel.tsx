@@ -19,7 +19,7 @@ interface RankingPanelProps {
 const ScoreCell: React.FC<{ score: number | null; tone: "good" | "bad" }> = ({ score, tone }) => {
   if (score === null) return <span className="text-muted-foreground">-</span>;
   return (
-    <span className={cn("font-semibold tabular-nums", tone === "good" ? "text-emerald-700" : "text-red-600")}>
+    <span className={cn("font-semibold tabular-nums", tone === "good" ? "text-amp-success" : "text-amp-risk")}>
       {score}%
     </span>
   );
