@@ -1,6 +1,8 @@
-// Extract form fields from an uploaded PDF or Word document using Lovable AI.
-// Accepts multipart/form-data with `file` (pdf/docx/doc/txt) and optional `formType`.
-// Returns { title, description, fields: [{ label, type, required, options?, min?, max? }] }
+// Document → Form Extractor edge function
+// Extracts text from DOCX/PDF/TXT/MD then asks Lovable AI to convert it
+// into the AMP form schema (sections + questions + scales + per-field confidence).
+// Public endpoint (verify_jwt = false in config.toml) because the app uses a
+// custom profile-based session, not real Supabase auth.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,29 +11,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-
-// Minimal text extraction from .docx (which is a zip containing word/document.xml)
-async function extractDocxText(bytes: Uint8Array): Promise<string> {
-  const JSZip = (await import("npm:jszip@3.10.1")).default;
-  const zip = await JSZip.loadAsync(bytes);
-  const docXml = await zip.file("word/document.xml")?.async("string");
-  if (!docXml) return "";
-  const withBreaks = docXml
-    .replace(/<w:p[ >][^]*?<\/w:p>/g, (m) => m + "\n")
-    .replace(/<[^>]+>/g, "");
-  return withBreaks
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+function base64ToBytes(b64: string): Uint8Array {
+  const clean = b64.includes(",") ? b64.split(",")[1] : b64;
+  const bin = atob(clean);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
 }
 
 async function extractPdfText(bytes: Uint8Array): Promise<string> {
@@ -40,146 +25,214 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
   return (typeof text === "string" ? text : (text as string[]).join("\n\n")).trim();
 }
 
+async function extractDocxText(bytes: Uint8Array): Promise<string> {
+  const JSZipMod: any = await import("npm:jszip@3.10.1");
+  const JSZip = JSZipMod.default || JSZipMod;
+  const zip = await JSZip.loadAsync(bytes);
+  const docXml = await zip.file("word/document.xml")?.async("string");
+  if (!docXml) throw new Error("Invalid DOCX: missing word/document.xml");
+  const withBreaks = docXml
+    .replace(/<w:p[^>]*>/g, "\n")
+    .replace(/<w:br[^>]*\/>/g, "\n")
+    .replace(/<w:tab[^>]*\/>/g, "\t");
+  const stripped = withBreaks.replace(/<[^>]+>/g, "");
+  const decoded = stripped
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return decoded.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+async function extractText(bytes: Uint8Array, mime: string, name: string): Promise<string> {
+  const lower = name.toLowerCase();
+  if (mime.includes("pdf") || lower.endsWith(".pdf")) return extractPdfText(bytes);
+  if (mime.includes("officedocument.wordprocessingml") || lower.endsWith(".docx")) return extractDocxText(bytes);
+  return new TextDecoder().decode(bytes);
+}
+
+const SYSTEM_PROMPT = `You are a precision document parser for the AMP change-management platform.
+Convert raw text from an uploaded form/assessment document into a clean, structured AMP form schema.
+
+Rules:
+- Extract every question in the order they appear.
+- Detect labels: "Activity Title", "Activity Type", "Phase", "Focus", "Purpose", "User Instruction", "Q1", "Q2", "Type:", "Scale labels:", "Suggested Completion Message".
+- Map question types to one of: short_text, paragraph, multiple_choice, checkbox, dropdown, likert, yes_no, date, time, section_header.
+- For likert / linear scales, populate scale.min, scale.max, and scale.labels (string-keyed map of position → label, e.g. {"1":"Strongly disagree","5":"Strongly agree"}).
+- For multiple_choice / checkbox / dropdown, populate options as an array of strings.
+- If a question is ambiguous, set needsReview=true and provide your best guess. Set extractionConfidence between 0 and 1.
+- Group questions into sections only when section headings clearly exist; otherwise produce a single section with title="" and empty description.
+- Capture user instruction text into userInstruction. Capture the final thank-you / completion message into completionMessage.
+- Never invent questions that aren't in the document.`;
+
+const FORM_TOOL = {
+  type: "function",
+  function: {
+    name: "build_form",
+    description: "Return the structured AMP form schema extracted from the document.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        activityType: { type: "string" },
+        phase: { type: "string" },
+        focus: { type: "string" },
+        purpose: { type: "string" },
+        userInstruction: { type: "string" },
+        completionMessage: { type: "string" },
+        extractionConfidence: { type: "number", minimum: 0, maximum: 1 },
+        sections: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              description: { type: "string" },
+              questions: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    label: { type: "string" },
+                    type: {
+                      type: "string",
+                      enum: [
+                        "short_text", "paragraph", "multiple_choice", "checkbox",
+                        "dropdown", "likert", "yes_no", "date", "time", "section_header",
+                      ],
+                    },
+                    required: { type: "boolean" },
+                    helpText: { type: "string" },
+                    needsReview: { type: "boolean" },
+                    extractionConfidence: { type: "number", minimum: 0, maximum: 1 },
+                    options: { type: "array", items: { type: "string" } },
+                    scale: {
+                      type: "object",
+                      properties: {
+                        min: { type: "number" },
+                        max: { type: "number" },
+                        labels: { type: "object", additionalProperties: { type: "string" } },
+                      },
+                    },
+                  },
+                  required: ["label", "type"],
+                },
+              },
+            },
+            required: ["title", "questions"],
+          },
+        },
+      },
+      required: ["title", "sections"],
+    },
+  },
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
   try {
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) return json(500, { error: "LOVABLE_API_KEY not configured" });
+    const body = await req.json();
+    const { fileBase64, fileName, mimeType } = body || {};
+    if (!fileBase64 || !fileName) {
+      return new Response(JSON.stringify({ error: "fileBase64 and fileName are required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const form = await req.formData();
-    const file = form.get("file");
-    const formType = (form.get("formType") as string) || "standard_form";
-    if (!(file instanceof File)) return json(400, { error: "Missing file" });
-    if (file.size > 20 * 1024 * 1024) return json(400, { error: "File too large (max 20MB)" });
+    const bytes = base64ToBytes(fileBase64);
+    if (bytes.length > 25 * 1024 * 1024) {
+      return new Response(JSON.stringify({ error: "File too large (max 25MB)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const name = file.name.toLowerCase();
-    const bytes = new Uint8Array(await file.arrayBuffer());
-
-    let text = "";
+    let rawText = "";
     try {
-      if (name.endsWith(".docx")) {
-        text = await extractDocxText(bytes);
-      } else if (name.endsWith(".pdf")) {
-        text = await extractPdfText(bytes);
-      } else if (name.endsWith(".txt") || name.endsWith(".md")) {
-        text = new TextDecoder().decode(bytes);
-      } else if (name.endsWith(".doc")) {
-        return json(400, {
-          error: "Legacy .doc not supported. Please convert to .docx or PDF.",
-        });
-      } else {
-        return json(400, { error: "Unsupported file type. Use PDF, DOCX, or TXT." });
-      }
+      rawText = await extractText(bytes, mimeType || "", fileName);
     } catch (e) {
-      console.error("extraction error:", e);
-      return json(400, { error: "Could not read document contents." });
+      console.error("Text extraction failed:", e);
+      return new Response(JSON.stringify({ error: `Could not extract text: ${(e as Error).message}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const trimmed = text.slice(0, 25000);
-    if (trimmed.trim().length < 20) {
-      return json(400, { error: "Document appears empty or unreadable." });
+    if (!rawText || rawText.length < 20) {
+      return new Response(JSON.stringify({ error: "Document appears empty or unreadable." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const isConfidence = formType === "confidence_form";
-    const systemPrompt = isConfidence
-      ? "You convert documents into CONFIDENCE survey forms. Generate rating-scale questions (type='rating', typically min=1 max=5) that measure user confidence, readiness, or sentiment about the topics in the document. Add a few short_text fields for open feedback when appropriate."
-      : "You convert documents into structured forms/surveys. Read the content and produce a clean set of form fields capturing the questions, inputs, or data the document is asking for. Infer sensible field types.";
+    const truncated = rawText.length > 30000 ? rawText.slice(0, 30000) : rawText;
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: SYSTEM_PROMPT },
           {
             role: "user",
-            content:
-              `Generate a form from this document. Pick a concise title and short description. Then list 3-20 fields.\n\n--- DOCUMENT ---\n${trimmed}`,
+            content: `Document name: ${fileName}\n\n--- DOCUMENT TEXT START ---\n${truncated}\n--- DOCUMENT TEXT END ---\n\nReturn the form schema via the build_form tool.`,
           },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "build_form",
-              description: "Return the structured form generated from the document.",
-              parameters: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  description: { type: "string" },
-                  fields: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        label: { type: "string" },
-                        type: {
-                          type: "string",
-                          enum: [
-                            "short_text",
-                            "long_text",
-                            "number",
-                            "select",
-                            "multi_select",
-                            "checkbox",
-                            "radio",
-                            "rating",
-                            "date",
-                            "email",
-                          ],
-                        },
-                        required: { type: "boolean" },
-                        options: { type: "array", items: { type: "string" } },
-                        min: { type: "number" },
-                        max: { type: "number" },
-                        helpText: { type: "string" },
-                      },
-                      required: ["label", "type"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ["title", "fields"],
-                additionalProperties: false,
-              },
-            },
-          },
-        ],
+        tools: [FORM_TOOL],
         tool_choice: { type: "function", function: { name: "build_form" } },
       }),
     });
 
     if (!aiResp.ok) {
       const t = await aiResp.text();
-      console.error("AI error:", aiResp.status, t);
-      if (aiResp.status === 429) return json(429, { error: "AI rate limit exceeded. Try again shortly." });
-      if (aiResp.status === 402) return json(402, { error: "AI credits exhausted. Add credits in Settings." });
-      return json(500, { error: "AI extraction failed" });
+      console.error("AI gateway error:", aiResp.status, t);
+      if (aiResp.status === 429) {
+        return new Response(JSON.stringify({ error: "AI rate limit reached. Please try again in a moment." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (aiResp.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Add credits in workspace settings." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "AI extraction failed." }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const data = await aiResp.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) return json(500, { error: "AI returned no fields" });
+    const aiJson = await aiResp.json();
+    const toolCall = aiJson?.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall?.function?.arguments) {
+      console.error("No tool call in AI response", JSON.stringify(aiJson).slice(0, 1000));
+      return new Response(JSON.stringify({ error: "AI did not return a structured form." }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     let parsed: any;
     try {
       parsed = JSON.parse(toolCall.function.arguments);
     } catch {
-      return json(500, { error: "AI returned invalid JSON" });
+      return new Response(JSON.stringify({ error: "AI returned invalid JSON." }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return json(200, {
-      title: parsed.title || file.name.replace(/\.[^.]+$/, ""),
-      description: parsed.description || "",
-      fields: Array.isArray(parsed.fields) ? parsed.fields : [],
-      sourceFileName: file.name,
+    if (!Array.isArray(parsed.sections) || parsed.sections.length === 0) {
+      parsed.sections = [{ title: "", description: "", questions: [] }];
+    }
+
+    return new Response(JSON.stringify({ form: parsed, rawTextPreview: truncated.slice(0, 500) }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
-    console.error("extract-form-from-document error:", e);
-    return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
+  } catch (err) {
+    console.error("extract-form-from-document error:", err);
+    return new Response(JSON.stringify({ error: (err as Error).message || "Unexpected error" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

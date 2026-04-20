@@ -429,6 +429,188 @@ export type Database = {
         }
         Relationships: []
       }
+      form_questions: {
+        Row: {
+          created_at: string
+          extraction_confidence: number | null
+          help_text: string | null
+          id: string
+          label: string
+          mandatory: boolean
+          needs_review: boolean
+          options: Json | null
+          order_index: number
+          required: boolean
+          scale: Json | null
+          score_dimension: string | null
+          scored: boolean
+          section_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          extraction_confidence?: number | null
+          help_text?: string | null
+          id?: string
+          label?: string
+          mandatory?: boolean
+          needs_review?: boolean
+          options?: Json | null
+          order_index?: number
+          required?: boolean
+          scale?: Json | null
+          score_dimension?: string | null
+          scored?: boolean
+          section_id: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          extraction_confidence?: number | null
+          help_text?: string | null
+          id?: string
+          label?: string
+          mandatory?: boolean
+          needs_review?: boolean
+          options?: Json | null
+          order_index?: number
+          required?: boolean
+          scale?: Json | null
+          score_dimension?: string | null
+          scored?: boolean
+          section_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_questions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "form_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_sections: {
+        Row: {
+          created_at: string
+          description: string | null
+          form_id: string
+          id: string
+          order_index: number
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          form_id: string
+          id?: string
+          order_index?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          form_id?: string
+          id?: string
+          order_index?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_sections_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forms: {
+        Row: {
+          activity_type: string | null
+          completion_message: string | null
+          content_item_id: string | null
+          created_at: string
+          created_by: string | null
+          extraction_confidence: number | null
+          focus: string | null
+          id: string
+          journey_item_id: string | null
+          phase: string | null
+          purpose: string | null
+          source_document_name: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_instruction: string | null
+        }
+        Insert: {
+          activity_type?: string | null
+          completion_message?: string | null
+          content_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          extraction_confidence?: number | null
+          focus?: string | null
+          id?: string
+          journey_item_id?: string | null
+          phase?: string | null
+          purpose?: string | null
+          source_document_name?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_instruction?: string | null
+        }
+        Update: {
+          activity_type?: string | null
+          completion_message?: string | null
+          content_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          extraction_confidence?: number | null
+          focus?: string | null
+          id?: string
+          journey_item_id?: string | null
+          phase?: string | null
+          purpose?: string | null
+          source_document_name?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_instruction?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forms_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forms_journey_item_id_fkey"
+            columns: ["journey_item_id"]
+            isOneToOne: false
+            referencedRelation: "journey_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       initiatives: {
         Row: {
           created_at: string
