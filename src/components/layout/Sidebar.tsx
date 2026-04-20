@@ -7,7 +7,7 @@ import {
   UserCog, Building2, Milestone, Award, Gauge, Trophy, Brain, Sparkles, History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import ampLogo from '@/assets/amp-logo-colour.jpg';
+import { BrandLogo } from '@/components/cl/BrandLogo';
 
 interface NavItem {
   label: string;
@@ -70,15 +70,15 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside className={cn(
-      "amp-gradient-sidebar flex flex-col h-screen transition-all duration-300 border-r border-sidebar-border",
+      "amp-gradient-sidebar flex flex-col h-screen transition-all duration-300 border-r border-sidebar-border relative",
       collapsed ? "w-16" : "w-60"
     )}>
       {/* Logo */}
       <div className="flex items-center px-4 h-16 border-b border-sidebar-border">
         {!collapsed ? (
-          <img src={ampLogo} alt="AMP — powered by Change Logic" className="h-10 object-contain" />
+          <BrandLogo tone="light" />
         ) : (
-          <img src={ampLogo} alt="AMP" className="h-8 object-contain mx-auto" />
+          <BrandLogo tone="light" variant="mark" className="mx-auto" />
         )}
       </div>
 

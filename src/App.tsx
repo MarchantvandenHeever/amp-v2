@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth, getRoleDashboardPath } from "@/contexts/AuthContext";
 import Login from "./pages/Login";
 import SuperAdminDashboard from "./pages/admin/Dashboard";
 import ScoringConfig from "./pages/admin/ScoringConfig";
@@ -35,13 +35,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
+const RootRedirect: React.FC = () => {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
+  return <Navigate to={getRoleDashboardPath(user.role)} replace />;
+};
+
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
 
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/" element={isAuthenticated ? <Navigate to="/login" replace /> : <Navigate to="/login" replace />} />
+      <Route path="/" element={<RootRedirect />} />
 
       {/* Super Admin */}
       <Route path="/admin" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
