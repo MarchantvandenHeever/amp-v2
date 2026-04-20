@@ -1,34 +1,40 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
-import { useAuth } from '@/contexts/AuthContext';
-import { useJourneys, useAllJourneyItems, useAnnouncements, useBadges, useUserBadges, useInitiatives, getTierFromPoints, getScoreLabel } from '@/hooks/useSupabaseData';
-import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
-import { TaskDetailModal } from '@/components/journey/TaskDetailModal';
-import { motion } from 'framer-motion';
-import { Target, Flame, Star, ChevronRight, Clock, CheckCircle2, Circle, Lock, Upload, MessageSquare, Loader2, CalendarDays, ListChecks, Timer } from 'lucide-react';
-import { format, isToday, isTomorrow, isThisWeek, parseISO } from 'date-fns';
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Loader2, ListChecks, CalendarDays, Trophy, Flame, Star, Clock } from "lucide-react";
+import { isToday, isTomorrow, isThisWeek, parseISO, format } from "date-fns";
 
-const itemTypeIcon: Record<string, React.ElementType> = {
-  content: Circle,
-  activity: CheckCircle2,
-  form: MessageSquare,
-  confidence_check: Star,
-  evidence_upload: Upload,
-  reflection: MessageSquare,
-  scenario: Target,
-};
+import { EndUserLayout } from "@/components/layout/EndUserLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  useJourneys,
+  useAllJourneyItems,
+  useAnnouncements,
+  useInitiatives,
+  getTierFromPoints,
+} from "@/hooks/useSupabaseData";
+import { useIdealAdoptionScore } from "@/hooks/useIdealAdoptionScore";
+import { TaskDetailModal } from "@/components/journey/TaskDetailModal";
+
+import {
+  PageHero,
+  KpiTile,
+  AdoptionScoreCard,
+  AlertBanner,
+  ProjectSummaryCard,
+  RightRailPanel,
+  TaskCard,
+  EmptyState,
+} from "@/components/cl";
 
 const parseDurationMinutes = (d?: string | null): number => {
   if (!d) return 5;
   const m = d.match(/(\d+)/);
   const num = m ? parseInt(m[1]) : 5;
-  if (d.includes('hour') || d.includes('hr')) return num * 60;
+  if (d.includes("hour") || d.includes("hr")) return num * 60;
   return num;
 };
 
-const formatTime = (mins: number): string => {
+const formatTime = (mins: number) => {
   if (mins >= 60) {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
@@ -43,282 +49,208 @@ const EndUserDashboard: React.FC = () => {
   const { data: journeys, isLoading: loadingJourneys } = useJourneys();
   const { data: allItems, isLoading: loadingItems } = useAllJourneyItems();
   const { data: announcements } = useAnnouncements();
-  const { data: badges } = useBadges();
-  const { data: userBadges } = useUserBadges(user?.id);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
-  const { idealScore } = useIdealAdoptionScore(user?.id);
   const { data: initiatives } = useInitiatives();
+  const { idealScore } = useIdealAdoptionScore(user?.id);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
 
-  // Compute current TP for KPI display
   const currentTP = useMemo(() => {
-    const activeInits = initiatives?.filter(i => i.status === 'active') || [];
-    const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
-    const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
+    const active = initiatives?.filter((i) => i.status === "active") || [];
+    const starts = active.map((i) => i.start_date).filter(Boolean) as string[];
+    const ends = active.map((i) => i.end_date).filter(Boolean) as string[];
     if (!starts.length || !ends.length) return 1;
-    const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
-    const latest = Math.max(...ends.map(s => new Date(s).getTime()));
-    const totalDuration = latest - earliest;
-    if (totalDuration <= 0) return 1;
-    return Math.min(1, (Date.now() - earliest) / totalDuration);
+    const earliest = Math.min(...starts.map((s) => new Date(s).getTime()));
+    const latest = Math.max(...ends.map((s) => new Date(s).getTime()));
+    const total = latest - earliest;
+    if (total <= 0) return 1;
+    return Math.min(1, (Date.now() - earliest) / total);
   }, [initiatives]);
 
   const { todayTasks, upcomingTasks, todayTimeMinutes } = useMemo(() => {
     if (!allItems) return { todayTasks: [], upcomingTasks: [], todayTimeMinutes: 0 };
-    const activeTasks = allItems.filter(i => i.status === 'available' || i.status === 'in_progress');
-    const today: typeof activeTasks = [];
-    const upcoming: typeof activeTasks = [];
-
-    activeTasks.forEach(item => {
+    const active = allItems.filter((i) => i.status === "available" || i.status === "in_progress");
+    const today: typeof active = [];
+    const upcoming: typeof active = [];
+    active.forEach((item) => {
       if (item.due_date) {
         try {
           const d = parseISO(item.due_date);
-          if (isToday(d)) { today.push(item); return; }
-          if (isTomorrow(d) || isThisWeek(d)) { upcoming.push(item); return; }
+          if (isToday(d)) return today.push(item);
+          if (isTomorrow(d) || isThisWeek(d)) return upcoming.push(item);
         } catch {}
       }
-      if (item.status === 'in_progress') today.push(item);
+      if (item.status === "in_progress") today.push(item);
       else upcoming.push(item);
     });
-
     if (today.length === 0 && upcoming.length > 0) {
       today.push(...upcoming.splice(0, Math.min(3, upcoming.length)));
     }
-
-    const todayTime = today.reduce((s, i) => s + parseDurationMinutes(i.duration), 0);
-
-    return { todayTasks: today.slice(0, 5), upcomingTasks: upcoming.slice(0, 5), todayTimeMinutes: todayTime };
+    const tt = today.reduce((s, i) => s + parseDurationMinutes(i.duration), 0);
+    return { todayTasks: today.slice(0, 6), upcomingTasks: upcoming.slice(0, 5), todayTimeMinutes: tt };
   }, [allItems]);
 
   if (!user) return null;
 
   if (loadingJourneys || loadingItems) {
-    return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
+    return (
+      <EndUserLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </EndUserLayout>
+    );
   }
 
+  const adoption = Math.round((user.scores.adoption || 0) * currentTP);
   const tier = getTierFromPoints(user.points);
-  const activeJourneys = journeys?.filter(j => j.status === 'active') || [];
-  const activeAnnouncements = announcements?.filter(a => a.active) || [];
-  const totalCompleted = allItems?.filter(i => i.status === 'completed').length || 0;
+  const activeJourneys = journeys?.filter((j) => j.status === "active") || [];
+  const activeAnnouncement = announcements?.find((a) => a.active);
+  const totalCompleted = allItems?.filter((i) => i.status === "completed").length || 0;
   const totalItems = allItems?.length || 0;
 
+  const dimensions = [
+    { key: "participation", label: "Participation", value: user.scores.participation, color: "hsl(var(--amp-participation))" },
+    { key: "ownership", label: "Ownership", value: user.scores.ownership, color: "hsl(var(--amp-ownership))" },
+    { key: "confidence", label: "Confidence", value: user.scores.confidence, color: "hsl(var(--amp-confidence))" },
+  ];
+
   return (
-    <AppLayout>
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Hero */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          className="amp-gradient-hero rounded-2xl p-6 text-primary-foreground">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-heading text-2xl font-bold">Welcome back, {user.name.split(' ')[0]}</h1>
-              <p className="text-primary-foreground/70 text-sm mt-1">Small actions build embedment. Keep going.</p>
-            </div>
-            <div className="hidden sm:flex items-center gap-4">
-              <div className="text-center">
-                <div className="flex items-center gap-1">
-                  <Flame className="w-4 h-4 text-amp-confidence" />
-                  <span className="font-heading font-bold text-lg">{user.streak}</span>
-                </div>
-                <p className="text-[10px] text-primary-foreground/60">day streak</p>
-              </div>
-              <div className="text-center">
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-amp-confidence" />
-                  <span className="font-heading font-bold text-lg">{user.points}</span>
-                </div>
-                <p className="text-[10px] text-primary-foreground/60">points</p>
-              </div>
-              <div className="px-3 py-1 rounded-full bg-primary-foreground/10 border border-primary-foreground/20 text-xs font-medium">
-                {tier}
-              </div>
-            </div>
-          </div>
-        </motion.div>
+    <EndUserLayout>
+      <PageHero
+        title={`Welcome back, ${user.name.split(" ")[0]}`}
+        subtitle="Small actions build embedment. Here's where to focus today."
+        size="md"
+      />
 
-        {/* Quick stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center">
-            <AdoptionScoreRing score={Math.round(user.scores.adoption * currentTP)} size={60} idealScore={idealScore} />
-            <p className="text-[10px] text-muted-foreground mt-1">Adoption · {getScoreLabel(Math.round(user.scores.adoption * currentTP))}</p>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center">
-            <p className="font-heading text-2xl font-bold text-foreground">{todayTasks.length}</p>
-            <p className="text-[10px] text-muted-foreground">Tasks Today</p>
-          </div>
-          <button
-            onClick={() => navigate('/dashboard/initiatives')}
-            className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center hover:amp-shadow-card-hover transition-shadow"
-          >
-            <div className="flex items-center justify-center gap-1.5">
-              <Timer className="w-4 h-4 text-primary" />
-              <p className="font-heading text-2xl font-bold text-foreground">{formatTime(todayTimeMinutes)}</p>
-            </div>
-            <p className="text-[10px] text-muted-foreground">Time Today</p>
-          </button>
-          <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card text-center">
-            <p className="font-heading text-2xl font-bold text-foreground">{totalCompleted}/{totalItems}</p>
-            <p className="text-[10px] text-muted-foreground">Items Done</p>
-          </div>
+      <div className="max-w-7xl mx-auto px-6 md:px-10 -mt-12 pb-16 space-y-6">
+        {/* KPI row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KpiTile icon={<Star className="w-6 h-6" />} iconTone="warning" value={user.points} label="Points" />
+          <KpiTile icon={<Flame className="w-6 h-6" />} iconTone="risk" value={user.streak} label="Day streak" />
+          <KpiTile icon={<ListChecks className="w-6 h-6" />} iconTone="info" value={todayTasks.length} label="Tasks today" />
+          <KpiTile icon={<Trophy className="w-6 h-6" />} iconTone="success" value={`${totalCompleted}/${totalItems}`} label="Items done" />
         </div>
 
-        {/* Announcements */}
-        {activeAnnouncements.length > 0 && (
-          <div className="space-y-2">
-            {activeAnnouncements.slice(0, 2).map(ann => (
-              <div key={ann.id} className="bg-card border border-border rounded-xl p-4 amp-shadow-card flex items-start gap-3">
-                <span className="text-lg">{ann.type === 'celebration' ? '🏆' : ann.type === 'action' ? '🚀' : '📋'}</span>
-                <div>
-                  <p className="text-sm font-semibold">{ann.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{ann.message}</p>
-                </div>
+        {activeAnnouncement && (
+          <AlertBanner
+            variant={activeAnnouncement.type === "celebration" ? "success" : activeAnnouncement.type === "action" ? "warning" : "info"}
+            title={activeAnnouncement.title}
+            description={activeAnnouncement.message || undefined}
+          />
+        )}
+
+        {/* Main grid: adoption + projects | right rail */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+          <div className="space-y-6 min-w-0">
+            <AdoptionScoreCard
+              dimensions={dimensions}
+              adoption={adoption}
+              lastUpdatedLabel={`${tier} · updated today`}
+            />
+
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="cl-section-label">Your active projects</h2>
+                <button
+                  onClick={() => navigate("/dashboard/initiatives")}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  View all →
+                </button>
               </div>
-            ))}
+              {activeJourneys.length === 0 ? (
+                <EmptyState
+                  title="No active projects yet"
+                  description="When a change manager assigns you to a journey, it will show up here."
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {activeJourneys.slice(0, 4).map((journey) => {
+                    const items = allItems?.filter((i) => i.journey_id === journey.id) || [];
+                    const pending = items.filter((i) => i.status === "available" || i.status === "in_progress").length;
+                    const overdue = items.filter((i) => {
+                      if (!i.due_date || i.status === "completed") return false;
+                      try {
+                        return parseISO(i.due_date).getTime() < Date.now();
+                      } catch {
+                        return false;
+                      }
+                    }).length;
+                    return (
+                      <ProjectSummaryCard
+                        key={journey.id}
+                        title={journey.name}
+                        description={journey.description || undefined}
+                        adoptionScore={journey.progress ?? 0}
+                        progress={journey.progress ?? 0}
+                        pendingTasks={pending}
+                        overdueTasks={overdue}
+                        members={[{ id: user.id, name: user.name }]}
+                        totalMembers={1}
+                        onView={() => navigate("/dashboard/initiatives")}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </section>
           </div>
-        )}
 
-        {/* Today's Tasks */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <ListChecks className="w-4 h-4 text-primary" />
-              <h3 className="font-heading font-semibold">Tasks for Today</h3>
-            </div>
-            <button onClick={() => navigate('/dashboard/initiatives')} className="text-xs text-primary hover:underline">
-              View all →
-            </button>
-          </div>
-          {todayTasks.length === 0 ? (
-            <div className="bg-card border border-border rounded-xl p-6 text-center amp-shadow-card">
-              <CheckCircle2 className="w-8 h-8 text-amp-success mx-auto mb-2" />
-              <p className="text-sm font-medium">All caught up!</p>
-              <p className="text-xs text-muted-foreground">No tasks due today</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {todayTasks.map(item => {
-                const Icon = itemTypeIcon[item.type] || Circle;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setSelectedTask(item)}
-                    className="w-full bg-card border border-border rounded-xl p-4 amp-shadow-card flex items-center gap-3 hover:amp-shadow-card-hover hover:border-primary/30 transition-all text-left"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Icon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.title}</p>
-                      <p className="text-xs text-muted-foreground">{item.type.replace('_', ' ')} · {item.duration || '5 min'}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {(item.contributes_to as string[] || []).map(c => (
-                        <span key={c} className={`w-2 h-2 rounded-full ${
-                          c === 'participation' ? 'bg-amp-participation' :
-                          c === 'ownership' ? 'bg-amp-ownership' : 'bg-amp-confidence'
-                        }`} title={c} />
-                      ))}
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        item.status === 'in_progress' ? 'bg-amp-info/10 text-amp-info' : 'bg-primary/10 text-primary'
-                      }`}>{item.status === 'in_progress' ? 'In Progress' : 'Ready'}</span>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Upcoming Tasks */}
-        {upcomingTasks.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarDays className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-heading font-semibold text-muted-foreground">Coming Up</h3>
-            </div>
-            <div className="space-y-1.5">
-              {upcomingTasks.map(item => {
-                const Icon = itemTypeIcon[item.type] || Circle;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setSelectedTask(item)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-secondary/40 text-sm hover:bg-secondary/60 transition-colors text-left"
-                  >
-                    <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1 truncate">{item.title}</span>
-                    <span className="text-xs text-muted-foreground">{item.duration || '5 min'}</span>
-                    {item.due_date && (
-                      <span className="text-xs text-muted-foreground">{format(parseISO(item.due_date), 'MMM d')}</span>
-                    )}
-                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Active Journeys Summary */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-heading font-semibold">Your Active Journeys</h3>
-            <button onClick={() => navigate('/dashboard/initiatives')} className="text-xs text-primary hover:underline">
-              Detailed view →
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {activeJourneys.map(journey => {
-              const journeyItems = allItems?.filter(i => i.journey_id === journey.id) || [];
-              const completed = journeyItems.filter(i => i.status === 'completed').length;
-              const remainMin = journeyItems.filter(i => i.status !== 'completed').reduce((s, i) => s + parseDurationMinutes(i.duration), 0);
-              const nextItem = journeyItems.find(i => i.status === 'in_progress' || i.status === 'available');
-              return (
-                <motion.div key={journey.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-card border border-border rounded-xl p-4 amp-shadow-card">
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-semibold text-sm">{journey.name}</h4>
-                    <span className="text-xs text-muted-foreground">{completed}/{journeyItems.length}</span>
+          {/* Right rail */}
+          <aside className="space-y-6">
+            <RightRailPanel
+              title="Tasks for today"
+              meta={
+                todayTasks.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>~{formatTime(todayTimeMinutes)} of focus</span>
                   </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full bg-amp-adoption" style={{ width: `${journey.progress}%` }} />
-                    </div>
-                    <span className="text-xs font-semibold">{journey.progress}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    {nextItem ? (
+                )
+              }
+            >
+              {todayTasks.length === 0 ? (
+                <EmptyState title="All caught up" description="No tasks scheduled for today." />
+              ) : (
+                <div className="space-y-2.5">
+                  {todayTasks.map((item) => (
+                    <TaskCard
+                      key={item.id}
+                      title={item.title}
+                      chips={[
+                        { label: item.type.replace("_", " "), tone: "neutral" },
+                        ...(item.duration ? [{ label: item.duration, tone: "info" as const }] : []),
+                        ...(item.status === "in_progress" ? [{ label: "In progress", tone: "warning" as const }] : []),
+                      ]}
+                      onOpen={() => setSelectedTask(item)}
+                    />
+                  ))}
+                </div>
+              )}
+            </RightRailPanel>
+
+            {upcomingTasks.length > 0 && (
+              <RightRailPanel title="Coming up">
+                <ul className="space-y-2">
+                  {upcomingTasks.map((item) => (
+                    <li key={item.id}>
                       <button
-                        onClick={() => setSelectedTask(nextItem)}
-                        className="flex items-center gap-2 text-xs text-primary hover:underline"
+                        onClick={() => setSelectedTask(item)}
+                        className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors"
                       >
-                        <ChevronRight className="w-3 h-3" />
-                        <span>Next: {nextItem.title}</span>
+                        <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="flex-1 text-sm font-medium truncate">{item.title}</span>
+                        {item.due_date && (
+                          <span className="text-xs text-muted-foreground">
+                            {format(parseISO(item.due_date), "MMM d")}
+                          </span>
+                        )}
                       </button>
-                    ) : <span />}
-                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Clock className="w-3 h-3" />{formatTime(remainMin)} left
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Badges */}
-        <div>
-          <h3 className="font-heading font-semibold mb-3">Recent Achievements</h3>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {badges?.slice(0, 6).map(badge => {
-              const earned = user.badges.includes(badge.name);
-              return (
-                <div key={badge.id} className={`bg-card border border-border rounded-xl p-3 text-center amp-shadow-card shrink-0 w-20 ${!earned ? 'opacity-25' : ''}`}>
-                  <span className="text-xl block mb-1">{badge.icon}</span>
-                  <p className="text-[10px] font-semibold truncate">{badge.name}</p>
-                </div>
-              );
-            })}
-          </div>
+                    </li>
+                  ))}
+                </ul>
+              </RightRailPanel>
+            )}
+          </aside>
         </div>
       </div>
 
@@ -327,7 +259,7 @@ const EndUserDashboard: React.FC = () => {
         open={!!selectedTask}
         onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
       />
-    </AppLayout>
+    </EndUserLayout>
   );
 };
 
