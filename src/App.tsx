@@ -25,7 +25,17 @@ import MyInitiatives from "./pages/user/MyInitiatives";
 import MyProgress from "./pages/user/MyProgress";
 import Achievements from "./pages/user/Achievements";
 import Leaderboard from "./pages/Leaderboard";
+import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
+
+import type { UserRole } from "@/contexts/AuthContext";
+
+const RoleRoute: React.FC<{ allow: UserRole[]; children: React.ReactNode }> = ({ allow, children }) => {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
+  if (!allow.includes(user.role)) return <Navigate to={getRoleDashboardPath(user.role)} replace />;
+  return <>{children}</>;
+};
 
 const queryClient = new QueryClient();
 
@@ -68,9 +78,9 @@ const AppRoutes = () => {
       <Route path="/manage/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
       <Route path="/manage/ai-changelog" element={<ProtectedRoute><AIChangeLog /></ProtectedRoute>} />
 
-      {/* Team Lead */}
-      <Route path="/team" element={<ProtectedRoute><TeamDashboard /></ProtectedRoute>} />
-      <Route path="/team/*" element={<ProtectedRoute><TeamDashboard /></ProtectedRoute>} />
+      {/* Team Workspace — team leads + admins only */}
+      <Route path="/team" element={<RoleRoute allow={["team_lead", "change_manager", "super_admin"]}><TeamDashboard /></RoleRoute>} />
+      <Route path="/team/*" element={<RoleRoute allow={["team_lead", "change_manager", "super_admin"]}><TeamDashboard /></RoleRoute>} />
 
       {/* End User */}
       <Route path="/dashboard" element={<ProtectedRoute><EndUserDashboard /></ProtectedRoute>} />
@@ -79,6 +89,7 @@ const AppRoutes = () => {
       <Route path="/dashboard/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
 
       {/* Shared */}
+      <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFound />} />

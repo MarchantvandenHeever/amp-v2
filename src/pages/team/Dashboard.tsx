@@ -1,131 +1,235 @@
-import React from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { ScoreCard, AdoptionScoreRing, ScoreRow } from '@/components/scores/ScoreCard';
-import { useAuth } from '@/contexts/AuthContext';
-import { useEndUsers, useRiskFlags, useScores, useInitiatives } from '@/hooks/useSupabaseData';
-import { motion } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { useMemo } from "react";
+import { Loader2, Users, ShieldAlert, TrendingUp, Trophy } from "lucide-react";
+
+import { EndUserLayout } from "@/components/layout/EndUserLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  useEndUsers,
+  useRiskFlags,
+  useScores,
+  useInitiatives,
+} from "@/hooks/useSupabaseData";
+
+import {
+  PageHero,
+  KpiTile,
+  AdoptionScoreCard,
+  RankingPanel,
+  RightRailPanel,
+  EmptyState,
+  StatusChip,
+  type RankedMember,
+} from "@/components/cl";
 
 const TeamDashboard: React.FC = () => {
   const { user } = useAuth();
-  const teamName = user?.team || 'Sales';
   const { data: allProfiles, isLoading: loadingProfiles } = useEndUsers();
   const { data: riskFlags } = useRiskFlags();
   const { data: scores, isLoading: loadingScores } = useScores();
   const { data: initiatives } = useInitiatives();
 
+  const teamName = user?.team || "Sales";
+  const isAdminView = user?.role === "change_manager" || user?.role === "super_admin";
+
+  // Time progress (matches Dashboard logic).
+  const currentTP = useMemo(() => {
+    const active = initiatives?.filter((i) => i.status === "active") || [];
+    const starts = active.map((i) => i.start_date).filter(Boolean) as string[];
+    const ends = active.map((i) => i.end_date).filter(Boolean) as string[];
+    if (!starts.length || !ends.length) return 1;
+    const earliest = Math.min(...starts.map((s) => new Date(s).getTime()));
+    const latest = Math.max(...ends.map((s) => new Date(s).getTime()));
+    const total = latest - earliest;
+    if (total <= 0) return 1;
+    return Math.min(1, (Date.now() - earliest) / total);
+  }, [initiatives]);
+
+  // Team members: team_lead → their team only. Admins → all end users.
+  const teamMembers = useMemo(() => {
+    if (!allProfiles) return [];
+    if (isAdminView) return allProfiles;
+    return allProfiles.filter((u) => u.team === teamName);
+  }, [allProfiles, isAdminView, teamName]);
+
+  const teamScores = useMemo(
+    () => scores?.filter((s) => teamMembers.some((m) => m.id === s.user_id)) || [],
+    [scores, teamMembers],
+  );
+
+  const teamRisks = useMemo(
+    () => riskFlags?.filter((r) => teamMembers.some((m) => m.id === r.user_id)) || [],
+    [riskFlags, teamMembers],
+  );
+
+  const avg = (key: "participation" | "ownership" | "confidence" | "adoption") =>
+    Math.round(
+      (teamScores.length
+        ? teamScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / teamScores.length
+        : 0) * currentTP,
+    );
+
+  const membersWithScores = useMemo(
+    () =>
+      teamMembers
+        .map((m) => {
+          const s = teamScores.find((sc) => sc.user_id === m.id);
+          return {
+            id: m.id,
+            name: m.display_name,
+            persona: m.persona,
+            team: m.team,
+            adoption: Math.round(Number(s?.adoption || 0) * currentTP),
+          };
+        })
+        .sort((a, b) => b.adoption - a.adoption),
+    [teamMembers, teamScores, currentTP],
+  );
+
+  const topAchievers: RankedMember[] = useMemo(
+    () =>
+      membersWithScores.slice(0, 5).map((m, i) => ({
+        id: m.id,
+        rank: i + 1,
+        name: m.name,
+        score: m.adoption,
+      })),
+    [membersWithScores],
+  );
+
+  const underperformers: RankedMember[] = useMemo(() => {
+    const slice = [...membersWithScores].slice(-5).reverse();
+    return slice.map((m, i) => ({
+      id: m.id,
+      rank: membersWithScores.length - i,
+      name: m.name,
+      score: m.adoption,
+    }));
+  }, [membersWithScores]);
+
+  if (!user) return null;
+
   if (loadingProfiles || loadingScores) {
-    return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
+    return (
+      <EndUserLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </EndUserLayout>
+    );
   }
 
-  // Compute current TP
-  const activeInits = initiatives?.filter(i => i.status === 'active') || [];
-  const currentTP = (() => {
-    const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
-    const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
-    if (!starts.length || !ends.length) return 1;
-    const earliest = Math.min(...starts.map(s => new Date(s).getTime()));
-    const latest = Math.max(...ends.map(s => new Date(s).getTime()));
-    const totalDuration = latest - earliest;
-    if (totalDuration <= 0) return 1;
-    return Math.min(1, (Date.now() - earliest) / totalDuration);
-  })();
+  const adoption = avg("adoption");
+  const dimensions = [
+    { key: "participation", label: "Participation", value: avg("participation"), color: "hsl(var(--amp-participation))" },
+    { key: "ownership", label: "Ownership", value: avg("ownership"), color: "hsl(var(--amp-ownership))" },
+    { key: "confidence", label: "Confidence", value: avg("confidence"), color: "hsl(var(--amp-confidence))" },
+  ];
 
-  const teamMembers = allProfiles?.filter(u => u.team === teamName) || [];
-  const teamRisks = riskFlags?.filter(r => teamMembers.some(m => m.id === r.user_id)) || [];
-
-  const teamScores = scores?.filter(s => teamMembers.some(m => m.id === s.user_id)) || [];
-  const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
-    Math.round((teamScores.length ? teamScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / teamScores.length : 0) * currentTP);
-
-  const chartData = teamMembers.map(u => {
-    const s = teamScores.find(sc => sc.user_id === u.id);
-    return {
-      name: u.display_name.split(' ')[0],
-      participation: Math.round(Number(s?.participation || 0) * currentTP),
-      ownership: Math.round(Number(s?.ownership || 0) * currentTP),
-      confidence: Math.round(Number(s?.confidence || 0) * currentTP),
-    };
-  });
-
-  const membersWithScores = teamMembers.map(m => {
-    const s = teamScores.find(sc => sc.user_id === m.id);
-    return { ...m, scores: {
-      participation: Math.round(Number(s?.participation || 0) * currentTP),
-      ownership: Math.round(Number(s?.ownership || 0) * currentTP),
-      confidence: Math.round(Number(s?.confidence || 0) * currentTP),
-      adoption: Math.round(Number(s?.adoption || 0) * currentTP),
-    }};
-  }).sort((a, b) => b.scores.adoption - a.scores.adoption);
+  const titleSuffix = isAdminView ? "All teams" : `${teamName} team`;
 
   return (
-    <AppLayout>
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h1 className="font-heading text-2xl font-bold">{teamName} Team Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">{teamMembers.length} team members · {teamRisks.length} risk flags</p>
-        </div>
+    <EndUserLayout>
+      <PageHero
+        title={`Team workspace — ${titleSuffix}`}
+        subtitle="See how your team is adopting the change. Spot the people who need a nudge."
+        size="md"
+      />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center">
-            <AdoptionScoreRing score={avgScore('adoption')} />
-            <p className="text-xs text-muted-foreground mt-2">Team Adoption</p>
-          </div>
-          <ScoreCard label="Participation" score={avgScore('participation')} color="participation" />
-          <ScoreCard label="Ownership" score={avgScore('ownership')} color="ownership" />
-          <ScoreCard label="Confidence" score={avgScore('confidence')} color="confidence" />
-        </div>
+      <div className="max-w-7xl mx-auto px-6 md:px-10 pt-8 pb-16 space-y-6">
+        {teamMembers.length === 0 ? (
+          <EmptyState
+            title="No team members yet"
+            description="Once members are assigned to your team, they'll show up here."
+          />
+        ) : (
+          <>
+            {/* KPI row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KpiTile icon={<Users className="w-6 h-6" />} iconTone="info" value={teamMembers.length} label="Team members" />
+              <KpiTile icon={<TrendingUp className="w-6 h-6" />} iconTone="success" value={`${adoption}%`} label="Avg adoption" />
+              <KpiTile icon={<Trophy className="w-6 h-6" />} iconTone="warning" value={topAchievers[0]?.score ?? 0} label="Top score" />
+              <KpiTile icon={<ShieldAlert className="w-6 h-6" />} iconTone="risk" value={teamRisks.length} label="Risk flags" />
+            </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
-          <h3 className="font-heading font-semibold mb-4">Member Comparison</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', fontSize: '12px' }} />
-              <Bar dataKey="participation" fill="hsl(var(--amp-participation))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="ownership" fill="hsl(var(--amp-ownership))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="confidence" fill="hsl(var(--amp-confidence))" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+              <div className="space-y-6 min-w-0">
+                <AdoptionScoreCard
+                  title="Team adoption score"
+                  dimensions={dimensions}
+                  adoption={adoption}
+                  lastUpdatedLabel={`${teamMembers.length} members · updated today`}
+                />
 
-        <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
-          <h3 className="font-heading font-semibold mb-4">Team Members</h3>
-          <div className="space-y-3">
-            {membersWithScores.map((member, i) => {
-              const hasRisk = riskFlags?.some(r => r.user_id === member.id);
-              return (
-                <motion.div key={member.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
-                  className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                  <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0">
-                    <span className="text-primary-foreground text-xs font-semibold">{member.display_name.split(' ').map(n => n[0]).join('')}</span>
+                {/* Team table */}
+                <section className="cl-card p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="cl-section-label">All team members</h3>
+                    <span className="text-xs text-muted-foreground">
+                      Sorted by adoption
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{member.display_name}</p>
-                    <p className="text-xs text-muted-foreground">{member.persona} · {member.streak} day streak · {member.points} pts</p>
-                  </div>
-                  <div className="hidden md:flex gap-4 items-center">
-                    <ScoreRow label="Participation" score={member.scores.participation} color="bg-amp-participation" />
-                    <ScoreRow label="Ownership" score={member.scores.ownership} color="bg-amp-ownership" />
-                    <ScoreRow label="Confidence" score={member.scores.confidence} color="bg-amp-confidence" />
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-lg font-heading font-bold text-amp-adoption">{member.scores.adoption}</p>
-                    <p className="text-[10px] text-muted-foreground">adoption</p>
-                  </div>
-                  {hasRisk && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-amp-risk/10 text-amp-risk font-medium shrink-0">risk</span>
+                  <ul className="divide-y divide-border/60">
+                    {membersWithScores.map((m, i) => {
+                      const hasRisk = teamRisks.some((r) => r.user_id === m.id);
+                      return (
+                        <li key={m.id} className="flex items-center gap-3 py-3">
+                          <span className="w-6 text-xs text-muted-foreground tabular-nums">{i + 1}</span>
+                          <div className="w-9 h-9 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center shrink-0">
+                            {m.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{m.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {m.persona || "—"}{isAdminView && m.team ? ` · ${m.team}` : ""}
+                            </p>
+                          </div>
+                          {hasRisk && <StatusChip tone="risk">Risk</StatusChip>}
+                          <span className="font-semibold tabular-nums text-amp-adoption w-12 text-right">
+                            {m.adoption}%
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              </div>
+
+              {/* Right rail */}
+              <aside className="space-y-6">
+                <RankingPanel
+                  topAchievers={topAchievers}
+                  underperformers={underperformers.filter(
+                    (u) => !topAchievers.some((t) => t.id === u.id),
                   )}
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
+                />
+
+                {teamRisks.length > 0 && (
+                  <RightRailPanel title="Active risks" meta={
+                    <span className="text-xs text-muted-foreground">{teamRisks.length} flagged</span>
+                  }>
+                    <ul className="space-y-3">
+                      {teamRisks.slice(0, 5).map((r: any) => (
+                        <li key={r.id} className="text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium truncate">
+                              {r.profiles?.display_name || "Unknown"}
+                            </span>
+                            <StatusChip tone={r.severity === "high" ? "risk" : "warning"}>
+                              {r.severity}
+                            </StatusChip>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">{r.type}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </RightRailPanel>
+                )}
+              </aside>
+            </div>
+          </>
+        )}
       </div>
-    </AppLayout>
+    </EndUserLayout>
   );
 };
 

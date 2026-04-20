@@ -1,47 +1,44 @@
-import React, { useMemo, useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { useInitiatives, useJourneys, useAllJourneyItems, useJourneyPhases } from '@/hooks/useSupabaseData';
-import { GanttChart } from '@/components/journey/GanttChart';
-import { TaskDetailModal } from '@/components/journey/TaskDetailModal';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import React, { useMemo, useState } from "react";
+import { Loader2, Clock } from "lucide-react";
+import { parseISO, format, isPast } from "date-fns";
+
+import { EndUserLayout } from "@/components/layout/EndUserLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import {
-  Target, Clock, CheckCircle2, Circle, Lock, ChevronDown, ChevronRight,
-  Loader2, BarChart3, Layers, Route as RouteIcon, Timer
-} from 'lucide-react';
-import { parseISO, isToday, isThisWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+  useInitiatives,
+  useJourneys,
+  useAllJourneyItems,
+  useJourneyPhases,
+} from "@/hooks/useSupabaseData";
+import { TaskDetailModal } from "@/components/journey/TaskDetailModal";
 
-const parseDurationMinutes = (d?: string | null): number => {
-  if (!d) return 5;
-  const m = d.match(/(\d+)/);
-  const num = m ? parseInt(m[1]) : 5;
-  if (d.includes('hour') || d.includes('hr')) return num * 60;
-  return num;
-};
+import {
+  PageHero,
+  JourneyTimeline,
+  SegmentedTabs,
+  TaskCard,
+  RightRailPanel,
+  EmptyState,
+  StatusChip,
+  type JourneyStepData,
+  type ChipTone,
+} from "@/components/cl";
 
-const formatTime = (mins: number): string => {
-  if (mins >= 60) {
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+const statusToTone = (status: string): ChipTone => {
+  switch (status) {
+    case "completed": return "success";
+    case "in_progress": return "warning";
+    case "available": return "info";
+    case "locked": return "neutral";
+    default: return "neutral";
   }
-  return `${mins}m`;
 };
 
-const statusIcon: Record<string, React.ElementType> = {
-  completed: CheckCircle2,
-  in_progress: Circle,
-  available: Circle,
-  locked: Lock,
-};
-
-const statusStyle: Record<string, string> = {
-  completed: 'text-amp-success',
-  in_progress: 'text-amp-info',
-  available: 'text-primary',
-  locked: 'text-muted-foreground/40',
+const phaseStatusToStep = (s: string): JourneyStepData["status"] => {
+  if (s === "complete" || s === "completed") return "complete";
+  if (s === "active" || s === "in_progress") return "active";
+  if (s === "risk" || s === "at_risk") return "risk";
+  return "upcoming";
 };
 
 const MyInitiatives: React.FC = () => {
@@ -49,354 +46,259 @@ const MyInitiatives: React.FC = () => {
   const { data: initiatives, isLoading: li } = useInitiatives();
   const { data: journeys, isLoading: lj } = useJourneys();
   const { data: allItems, isLoading: lit } = useAllJourneyItems();
-  const [timePeriod, setTimePeriod] = useState<'today' | 'week' | 'month'>('today');
-  const [expandedJourney, setExpandedJourney] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<'journeys' | 'phases' | 'gantt'>('journeys');
-  const [selectedTask, setSelectedTask] = useState<any>(null);
-
   const { data: allPhases } = useJourneyPhases();
 
-  const activeInitiatives = useMemo(() => initiatives?.filter(i => i.status === 'active' || i.status === 'in_progress') || [], [initiatives]);
-  const activeJourneys = useMemo(() => journeys?.filter(j => j.status === 'active') || [], [journeys]);
+  const [activeJourneyId, setActiveJourneyId] = useState<string | null>(null);
+  const [taskTab, setTaskTab] = useState<"todo" | "complete">("todo");
+  const [selectedTask, setSelectedTask] = useState<any>(null);
 
-  const timeFilteredItems = useMemo(() => {
-    if (!allItems) return [];
-    const active = allItems.filter(i => i.status === 'available' || i.status === 'in_progress');
+  const activeJourneys = useMemo(
+    () => (journeys || []).filter((j) => j.status === "active" || j.status === "in_progress"),
+    [journeys],
+  );
 
-    if (timePeriod === 'today') {
-      // Match Dashboard logic: due today OR in_progress with no date
-      const todayItems = active.filter(i => {
-        if (i.status === 'in_progress') return true;
-        if (!i.due_date) return false;
-        try { return isToday(parseISO(i.due_date)); } catch { return false; }
-      });
-      // Fallback: if nothing matches today, show next available items (same as Dashboard)
-      if (todayItems.length === 0) {
-        const upcoming = active.filter(i => {
-          if (!i.due_date) return true;
-          try {
-            const d = parseISO(i.due_date);
-            return !isToday(d);
-          } catch { return true; }
-        });
-        return upcoming.slice(0, Math.min(3, upcoming.length));
-      }
-      return todayItems;
+  const currentJourney = useMemo(() => {
+    if (activeJourneyId) return activeJourneys.find((j) => j.id === activeJourneyId) ?? activeJourneys[0];
+    return activeJourneys[0];
+  }, [activeJourneys, activeJourneyId]);
+
+  const currentInitiative = useMemo(
+    () => initiatives?.find((i) => i.id === currentJourney?.initiative_id),
+    [initiatives, currentJourney],
+  );
+
+  const journeyItems = useMemo(
+    () => (allItems || []).filter((i) => i.journey_id === currentJourney?.id),
+    [allItems, currentJourney],
+  );
+
+  const journeyPhases = useMemo(
+    () =>
+      (allPhases || [])
+        .filter((p) => p.journey_id === currentJourney?.id)
+        .sort((a, b) => (a.order_index || 0) - (b.order_index || 0)),
+    [allPhases, currentJourney],
+  );
+
+  const todoItems = useMemo(
+    () => journeyItems.filter((i) => i.status !== "completed"),
+    [journeyItems],
+  );
+  const doneItems = useMemo(
+    () => journeyItems.filter((i) => i.status === "completed"),
+    [journeyItems],
+  );
+
+  const timelineSteps: JourneyStepData[] = useMemo(() => {
+    if (journeyPhases.length === 0) {
+      // Fall back to a single "All tasks" step.
+      const completed = doneItems.length;
+      const total = journeyItems.length || 1;
+      return [
+        {
+          id: currentJourney?.id ?? "all",
+          title: currentJourney?.name ?? "Journey",
+          description: currentJourney?.description ?? undefined,
+          status: completed === total ? "complete" : "active",
+          progress: Math.round((completed / total) * 100),
+        },
+      ];
     }
-    if (timePeriod === 'week') {
-      return active.filter(i => {
-        if (!i.due_date) return true;
-        try { return isThisWeek(parseISO(i.due_date)); } catch { return true; }
-      });
-    }
-    const now = new Date();
-    return active.filter(i => {
-      if (!i.due_date) return true;
-      try {
-        return isWithinInterval(parseISO(i.due_date), { start: startOfMonth(now), end: endOfMonth(now) });
-      } catch { return true; }
+    return journeyPhases.map((p) => {
+      const phaseItems = journeyItems.filter((i) => i.phase_id === p.id);
+      const completed = phaseItems.filter((i) => i.status === "completed").length;
+      const total = phaseItems.length || 1;
+      return {
+        id: p.id,
+        title: p.name,
+        description: p.description ?? undefined,
+        status: phaseStatusToStep(p.status),
+        start: p.start_date ? format(parseISO(p.start_date), "MMM d, yyyy") : undefined,
+        end: p.end_date ? format(parseISO(p.end_date), "MMM d, yyyy") : undefined,
+        progress: Math.round((completed / total) * 100),
+      };
     });
-  }, [allItems, timePeriod]);
-
-  const totalTimeMinutes = useMemo(() => {
-    return timeFilteredItems.reduce((sum, i) => sum + parseDurationMinutes(i.duration), 0);
-  }, [timeFilteredItems]);
+  }, [journeyPhases, journeyItems, doneItems, currentJourney]);
 
   if (!user) return null;
+
   if (li || lj || lit) {
-    return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
+    return (
+      <EndUserLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </EndUserLayout>
+    );
   }
 
-  const handleItemClick = (item: any) => {
-    if (item.status !== 'locked') {
-      setSelectedTask(item);
-    }
-  };
+  const tasksToRender = taskTab === "todo" ? todoItems : doneItems;
 
-  const renderItemRow = (item: any, showDetails = true) => {
-    const Icon = statusIcon[item.status] || Circle;
-    const style = statusStyle[item.status] || '';
-    const isClickable = item.status !== 'locked';
+  return (
+    <EndUserLayout>
+      <PageHero
+        title={currentInitiative?.name ?? currentJourney?.name ?? "Your initiatives"}
+        subtitle={
+          currentInitiative?.description ??
+          currentJourney?.description ??
+          "Track your active workstreams and complete tasks step by step."
+        }
+        size="md"
+      />
 
-    return (
-      <button
-        key={item.id}
-        onClick={() => handleItemClick(item)}
-        disabled={!isClickable}
-        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
-          item.status === 'locked' ? 'opacity-40 cursor-not-allowed' : 'hover:bg-secondary/40 cursor-pointer'
-        }`}
-      >
-        <Icon className={`w-4 h-4 shrink-0 ${style}`} />
-        <span className={`flex-1 truncate ${item.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
-          {item.title}
-        </span>
-        <span className="text-xs text-muted-foreground">{item.duration || '5 min'}</span>
-        {showDetails && (
+      <div className="max-w-7xl mx-auto px-6 md:px-10 pt-8 pb-16 space-y-6">
+        {activeJourneys.length === 0 ? (
+          <EmptyState
+            title="No active initiatives yet"
+            description="When a change manager assigns you to a journey, it will show up here."
+          />
+        ) : (
           <>
-            {item.execution_mode === 'parallel' && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amp-info/10 text-amp-info font-medium">∥</span>
+            {activeJourneys.length > 1 && (
+              <div className="flex flex-wrap gap-2">
+                {activeJourneys.map((j) => (
+                  <button
+                    key={j.id}
+                    onClick={() => setActiveJourneyId(j.id)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+                      currentJourney?.id === j.id
+                        ? "bg-nav text-nav-foreground border-nav"
+                        : "bg-card text-foreground border-border hover:bg-muted"
+                    }`}
+                  >
+                    {j.name}
+                  </button>
+                ))}
+              </div>
             )}
-            {item.mandatory && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amp-warning/10 text-amp-warning font-medium">req</span>}
-            <div className="flex gap-1">
-              {(item.contributes_to as string[] || []).map((c: string) => (
-                <span key={c} className={`w-1.5 h-1.5 rounded-full ${
-                  c === 'participation' ? 'bg-amp-participation' :
-                  c === 'ownership' ? 'bg-amp-ownership' : 'bg-amp-confidence'
-                }`} />
-              ))}
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+              <div className="space-y-6 min-w-0">
+                {/* Journey timeline / phases */}
+                <section className="cl-card p-6 md:p-7">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="cl-section-label">Your journey</h3>
+                    <StatusChip tone="info">
+                      {doneItems.length}/{journeyItems.length || 0} tasks done
+                    </StatusChip>
+                  </div>
+                  <JourneyTimeline steps={timelineSteps} />
+                </section>
+
+                {/* Task list */}
+                <section>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="cl-section-label">Your tasks</h2>
+                    <SegmentedTabs
+                      tabs={[
+                        { key: "todo", label: "To do", count: todoItems.length },
+                        { key: "complete", label: "Complete", count: doneItems.length },
+                      ]}
+                      active={taskTab}
+                      onChange={(k) => setTaskTab(k as "todo" | "complete")}
+                    />
+                  </div>
+
+                  {tasksToRender.length === 0 ? (
+                    <EmptyState
+                      title={taskTab === "todo" ? "Nothing to do right now" : "No completed tasks yet"}
+                      description={
+                        taskTab === "todo"
+                          ? "You're all caught up on this journey."
+                          : "Finish a task and it will show up here."
+                      }
+                    />
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {tasksToRender.map((item) => {
+                        const overdue =
+                          taskTab === "todo" &&
+                          item.due_date &&
+                          (() => {
+                            try { return isPast(parseISO(item.due_date)); } catch { return false; }
+                          })();
+                        const chips = [
+                          { label: item.type.replace(/_/g, " "), tone: "neutral" as ChipTone },
+                          ...(item.duration ? [{ label: item.duration, tone: "info" as ChipTone }] : []),
+                          ...(item.mandatory ? [{ label: "Required", tone: "warning" as ChipTone }] : []),
+                          ...(item.status === "in_progress"
+                            ? [{ label: "In progress", tone: "warning" as ChipTone }]
+                            : []),
+                          ...(overdue ? [{ label: "Overdue", tone: "risk" as ChipTone }] : []),
+                          { label: item.status.replace(/_/g, " "), tone: statusToTone(item.status) },
+                        ];
+                        return (
+                          <TaskCard
+                            key={item.id}
+                            title={item.title}
+                            chips={chips}
+                            locked={item.status === "locked"}
+                            onOpen={() => setSelectedTask(item)}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              </div>
+
+              {/* Right rail */}
+              <aside className="space-y-6">
+                <RightRailPanel
+                  title="Journey overview"
+                  meta={
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="w-3.5 h-3.5" />
+                      {currentJourney?.progress ?? 0}% complete
+                    </div>
+                  }
+                >
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex justify-between">
+                      <span className="text-muted-foreground">Phases</span>
+                      <span className="font-semibold">{journeyPhases.length}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span className="text-muted-foreground">Total tasks</span>
+                      <span className="font-semibold">{journeyItems.length}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span className="text-muted-foreground">Completed</span>
+                      <span className="font-semibold text-amp-success">{doneItems.length}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span className="text-muted-foreground">Remaining</span>
+                      <span className="font-semibold">{todoItems.length}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span className="text-muted-foreground">Mandatory left</span>
+                      <span className="font-semibold">
+                        {todoItems.filter((i) => i.mandatory).length}
+                      </span>
+                    </li>
+                  </ul>
+                </RightRailPanel>
+
+                {currentInitiative && (
+                  <RightRailPanel title="Initiative">
+                    <div className="space-y-2 text-sm">
+                      <p className="font-semibold text-foreground">{currentInitiative.name}</p>
+                      {currentInitiative.description && (
+                        <p className="text-muted-foreground text-xs leading-relaxed">
+                          {currentInitiative.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 pt-2">
+                        <StatusChip tone="dark">{currentInitiative.phase}</StatusChip>
+                        <StatusChip tone="neutral">{currentInitiative.status}</StatusChip>
+                      </div>
+                    </div>
+                  </RightRailPanel>
+                )}
+              </aside>
             </div>
           </>
         )}
-        {isClickable && <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />}
-      </button>
-    );
-  };
-
-  return (
-    <AppLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl font-bold">My Initiatives</h1>
-            <p className="text-sm text-muted-foreground">Detailed view of your active workstreams and time commitments</p>
-          </div>
-        </div>
-
-        {/* Time Summary Bar */}
-        <div className="bg-card border border-border rounded-xl p-5 amp-shadow-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Timer className="w-5 h-5 text-primary" />
-              <h3 className="font-heading font-semibold">Time Commitment</h3>
-            </div>
-            <Select value={timePeriod} onValueChange={(v: 'today' | 'week' | 'month') => setTimePeriod(v)}>
-              <SelectTrigger className="w-32 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-3 rounded-lg bg-secondary/50">
-              <p className="font-heading text-2xl font-bold text-foreground">{formatTime(totalTimeMinutes)}</p>
-              <p className="text-xs text-muted-foreground">Total Time Required</p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-secondary/50">
-              <p className="font-heading text-2xl font-bold text-foreground">{timeFilteredItems.length}</p>
-              <p className="text-xs text-muted-foreground">Active Items</p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-secondary/50">
-              <p className="font-heading text-2xl font-bold text-foreground">{timeFilteredItems.filter(i => i.mandatory).length}</p>
-              <p className="text-xs text-muted-foreground">Mandatory</p>
-            </div>
-          </div>
-
-          {timeFilteredItems.length > 0 && (
-            <div className="mt-4 space-y-1">
-              {timeFilteredItems.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => handleItemClick(item)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-background text-sm hover:bg-secondary/30 transition-colors text-left"
-                >
-                  <Circle className="w-3 h-3 text-primary shrink-0" />
-                  <span className="flex-1 truncate">{item.title}</span>
-                  <span className="text-xs text-muted-foreground font-medium">{item.duration || '5 min'}</span>
-                  {item.mandatory && <Badge variant="outline" className="text-[9px] h-4">Required</Badge>}
-                  <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* View Tabs */}
-        <Tabs value={activeView} onValueChange={(v: string) => setActiveView(v as any)}>
-          <TabsList className="grid grid-cols-3 w-fit">
-            <TabsTrigger value="journeys" className="gap-1.5 text-xs">
-              <RouteIcon className="w-3.5 h-3.5" /> Journeys
-            </TabsTrigger>
-            <TabsTrigger value="phases" className="gap-1.5 text-xs">
-              <Layers className="w-3.5 h-3.5" /> Phase View
-            </TabsTrigger>
-            <TabsTrigger value="gantt" className="gap-1.5 text-xs">
-              <BarChart3 className="w-3.5 h-3.5" /> Gantt View
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Journey View */}
-          <TabsContent value="journeys" className="space-y-4 mt-4">
-            {activeInitiatives.map(init => {
-              const initJourneys = activeJourneys.filter(j => j.initiative_id === init.id);
-              return (
-                <div key={init.id} className="bg-card border border-border rounded-xl amp-shadow-card overflow-hidden">
-                  <div className="p-4 border-b border-border bg-secondary/20">
-                    <div className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-primary" />
-                      <h4 className="font-semibold text-sm">{init.name}</h4>
-                      <Badge variant="outline" className="text-[10px] h-5 ml-auto">{init.phase}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{init.description}</p>
-                  </div>
-
-                  {initJourneys.length === 0 && (
-                    <div className="p-4 text-xs text-muted-foreground text-center">No active journeys for this initiative</div>
-                  )}
-
-                  {initJourneys.map(journey => {
-                    const items = allItems?.filter(i => i.journey_id === journey.id) || [];
-                    const completed = items.filter(i => i.status === 'completed').length;
-                    const totalMin = items.reduce((s, i) => s + parseDurationMinutes(i.duration), 0);
-                    const remainMin = items.filter(i => i.status !== 'completed').reduce((s, i) => s + parseDurationMinutes(i.duration), 0);
-                    const isExpanded = expandedJourney === journey.id;
-
-                    return (
-                      <div key={journey.id} className="border-b border-border/50 last:border-0">
-                        <button
-                          onClick={() => setExpandedJourney(isExpanded ? null : journey.id)}
-                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary/20 transition-colors text-left"
-                        >
-                          {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
-                          <RouteIcon className="w-4 h-4 text-primary shrink-0" />
-                          <span className="flex-1 text-sm font-medium">{journey.name}</span>
-                          <span className="text-xs text-muted-foreground">{completed}/{items.length} done</span>
-                          <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div className="h-full rounded-full bg-amp-adoption" style={{ width: `${journey.progress}%` }} />
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            <span>{formatTime(remainMin)} left</span>
-                          </div>
-                        </button>
-
-                        {isExpanded && (
-                          <div className="px-4 pb-3 space-y-0.5">
-                            <div className="flex gap-4 text-xs text-muted-foreground mb-2 px-2">
-                              <span>Total: {formatTime(totalMin)}</span>
-                              <span>Remaining: {formatTime(remainMin)}</span>
-                              <span>Completed: {formatTime(totalMin - remainMin)}</span>
-                            </div>
-                            {items.map(item => renderItemRow(item))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-
-            {activeJourneys.filter(j => !j.initiative_id).length > 0 && (
-              <div className="bg-card border border-border rounded-xl amp-shadow-card overflow-hidden">
-                <div className="p-4 border-b border-border bg-secondary/20">
-                  <h4 className="font-semibold text-sm">Other Journeys</h4>
-                </div>
-                {activeJourneys.filter(j => !j.initiative_id).map(journey => {
-                  const items = allItems?.filter(i => i.journey_id === journey.id) || [];
-                  const completed = items.filter(i => i.status === 'completed').length;
-                  const remainMin = items.filter(i => i.status !== 'completed').reduce((s, i) => s + parseDurationMinutes(i.duration), 0);
-                  const isExpanded = expandedJourney === journey.id;
-
-                  return (
-                    <div key={journey.id} className="border-b border-border/50 last:border-0">
-                      <button
-                        onClick={() => setExpandedJourney(isExpanded ? null : journey.id)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary/20 transition-colors text-left"
-                      >
-                        {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                        <span className="flex-1 text-sm font-medium">{journey.name}</span>
-                        <span className="text-xs text-muted-foreground">{completed}/{items.length}</span>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3" />
-                          <span>{formatTime(remainMin)} left</span>
-                        </div>
-                      </button>
-                      {isExpanded && (
-                        <div className="px-4 pb-3 space-y-0.5">
-                          {items.map(item => renderItemRow(item, false))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Phase View */}
-          <TabsContent value="phases" className="space-y-4 mt-4">
-            {activeJourneys.map(journey => {
-              const items = allItems?.filter(i => i.journey_id === journey.id) || [];
-              const phases = allPhases || [];
-              const journeyPhases = phases.filter(p => p.journey_id === journey.id).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-
-              const phaseGroups = journeyPhases.map(phase => ({
-                phase,
-                items: items.filter(i => i.phase_id === phase.id),
-              }));
-              const noPhaseItems = items.filter(i => !i.phase_id);
-
-              return (
-                <div key={journey.id} className="bg-card border border-border rounded-xl amp-shadow-card overflow-hidden">
-                  <div className="p-4 border-b border-border">
-                    <h4 className="font-semibold text-sm">{journey.name}</h4>
-                    <p className="text-xs text-muted-foreground">{journey.description}</p>
-                  </div>
-
-                  {phaseGroups.map(({ phase, items: phaseItems }) => (
-                    <div key={phase.id} className="border-b border-border/50">
-                      <div className="flex items-center gap-2 px-4 py-2 bg-secondary/20">
-                        <span className={`w-2 h-2 rounded-full ${phase.status === 'active' ? 'bg-amp-success' : 'bg-muted-foreground/40'}`} />
-                        <span className="text-xs font-semibold">{phase.name}</span>
-                        <span className="text-[10px] text-muted-foreground ml-auto">
-                          {phaseItems.filter(i => i.status === 'completed').length}/{phaseItems.length} items
-                        </span>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatTime(phaseItems.reduce((s, i) => s + parseDurationMinutes(i.duration), 0))}
-                        </span>
-                      </div>
-                      <div className="px-2 py-1.5 space-y-0.5">
-                        {phaseItems.map(item => renderItemRow(item, false))}
-                      </div>
-                    </div>
-                  ))}
-
-                  {noPhaseItems.length > 0 && (
-                    <div className="px-2 py-2 space-y-0.5">
-                      <p className="text-[10px] text-muted-foreground font-medium mb-1 px-3">Unphased Items</p>
-                      {noPhaseItems.map(item => renderItemRow(item, false))}
-                    </div>
-                  )}
-
-                  {journeyPhases.length === 0 && (
-                    <div className="p-4 text-xs text-muted-foreground text-center">No phases defined for this journey</div>
-                  )}
-                </div>
-              );
-            })}
-          </TabsContent>
-
-          {/* Gantt View */}
-          <TabsContent value="gantt" className="space-y-4 mt-4">
-            {activeJourneys.map(journey => {
-              const items = allItems?.filter(i => i.journey_id === journey.id) || [];
-              const phases = allPhases?.filter(p => p.journey_id === journey.id) || [];
-              return (
-                <div key={journey.id}>
-                  <h4 className="font-semibold text-sm mb-2">{journey.name}</h4>
-                  <GanttChart items={items} phases={phases} />
-                </div>
-              );
-            })}
-          </TabsContent>
-        </Tabs>
       </div>
 
       <TaskDetailModal
@@ -404,7 +306,7 @@ const MyInitiatives: React.FC = () => {
         open={!!selectedTask}
         onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
       />
-    </AppLayout>
+    </EndUserLayout>
   );
 };
 
