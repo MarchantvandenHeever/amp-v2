@@ -4,57 +4,90 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Change Logic visual system
+ * - Page bg: warm off-white
+ * - Hero / brand primary: deep evergreen
+ * - Top nav / tabs: deep navy
+ * - Accent: warm orange/yellow (logo)
+ * - Soft status palette: green / red / amber / sky / slate
+ */
+
 @layer base {
   :root {
-    --background: 40 30% 96%;
-    --foreground: 160 20% 12%;
+    --background: 30 20% 97%;
+    --foreground: 215 28% 14%;
 
-    --card: 40 25% 99%;
-    --card-foreground: 160 20% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 14%;
 
-    --popover: 40 25% 99%;
-    --popover-foreground: 160 20% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 14%;
 
-    --primary: 153 45% 28%;
-    --primary-foreground: 40 30% 96%;
+    /* Brand greens */
+    --primary: 153 38% 22%;
+    --primary-foreground: 30 30% 97%;
+    --primary-soft: 153 30% 32%;
+    --primary-deep: 153 42% 16%;
 
-    --secondary: 40 20% 93%;
-    --secondary-foreground: 160 20% 20%;
+    --secondary: 30 15% 94%;
+    --secondary-foreground: 215 28% 18%;
 
-    --muted: 40 15% 91%;
-    --muted-foreground: 160 10% 45%;
+    --muted: 30 14% 92%;
+    --muted-foreground: 215 12% 42%;
 
-    --accent: 18 76% 58%;
+    /* Warm orange accent (logo) */
+    --accent: 22 90% 56%;
     --accent-foreground: 0 0% 100%;
+    --accent-soft: 38 95% 60%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 40 15% 88%;
-    --input: 40 15% 88%;
-    --ring: 153 45% 28%;
+    --border: 30 12% 88%;
+    --input: 30 12% 88%;
+    --ring: 153 38% 22%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --sidebar-background: 153 35% 14%;
-    --sidebar-foreground: 40 20% 90%;
-    --sidebar-primary: 18 76% 58%;
+    /* Navy nav */
+    --nav-background: 215 35% 16%;
+    --nav-foreground: 30 20% 96%;
+    --nav-muted: 215 12% 62%;
+    --nav-active: 30 20% 96%;
+
+    /* Sidebar (kept for admin layout, retuned to navy) */
+    --sidebar-background: 215 35% 14%;
+    --sidebar-foreground: 30 20% 92%;
+    --sidebar-primary: 22 90% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 153 30% 20%;
-    --sidebar-accent-foreground: 40 20% 94%;
-    --sidebar-border: 153 25% 22%;
-    --sidebar-ring: 18 76% 58%;
-    --sidebar-muted: 153 15% 40%;
+    --sidebar-accent: 215 30% 22%;
+    --sidebar-accent-foreground: 30 20% 96%;
+    --sidebar-border: 215 25% 24%;
+    --sidebar-ring: 22 90% 56%;
+    --sidebar-muted: 215 12% 58%;
 
-    /* AMP specific tokens */
-    --amp-participation: 153 45% 38%;
-    --amp-ownership: 262 50% 52%;
-    --amp-confidence: 36 85% 52%;
-    --amp-adoption: 18 76% 58%;
-    --amp-risk: 0 72% 50%;
-    --amp-success: 153 50% 38%;
-    --amp-warning: 36 85% 52%;
-    --amp-info: 210 70% 50%;
+    /* AMP score dimensions — kept, lightly retuned */
+    --amp-participation: 38 95% 55%;   /* warm yellow */
+    --amp-ownership:    14 85% 56%;    /* coral */
+    --amp-confidence:   202 65% 70%;   /* soft sky blue */
+    --amp-adoption:     22 90% 56%;    /* orange */
+    --amp-risk:         0 72% 52%;
+    --amp-success:      153 50% 36%;
+    --amp-warning:      38 95% 55%;
+    --amp-info:         210 70% 50%;
+
+    /* Status soft surfaces (chips & alert blocks) */
+    --status-success-bg: 153 50% 92%;
+    --status-success-fg: 153 50% 26%;
+    --status-warning-bg: 38 95% 92%;
+    --status-warning-fg: 28 80% 30%;
+    --status-risk-bg:    0 75% 95%;
+    --status-risk-fg:    0 65% 38%;
+    --status-info-bg:    202 70% 94%;
+    --status-info-fg:    210 60% 30%;
+    --status-neutral-bg: 30 14% 92%;
+    --status-neutral-fg: 215 15% 32%;
 
     --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
     --font-body: 'DM Sans', system-ui, sans-serif;
@@ -62,9 +95,7 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
 
   body {
     @apply bg-background text-foreground;
@@ -80,22 +111,49 @@
 }
 
 @layer utilities {
-  .amp-gradient-primary {
-    background: linear-gradient(135deg, hsl(153 45% 28%), hsl(153 45% 36%));
+  /* Hero gradients */
+  .cl-hero {
+    background:
+      radial-gradient(120% 100% at 100% 0%, hsl(var(--primary-soft) / 0.55) 0%, transparent 60%),
+      linear-gradient(135deg, hsl(var(--primary-deep)), hsl(var(--primary)));
   }
-  .amp-gradient-sidebar {
-    background: linear-gradient(180deg, hsl(153 35% 14%), hsl(153 35% 10%));
+  .cl-hero-pattern {
+    background-image:
+      radial-gradient(circle at 1px 1px, hsl(0 0% 100% / 0.05) 1px, transparent 0);
+    background-size: 26px 26px;
   }
-  .amp-gradient-hero {
-    background: linear-gradient(135deg, hsl(153 35% 14%), hsl(153 45% 22%));
+  .cl-support-card {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-deep)) 100%);
   }
-  .amp-shadow-card {
-    box-shadow: 0 1px 3px 0 hsl(153 20% 12% / 0.05), 0 1px 2px -1px hsl(153 20% 12% / 0.04);
+  .cl-bug-card {
+    background: linear-gradient(135deg, hsl(202 70% 88%) 0%, hsl(202 60% 80%) 100%);
   }
-  .amp-shadow-card-hover {
-    box-shadow: 0 4px 14px 0 hsl(153 20% 12% / 0.08), 0 2px 4px -1px hsl(153 20% 12% / 0.05);
+
+  /* Cards & shadow */
+  .cl-card {
+    @apply bg-card rounded-2xl border border-border/60;
+    box-shadow: 0 1px 2px 0 hsl(215 28% 14% / 0.04), 0 1px 1px 0 hsl(215 28% 14% / 0.03);
   }
-  .amp-score-glow {
-    box-shadow: 0 0 20px hsl(18 76% 58% / 0.15);
+  .cl-card-hover {
+    box-shadow: 0 8px 24px -8px hsl(215 28% 14% / 0.10), 0 2px 6px -2px hsl(215 28% 14% / 0.05);
   }
+  .cl-section-label {
+    @apply text-xs font-semibold tracking-[0.12em] uppercase text-muted-foreground;
+  }
+
+  /* Status chip surfaces */
+  .chip-success { background: hsl(var(--status-success-bg)); color: hsl(var(--status-success-fg)); }
+  .chip-warning { background: hsl(var(--status-warning-bg)); color: hsl(var(--status-warning-fg)); }
+  .chip-risk    { background: hsl(var(--status-risk-bg));    color: hsl(var(--status-risk-fg)); }
+  .chip-info    { background: hsl(var(--status-info-bg));    color: hsl(var(--status-info-fg)); }
+  .chip-neutral { background: hsl(var(--status-neutral-bg)); color: hsl(var(--status-neutral-fg)); }
+  .chip-dark    { background: hsl(var(--nav-background)); color: hsl(var(--nav-foreground)); }
+
+  /* Legacy AMP gradients (kept for back-compat with old pages) */
+  .amp-gradient-primary { background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-soft))); }
+  .amp-gradient-sidebar { background: linear-gradient(180deg, hsl(var(--sidebar-background)), hsl(215 35% 10%)); }
+  .amp-gradient-hero    { background: linear-gradient(135deg, hsl(var(--primary-deep)), hsl(var(--primary))); }
+  .amp-shadow-card      { box-shadow: 0 1px 3px 0 hsl(215 28% 14% / 0.05), 0 1px 2px -1px hsl(215 28% 14% / 0.04); }
+  .amp-shadow-card-hover{ box-shadow: 0 8px 24px -8px hsl(215 28% 14% / 0.10), 0 2px 6px -2px hsl(215 28% 14% / 0.05); }
+  .amp-score-glow       { box-shadow: 0 0 24px hsl(var(--accent) / 0.18); }
 }

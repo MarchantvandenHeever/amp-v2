@@ -72,6 +72,15 @@ export default {
           warning: "hsl(var(--amp-warning))",
           info: "hsl(var(--amp-info))",
         },
+        nav: {
+          DEFAULT: "hsl(var(--nav-background))",
+          foreground: "hsl(var(--nav-foreground))",
+          muted: "hsl(var(--nav-muted))",
+          active: "hsl(var(--nav-active))",
+        },
+        "primary-soft": "hsl(var(--primary-soft))",
+        "primary-deep": "hsl(var(--primary-deep))",
+        "accent-soft": "hsl(var(--accent-soft))",
       },
       borderRadius: {
         lg: "var(--radius)",
