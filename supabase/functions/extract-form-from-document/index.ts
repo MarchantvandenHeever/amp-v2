@@ -17,13 +17,10 @@ const json = (status: number, body: unknown) =>
 
 // Minimal text extraction from .docx (which is a zip containing word/document.xml)
 async function extractDocxText(bytes: Uint8Array): Promise<string> {
-  // Use the standard Web API DecompressionStream + a tiny zip reader.
-  // Easiest: use `jszip` via esm.sh.
-  const JSZip = (await import("https://esm.sh/jszip@3.10.1")).default;
+  const JSZip = (await import("npm:jszip@3.10.1")).default;
   const zip = await JSZip.loadAsync(bytes);
   const docXml = await zip.file("word/document.xml")?.async("string");
   if (!docXml) return "";
-  // Strip XML tags but preserve paragraph breaks
   const withBreaks = docXml
     .replace(/<w:p[ >][^]*?<\/w:p>/g, (m) => m + "\n")
     .replace(/<[^>]+>/g, "");
@@ -38,28 +35,9 @@ async function extractDocxText(bytes: Uint8Array): Promise<string> {
 }
 
 async function extractPdfText(bytes: Uint8Array): Promise<string> {
-  // Use pdfjs-dist via esm.sh (legacy build for non-browser env)
-  const pdfjsLib: any = await import(
-    "https://esm.sh/pdfjs-dist@4.0.379/legacy/build/pdf.mjs"
-  );
-  // Disable worker
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "";
-  const loadingTask = pdfjsLib.getDocument({
-    data: bytes,
-    useWorkerFetch: false,
-    isEvalSupported: false,
-    useSystemFonts: true,
-  });
-  const pdf = await loadingTask.promise;
-  let out = "";
-  const maxPages = Math.min(pdf.numPages, 30);
-  for (let i = 1; i <= maxPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const strs = content.items.map((it: any) => it.str || "");
-    out += strs.join(" ") + "\n\n";
-  }
-  return out.trim();
+  const { extractText } = await import("https://esm.sh/unpdf@0.12.1");
+  const { text } = await extractText(bytes, { mergePages: true });
+  return (typeof text === "string" ? text : (text as string[]).join("\n\n")).trim();
 }
 
 Deno.serve(async (req) => {
