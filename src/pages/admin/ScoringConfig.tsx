@@ -173,13 +173,25 @@ const ScoringAdmin: React.FC = () => {
           subtitle="Configure the AMP Behavioural Adoption Scoring Model — trait weights, baselines, decay, and phase weighting"
           size="sm"
         >
-          {dirty && (
-            <div className="mt-4">
-              <Button variant="outline" size="sm" onClick={handleReset} className="bg-white/10 border-white/20 text-white hover:bg-white/15 rounded-full">
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button size="sm" onClick={handleRecalcNow} disabled={recalc.isPending}
+              className="bg-white text-foreground hover:bg-white/90 rounded-full">
+              {recalc.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+              Recalculate scores now
+            </Button>
+            <Link to="/manage/scoring/drilldown">
+              <Button variant="outline" size="sm"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/15 rounded-full">
+                <Search className="w-3.5 h-3.5 mr-1" /> Score drill-down
+              </Button>
+            </Link>
+            {dirty && (
+              <Button variant="outline" size="sm" onClick={handleReset}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/15 rounded-full">
                 <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset Changes
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </PageHero>
       </div>
 
