@@ -269,7 +269,7 @@ const Analytics: React.FC = () => {
   const radarData = useMemo(() => {
     return INDICES.filter(i => selectedIndices.has(i.key)).map(i => ({
       index: i.label,
-      score: currentTrendPoint[i.key],
+      score: avgScores[i.key],
       fullMark: 100,
     }));
   }, [avgScores, selectedIndices]);
@@ -338,7 +338,7 @@ const Analytics: React.FC = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {INDICES.filter(i => selectedIndices.has(i.key)).map((idx, i) => (
             <motion.div key={idx.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <ScoreCard label={idx.label} score={currentTrendPoint[idx.key]} color={idx.key} />
+              <ScoreCard label={idx.label} score={avgScores[idx.key]} color={idx.key} />
             </motion.div>
           ))}
         </div>
@@ -349,7 +349,7 @@ const Analytics: React.FC = () => {
             { label: 'Total Users', value: userTable.length, icon: Users, cls: 'bg-primary/10 text-primary' },
             { label: 'Active Initiatives', value: initiatives?.filter(i => i.status === 'active').length || 0, icon: Target, cls: 'bg-amp-ownership/10 text-amp-ownership' },
             { label: 'High Risk Flags', value: riskCount, icon: AlertTriangle, cls: 'bg-amp-risk/10 text-amp-risk' },
-            { label: 'Avg Adoption', value: `${currentTrendPoint.adoption}%`, icon: BarChart3, cls: 'bg-amp-adoption/10 text-amp-adoption' },
+            { label: 'Avg Adoption', value: `${avgScores.adoption}%`, icon: BarChart3, cls: 'bg-amp-adoption/10 text-amp-adoption' },
           ].map(s => (
             <div key={s.label} className="bg-card border border-border rounded-xl p-4 amp-shadow-card flex items-center gap-3">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${s.cls}`}>
