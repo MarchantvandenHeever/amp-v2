@@ -15,6 +15,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell
 } from 'recharts';
 import { TrendingUp, TrendingDown, Users, Target, AlertTriangle, BarChart3 } from 'lucide-react';
+import { PageHero } from '@/components/cl';
 
 const INDICES = [
   { key: 'participation', label: 'Participation', color: 'hsl(var(--amp-participation))' },

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Loader2, Save, RotateCcw, AlertTriangle, CheckCircle2, Settings2, Gauge, Shield, Brain, Zap } from 'lucide-react';
+import { PageHero } from '@/components/cl';
 
 const ScoringAdmin: React.FC = () => {
   const { data: config, isLoading } = useScoringConfig();
