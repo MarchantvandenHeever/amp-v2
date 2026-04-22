@@ -12,6 +12,8 @@ interface MultiRingDonutProps {
   rings: Ring[];
   /** 0-100 — value rendered in the center */
   centerValue: number;
+  /** Optional color for the implicit center (adoption) ring */
+  centerColor?: string;
   centerLabel?: string;
   size?: number;
   className?: string;
