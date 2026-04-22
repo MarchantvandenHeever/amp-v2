@@ -24,6 +24,7 @@ import {
   emptySection, newId, saveFormDraft,
 } from '@/lib/formExtractor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PageHero } from '@/components/cl';
 
 type Mode = 'edit' | 'preview';
 
