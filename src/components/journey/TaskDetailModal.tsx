@@ -137,42 +137,41 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
         }
       }
 
-      // 6. Update user scores based on contributions
+      // 6. Emit AMP behavioural_events per declared contribution pillar.
+      //    The score-recalc engine consumes these and re-derives all pillar
+      //    + adoption + dashboard scores per the AMP framework.
       const contribs = (item.contributes_to || []) as string[];
-      if (contribs.length > 0) {
-        const { data: currentScore } = await supabase
-          .from('scores')
-          .select('*')
-          .eq('user_id', user.id)
+      let initiativeId: string | null = null;
+      if (item.journey_id) {
+        const { data: j } = await supabase
+          .from('journeys')
+          .select('initiative_id')
+          .eq('id', item.journey_id)
           .maybeSingle();
+        initiativeId = j?.initiative_id ?? null;
+      }
 
-        const bump = 3; // points per contribution dimension
-        const newScores = {
-          participation: Number(currentScore?.participation || user.scores.participation) + (contribs.includes('participation') ? bump : 0),
-          ownership: Number(currentScore?.ownership || user.scores.ownership) + (contribs.includes('ownership') ? bump : 0),
-          confidence: Number(currentScore?.confidence || user.scores.confidence) + (contribs.includes('confidence') ? bump : 0),
-        };
-        // Cap at journey progress ceiling (ideal adoption logic)
-        const cappedScores = {
-          participation: Math.min(newScores.participation, 100),
-          ownership: Math.min(newScores.ownership, 100),
-          confidence: Math.min(newScores.confidence, 100),
-        };
-        const adoption = Math.round((cappedScores.participation + cappedScores.ownership + cappedScores.confidence) / 3);
-
-        if (currentScore) {
-          await supabase.from('scores').update({
-            ...cappedScores,
-            adoption,
-            calculated_at: new Date().toISOString(),
-          }).eq('id', currentScore.id);
-        } else {
-          await supabase.from('scores').insert({
+      if (contribs.length > 0) {
+        const eventRows = contribs
+          .filter((p) => ['participation', 'ownership', 'confidence'].includes(p))
+          .map((pillar) => ({
             user_id: user.id,
-            ...cappedScores,
-            adoption,
-          });
+            initiative_id: initiativeId,
+            journey_id: item.journey_id ?? null,
+            journey_item_id: item.id,
+            pillar,
+            event_type: 'task_completed',
+            value: 1,
+            payload: { item_type: item.type, mandatory: !!item.mandatory },
+          }));
+        if (eventRows.length) {
+          await supabase.from('behavioural_events').insert(eventRows);
         }
+
+        // Trigger verbatim AMP recalculation for this user/initiative.
+        await supabase.functions.invoke('score-recalc', {
+          body: { user_id: user.id, ...(initiativeId ? { initiative_id: initiativeId } : {}) },
+        });
       }
 
       // 7. Invalidate all relevant caches
