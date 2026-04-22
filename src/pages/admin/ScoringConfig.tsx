@@ -1,28 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useScoringConfig, useUpdateScoringConfig } from '@/hooks/useScoringConfig';
-import { validateWeights, TraitConfig, adoptionScore, dashboardScore, getScoreBand } from '@/lib/scoringEngine';
+import { useRecalcScores } from '@/hooks/useScoring';
+import { validateWeights, TraitConfig, adoptionScore, getScoreBand } from '@/lib/scoringEngine';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Save, RotateCcw, AlertTriangle, CheckCircle2, Settings2, Gauge, Shield, Brain, Zap } from 'lucide-react';
+import { Loader2, Save, RotateCcw, AlertTriangle, CheckCircle2, Settings2, Gauge, Shield, Brain, Zap, RefreshCw, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { PageHero } from '@/components/cl';
 
 const ScoringAdmin: React.FC = () => {
   const { data: config, isLoading } = useScoringConfig();
   const updateConfig = useUpdateScoringConfig();
+  const recalc = useRecalcScores();
   const [localConfig, setLocalConfig] = useState<any>(null);
-  const [desiredTarget, setDesiredTarget] = useState<number>(100);
+  const [desiredTarget, setDesiredTarget] = useState<number>(85);
+  const [weightingMode, setWeightingMode] = useState<'baseline' | 'phase'>('baseline');
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     if (config) {
       setLocalConfig(JSON.parse(JSON.stringify(config)));
-      setDesiredTarget((config as any).desired_adoption_target ?? 100);
+      setDesiredTarget(Number(config.adoption_target?.A_target ?? 85));
+      setWeightingMode((config.adoption_target?.weighting_mode ?? 'baseline') as 'baseline' | 'phase');
     }
   }, [config]);
+
+  const handleRecalcNow = async () => {
+    try {
+      const res = await recalc.mutateAsync(undefined);
+      toast.success(`Recalculated ${res.recalced} user × initiative pairs`);
+    } catch (e: any) {
+      toast.error(`Recalc failed: ${e.message}`);
+    }
+  };
+
+  const handleSaveAdoptionTarget = async () => {
+    await handleSave('adoption_target', {
+      A_target: desiredTarget,
+      weighting_mode: weightingMode,
+      epsilon: 0.01,
+    });
+  };
 
   if (isLoading || !localConfig) {
     return <AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
