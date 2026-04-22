@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AdoptionTrendChart from '@/components/charts/AdoptionTrendChart';
+import { PageHero, StatusChip } from '@/components/cl';
 
 const ChangeManagerDashboard: React.FC = () => {
   const { data: profiles, isLoading: loadingProfiles } = useEndUsers();
@@ -128,16 +129,19 @@ const ChangeManagerDashboard: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h1 className="font-heading text-2xl font-bold">Adoption Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Ownership and confidence signal whether change is truly forming</p>
-        </div>
+      <div className="-m-6 mb-0">
+        <PageHero
+          title="Adoption Dashboard"
+          subtitle="Ownership and confidence signal whether change is truly forming."
+          size="sm"
+        />
+      </div>
+      <div className="max-w-7xl mx-auto space-y-6 pt-6">
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card flex flex-col items-center justify-center">
+          <div className="cl-card p-6 flex flex-col items-center justify-center">
             <AdoptionScoreRing score={currentTrendPoint.adoption} size={140} idealScore={currentTrendPoint.idealAdoption} />
-            <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">Overall Adoption</p>
+            <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider font-semibold">Overall Adoption</p>
           </div>
           <ScoreCard label="Participation" score={currentTrendPoint.participation} color="participation" trend={5} />
           <ScoreCard label="Ownership" score={currentTrendPoint.ownership} color="ownership" trend={3} />
