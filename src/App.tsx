@@ -28,6 +28,7 @@ import Achievements from "./pages/user/Achievements";
 import Leaderboard from "./pages/Leaderboard";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
+import { useRealtimeScores } from "@/hooks/useRealtimeScores";
 
 import type { UserRole } from "@/contexts/AuthContext";
 
@@ -54,6 +55,7 @@ const RootRedirect: React.FC = () => {
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
+  useRealtimeScores();
 
   return (
     <Routes>
