@@ -152,6 +152,18 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
       }
 
       if (contribs.length > 0) {
+        // Map (pillar, item_type) → AMP trait_key per Participation/Ownership/
+        // Confidence framework docs §6. value=1.0 = ratio of "this completion".
+        const traitKeyFor = (pillar: string): string | null => {
+          if (pillar === 'participation') return 'P_x4'; // Completion coverage
+          if (pillar === 'ownership') return 'O_x1';     // Task completion quality
+          if (pillar === 'confidence') {
+            // Self-rated readiness for confidence_check, scenario perf otherwise
+            return item.type === 'confidence_check' ? 'C_x1' : 'C_x5';
+          }
+          return null;
+        };
+
         const eventRows = contribs
           .filter((p) => ['participation', 'ownership', 'confidence'].includes(p))
           .map((pillar) => ({
@@ -162,16 +174,22 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
             pillar,
             event_type: 'task_completed',
             value: 1,
-            payload: { item_type: item.type, mandatory: !!item.mandatory },
+            payload: {
+              trait_key: traitKeyFor(pillar),
+              item_type: item.type,
+              mandatory: !!item.mandatory,
+            },
           }));
         if (eventRows.length) {
-          await supabase.from('behavioural_events').insert(eventRows);
+          const { error: evErr } = await supabase.from('behavioural_events').insert(eventRows);
+          if (evErr) console.error('[behavioural_events] insert failed', evErr);
         }
 
         // Trigger verbatim AMP recalculation for this user/initiative.
-        await supabase.functions.invoke('score-recalc', {
+        const { error: fnErr } = await supabase.functions.invoke('score-recalc', {
           body: { user_id: user.id, ...(initiativeId ? { initiative_id: initiativeId } : {}) },
         });
+        if (fnErr) console.error('[score-recalc] invoke failed', fnErr);
       }
 
       // 7. Invalidate all relevant caches
