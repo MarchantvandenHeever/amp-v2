@@ -47,20 +47,7 @@ const Analytics: React.FC = () => {
     });
   };
 
-  // Compute raw averages (behavioral readiness, before TP)
-  const avgScoresRaw = useMemo(() => {
-    if (!scores?.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
-    const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
-    if (!filtered.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
-    return {
-      participation: Math.round(filtered.reduce((s, r) => s + (Number(r.participation) || 0), 0) / filtered.length),
-      ownership: Math.round(filtered.reduce((s, r) => s + (Number(r.ownership) || 0), 0) / filtered.length),
-      confidence: Math.round(filtered.reduce((s, r) => s + (Number(r.confidence) || 0), 0) / filtered.length),
-      adoption: Math.round(filtered.reduce((s, r) => s + (Number(r.adoption) || 0), 0) / filtered.length),
-    };
-  }, [scores, selectedInitiative]);
-
-  // Per-initiative data setup (needed by trendData)
+  // Per-initiative data setup
   const activeInits = initiatives?.filter(i => i.status === 'active') || [];
   const initiativeOptions = activeInits.map(init => ({
     id: init.id,
@@ -85,13 +72,39 @@ const Analytics: React.FC = () => {
     ? combinedProgress
     : (activeInits.find(i => i.id === selectedInitiative)?.progress ?? combinedProgress);
 
-  // KPI scores factored by current TP(t)
-  const avgScores = useMemo(() => ({
-    participation: Math.round(avgScoresRaw.participation * currentTP),
-    ownership: Math.round(avgScoresRaw.ownership * currentTP),
-    confidence: Math.round(avgScoresRaw.confidence * currentTP),
-    adoption: Math.round(avgScoresRaw.adoption * currentTP),
-  }), [avgScoresRaw, currentTP]);
+  // Pillar averages — use the same p-weighted (_dashboard) columns as Overview, with raw*TP fallback.
+  const avgScoresRaw = useMemo(() => {
+    if (!scores?.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
+    const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
+    if (!filtered.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
+    return {
+      participation: Math.round(filtered.reduce((s, r) => s + (Number(r.participation) || 0), 0) / filtered.length),
+      ownership: Math.round(filtered.reduce((s, r) => s + (Number(r.ownership) || 0), 0) / filtered.length),
+      confidence: Math.round(filtered.reduce((s, r) => s + (Number(r.confidence) || 0), 0) / filtered.length),
+      adoption: Math.round(filtered.reduce((s, r) => s + (Number(r.adoption) || 0), 0) / filtered.length),
+    };
+  }, [scores, selectedInitiative]);
+
+  const avgScores = useMemo(() => {
+    if (!scores?.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
+    const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
+    if (!filtered.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
+    const avg = (k: 'participation' | 'ownership' | 'confidence' | 'adoption') => {
+      const dashKey = `${k}_dashboard` as const;
+      const sum = filtered.reduce((acc, r: any) => {
+        const v = r[dashKey];
+        const fallback = (Number(r[k]) || 0) * currentTP;
+        return acc + Number(v ?? fallback);
+      }, 0);
+      return Math.round(sum / filtered.length);
+    };
+    return {
+      participation: avg('participation'),
+      ownership: avg('ownership'),
+      confidence: avg('confidence'),
+      adoption: avg('adoption'),
+    };
+  }, [scores, selectedInitiative, currentTP]);
 
   // Duration-based helper: compute timeProgressRatio from initiative dates for a given week's recorded_at
   const getInitDateRange = (initId?: string) => {
@@ -199,6 +212,12 @@ const Analytics: React.FC = () => {
     return result;
   }, [scoreHistory, activeInits, desiredTarget]);
 
+  // Helper: read p-weighted (_dashboard) value with raw*TP fallback (matches Overview)
+  const dashVal = (row: any, k: 'participation' | 'ownership' | 'confidence' | 'adoption') => {
+    const v = row[`${k}_dashboard`];
+    return Number(v ?? (Number(row[k]) || 0) * currentTP);
+  };
+
   // Group breakdown (by team or persona)
   const groupData = useMemo(() => {
     if (!scores?.length || !profiles?.length) return [];
@@ -210,10 +229,10 @@ const Analytics: React.FC = () => {
       const group = groupBy === 'team' ? (profile?.team || 'Unknown') : (profile?.persona || 'Unknown');
       if (!groups[group]) groups[group] = { count: 0, participation: 0, ownership: 0, confidence: 0, adoption: 0 };
       groups[group].count++;
-      groups[group].participation += Number(s.participation) || 0;
-      groups[group].ownership += Number(s.ownership) || 0;
-      groups[group].confidence += Number(s.confidence) || 0;
-      groups[group].adoption += Number(s.adoption) || 0;
+      groups[group].participation += dashVal(s, 'participation');
+      groups[group].ownership += dashVal(s, 'ownership');
+      groups[group].confidence += dashVal(s, 'confidence');
+      groups[group].adoption += dashVal(s, 'adoption');
     });
     return Object.entries(groups).map(([name, v]) => ({
       name,
@@ -222,7 +241,7 @@ const Analytics: React.FC = () => {
       confidence: Math.round(v.confidence / v.count),
       adoption: Math.round(v.adoption / v.count),
     }));
-  }, [scores, profiles, selectedInitiative, groupBy]);
+  }, [scores, profiles, selectedInitiative, groupBy, currentTP]);
 
   // Individual user table
   const userTable = useMemo(() => {
@@ -231,19 +250,20 @@ const Analytics: React.FC = () => {
     const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
     return filtered.map(s => {
       const profile = profileMap.get(s.user_id);
+      const adoption = Math.round(dashVal(s, 'adoption'));
       return {
         id: s.user_id,
         name: profile?.display_name || 'Unknown',
         team: profile?.team || '—',
         persona: profile?.persona || '—',
-        participation: Number(s.participation) || 0,
-        ownership: Number(s.ownership) || 0,
-        confidence: Number(s.confidence) || 0,
-        adoption: Number(s.adoption) || 0,
-        label: getScoreLabel(Number(s.adoption) || 0),
+        participation: Math.round(dashVal(s, 'participation')),
+        ownership: Math.round(dashVal(s, 'ownership')),
+        confidence: Math.round(dashVal(s, 'confidence')),
+        adoption,
+        label: getScoreLabel(adoption),
       };
     }).sort((a, b) => b.adoption - a.adoption);
-  }, [scores, profiles, selectedInitiative]);
+  }, [scores, profiles, selectedInitiative, currentTP]);
 
   // Radar data for overview
   const radarData = useMemo(() => {
