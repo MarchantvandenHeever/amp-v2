@@ -12,6 +12,7 @@ import { GanttChart } from '@/components/journey/GanttChart';
 import { PhaseModal } from '@/components/journey/PhaseManager';
 import { SubJourneyModal } from '@/components/journey/SubJourneyModal';
 import { toast } from 'sonner';
+import { PageHero, StatusChip } from '@/components/cl';
 
 const typeIcons: Record<string, React.ElementType> = {
   content: FileText, activity: CheckCircle2, form: MessageSquare,
@@ -259,23 +260,31 @@ const JourneyBuilder: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="flex gap-0">
-      <div className={`${aiPanelOpen ? 'flex-1 min-w-0' : 'w-full'} max-w-6xl mx-auto space-y-6`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl font-bold">Journey Builder</h1>
-            <p className="text-sm text-muted-foreground mt-1">Design behavioural adoption journeys with phases, dependencies & parallel execution</p>
-          </div>
-          <div className="flex items-center gap-2">
+      <div className="-m-6 mb-0">
+        <PageHero
+          title="Journey Builder"
+          subtitle="Design behavioural adoption journeys with phases, dependencies & parallel execution."
+          size="sm"
+        >
+          <div className="mt-4 flex items-center gap-2">
             <button onClick={() => setAiPanelOpen(!aiPanelOpen)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${aiPanelOpen ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold transition-colors",
+                aiPanelOpen
+                  ? "bg-white text-primary"
+                  : "bg-white/15 text-white hover:bg-white/25"
+              )}>
               <Sparkles className="w-4 h-4" /> AI Agent
             </button>
-            <button onClick={() => setJourneyModal({ open: true, journey: null })} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
-              + New Journey
+            <button onClick={() => setJourneyModal({ open: true, journey: null })}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm">
+              <Plus className="w-4 h-4" /> New Journey
             </button>
           </div>
-        </div>
+        </PageHero>
+      </div>
+      <div className="flex gap-0 pt-6">
+      <div className={`${aiPanelOpen ? 'flex-1 min-w-0' : 'w-full'} max-w-6xl mx-auto space-y-6`}>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Journey list */}
