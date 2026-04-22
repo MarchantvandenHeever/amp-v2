@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Loader2, Clock } from "lucide-react";
 import { parseISO, format, isPast } from "date-fns";
 
@@ -50,7 +50,7 @@ const MyInitiatives: React.FC = () => {
 
   const [activeJourneyId, setActiveJourneyId] = useState<string | null>(null);
   const [taskTab, setTaskTab] = useState<"todo" | "complete">("todo");
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const activeJourneys = useMemo(
     () => (journeys || []).filter((j) => j.status === "active" || j.status === "in_progress"),
@@ -62,14 +62,56 @@ const MyInitiatives: React.FC = () => {
     return activeJourneys[0];
   }, [activeJourneys, activeJourneyId]);
 
+  useEffect(() => {
+    if (!currentJourney) {
+      setActiveJourneyId(null);
+      return;
+    }
+
+    setActiveJourneyId((prev) => {
+      if (prev && activeJourneys.some((journey) => journey.id === prev)) return prev;
+      return currentJourney.id;
+    });
+  }, [activeJourneys, currentJourney]);
+
   const currentInitiative = useMemo(
     () => initiatives?.find((i) => i.id === currentJourney?.initiative_id),
     [initiatives, currentJourney],
   );
 
-  const journeyItems = useMemo(
+  const currentJourneyItems = useMemo(
     () => (allItems || []).filter((i) => i.journey_id === currentJourney?.id),
     [allItems, currentJourney],
+  );
+
+  const itemsById = useMemo(
+    () => new Map(currentJourneyItems.map((item) => [item.id, item])),
+    [currentJourneyItems],
+  );
+
+  const journeyItems = useMemo(() => {
+    return currentJourneyItems.map((item) => {
+      const predecessor = item.predecessor_id ? itemsById.get(item.predecessor_id) : null;
+      const predecessorComplete = predecessor ? predecessor.status === "completed" : true;
+      const derivedStatus =
+        item.status === "completed"
+          ? "completed"
+          : predecessorComplete
+            ? item.status === "locked"
+              ? "available"
+              : item.status
+            : "locked";
+
+      return {
+        ...item,
+        status: derivedStatus,
+      };
+    });
+  }, [currentJourneyItems, itemsById]);
+
+  const selectedTask = useMemo(
+    () => journeyItems.find((item) => item.id === selectedTaskId) ?? null,
+    [journeyItems, selectedTaskId],
   );
 
   const journeyPhases = useMemo(
@@ -80,45 +122,71 @@ const MyInitiatives: React.FC = () => {
     [allPhases, currentJourney],
   );
 
-  const todoItems = useMemo(
-    () => journeyItems.filter((i) => i.status !== "completed"),
-    [journeyItems],
-  );
   const doneItems = useMemo(
     () => journeyItems.filter((i) => i.status === "completed"),
     [journeyItems],
   );
 
+  const todoItems = useMemo(
+    () => journeyItems.filter((i) => i.status !== "completed"),
+    [journeyItems],
+  );
+
+  const availableItems = useMemo(
+    () => todoItems.filter((i) => i.status === "available" || i.status === "in_progress"),
+    [todoItems],
+  );
+
+  const lockedItems = useMemo(
+    () => todoItems.filter((i) => i.status === "locked"),
+    [todoItems],
+  );
+
+  const mandatoryLeft = useMemo(
+    () => availableItems.filter((i) => i.mandatory).length,
+    [availableItems],
+  );
+
+  const derivedProgress = useMemo(() => {
+    if (journeyItems.length === 0) return 0;
+
+    const weightedTotal = journeyItems.reduce((sum, item) => sum + Math.max(item.weight || 1, 1), 0);
+    const weightedDone = doneItems.reduce((sum, item) => sum + Math.max(item.weight || 1, 1), 0);
+
+    return weightedTotal > 0 ? Math.round((weightedDone / weightedTotal) * 100) : 0;
+  }, [journeyItems, doneItems]);
+
   const timelineSteps: JourneyStepData[] = useMemo(() => {
     if (journeyPhases.length === 0) {
-      // Fall back to a single "All tasks" step.
-      const completed = doneItems.length;
-      const total = journeyItems.length || 1;
       return [
         {
           id: currentJourney?.id ?? "all",
           title: currentJourney?.name ?? "Journey",
           description: currentJourney?.description ?? undefined,
-          status: completed === total ? "complete" : "active",
-          progress: Math.round((completed / total) * 100),
+          status: derivedProgress === 100 ? "complete" : journeyItems.length > 0 ? "active" : "upcoming",
+          progress: derivedProgress,
         },
       ];
     }
-    return journeyPhases.map((p) => {
-      const phaseItems = journeyItems.filter((i) => i.phase_id === p.id);
-      const completed = phaseItems.filter((i) => i.status === "completed").length;
-      const total = phaseItems.length || 1;
+
+    return journeyPhases.map((phase) => {
+      const phaseItems = journeyItems.filter((item) => item.phase_id === phase.id);
+      const phaseCompleted = phaseItems.filter((item) => item.status === "completed");
+      const phaseWeightTotal = phaseItems.reduce((sum, item) => sum + Math.max(item.weight || 1, 1), 0);
+      const phaseWeightDone = phaseCompleted.reduce((sum, item) => sum + Math.max(item.weight || 1, 1), 0);
+      const progress = phaseWeightTotal > 0 ? Math.round((phaseWeightDone / phaseWeightTotal) * 100) : 0;
+
       return {
-        id: p.id,
-        title: p.name,
-        description: p.description ?? undefined,
-        status: phaseStatusToStep(p.status),
-        start: p.start_date ? format(parseISO(p.start_date), "MMM d, yyyy") : undefined,
-        end: p.end_date ? format(parseISO(p.end_date), "MMM d, yyyy") : undefined,
-        progress: Math.round((completed / total) * 100),
+        id: phase.id,
+        title: phase.name,
+        description: phase.description ?? undefined,
+        status: progress === 100 ? "complete" : progress > 0 ? "active" : phaseStatusToStep(phase.status),
+        start: phase.start_date ? format(parseISO(phase.start_date), "MMM d, yyyy") : undefined,
+        end: phase.end_date ? format(parseISO(phase.end_date), "MMM d, yyyy") : undefined,
+        progress,
       };
     });
-  }, [journeyPhases, journeyItems, doneItems, currentJourney]);
+  }, [journeyPhases, journeyItems, currentJourney, derivedProgress]);
 
   if (!user) return null;
 
@@ -174,7 +242,6 @@ const MyInitiatives: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
               <div className="space-y-6 min-w-0">
-                {/* Journey timeline / phases */}
                 <section className="cl-card p-6 md:p-7">
                   <div className="flex items-center justify-between mb-5">
                     <h3 className="cl-section-label">Your journey</h3>
@@ -185,7 +252,6 @@ const MyInitiatives: React.FC = () => {
                   <JourneyTimeline steps={timelineSteps} />
                 </section>
 
-                {/* Task list */}
                 <section>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="cl-section-label">Your tasks</h2>
@@ -215,10 +281,15 @@ const MyInitiatives: React.FC = () => {
                           taskTab === "todo" &&
                           item.status !== "locked" &&
                           item.status !== "completed" &&
-                          item.due_date &&
+                          !!item.due_date &&
                           (() => {
-                            try { return isPast(parseISO(item.due_date)); } catch { return false; }
+                            try {
+                              return isPast(parseISO(item.due_date));
+                            } catch {
+                              return false;
+                            }
                           })();
+
                         const chips = [
                           { label: item.type.replace(/_/g, " "), tone: "neutral" as ChipTone },
                           ...(item.duration ? [{ label: item.duration, tone: "info" as ChipTone }] : []),
@@ -229,13 +300,14 @@ const MyInitiatives: React.FC = () => {
                           ...(overdue ? [{ label: "Overdue", tone: "risk" as ChipTone }] : []),
                           { label: item.status.replace(/_/g, " "), tone: statusToTone(item.status) },
                         ];
+
                         return (
                           <TaskCard
                             key={item.id}
                             title={item.title}
                             chips={chips}
-                            locked={item.status === "locked"}
-                            onOpen={() => setSelectedTask(item)}
+                            locked={false}
+                            onOpen={() => setSelectedTaskId(item.id)}
                           />
                         );
                       })}
@@ -244,14 +316,13 @@ const MyInitiatives: React.FC = () => {
                 </section>
               </div>
 
-              {/* Right rail */}
               <aside className="space-y-6">
                 <RightRailPanel
                   title="Journey overview"
                   meta={
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock className="w-3.5 h-3.5" />
-                      {currentJourney?.progress ?? 0}% complete
+                      {derivedProgress}% complete
                     </div>
                   }
                 >
@@ -269,14 +340,16 @@ const MyInitiatives: React.FC = () => {
                       <span className="font-semibold text-amp-success">{doneItems.length}</span>
                     </li>
                     <li className="flex justify-between">
-                      <span className="text-muted-foreground">Remaining</span>
-                      <span className="font-semibold">{todoItems.length}</span>
+                      <span className="text-muted-foreground">Ready now</span>
+                      <span className="font-semibold">{availableItems.length}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span className="text-muted-foreground">Blocked</span>
+                      <span className="font-semibold">{lockedItems.length}</span>
                     </li>
                     <li className="flex justify-between">
                       <span className="text-muted-foreground">Mandatory left</span>
-                      <span className="font-semibold">
-                        {todoItems.filter((i) => i.mandatory).length}
-                      </span>
+                      <span className="font-semibold">{mandatoryLeft}</span>
                     </li>
                   </ul>
                 </RightRailPanel>
@@ -306,7 +379,9 @@ const MyInitiatives: React.FC = () => {
       <TaskDetailModal
         item={selectedTask}
         open={!!selectedTask}
-        onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+        onOpenChange={(open) => {
+          if (!open) setSelectedTaskId(null);
+        }}
       />
     </EndUserLayout>
   );

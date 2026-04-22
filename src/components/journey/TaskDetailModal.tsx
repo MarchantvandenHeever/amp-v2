@@ -63,6 +63,21 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
   const isCompleted = item.status === 'completed';
   const isActive = item.status === 'in_progress' || item.status === 'available';
 
+  const invalidateJourneyQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['journey_items'] }),
+      queryClient.invalidateQueries({ queryKey: ['journey_items', 'all'] }),
+      queryClient.invalidateQueries({ queryKey: ['journey_items', item.journey_id] }),
+      queryClient.invalidateQueries({ queryKey: ['journeys'] }),
+      queryClient.invalidateQueries({ queryKey: ['journeys', undefined] }),
+      queryClient.invalidateQueries({ queryKey: ['scores'] }),
+      queryClient.invalidateQueries({ queryKey: ['score_history'] }),
+      queryClient.invalidateQueries({ queryKey: ['profiles'] }),
+      queryClient.invalidateQueries({ queryKey: ['points_ledger'] }),
+      queryClient.invalidateQueries({ queryKey: ['activity_events'] }),
+    ]);
+  };
+
   const handleStart = async () => {
     setStarting(true);
     try {
@@ -71,7 +86,8 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
         .update({ status: 'in_progress', updated_at: new Date().toISOString() })
         .eq('id', item.id);
       if (error) throw error;
-      await queryClient.invalidateQueries({ queryKey: ['journey_items'] });
+
+      await invalidateJourneyQueries();
       toast.success('Task started!');
     } catch (err: any) {
       toast.error('Failed to start task: ' + err.message);
@@ -81,21 +97,26 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
   };
 
   const handleComplete = async () => {
-    if (!user) { toast.error('Not logged in'); return; }
+    if (!user) {
+      toast.error('Not logged in');
+      return;
+    }
+
     setCompleting(true);
     try {
-      // 1. Mark item completed
+      const completedAtIso = new Date().toISOString();
+      const completedDate = completedAtIso.split('T')[0];
+
       const { error } = await supabase
         .from('journey_items')
         .update({
           status: 'completed',
-          completed_date: new Date().toISOString().split('T')[0],
-          updated_at: new Date().toISOString(),
+          completed_date: completedDate,
+          updated_at: completedAtIso,
         })
         .eq('id', item.id);
       if (error) throw error;
 
-      // 2. Log activity event with correct user profile id
       await supabase.from('activity_events').insert({
         user_id: user.id,
         journey_item_id: item.id,
@@ -103,7 +124,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
         metadata: { type: item.type, title: item.title },
       });
 
-      // 3. Award points
       const pointsEarned = item.mandatory ? 20 : 10;
       await supabase.from('points_ledger').insert({
         user_id: user.id,
@@ -112,60 +132,86 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
         reason: `Completed: ${item.title}`,
       });
 
-      // 4. Update profile points and streak
       const newPoints = (user.points || 0) + pointsEarned;
       const newStreak = (user.streak || 0) + 1;
-      await supabase.from('profiles').update({
-        points: newPoints,
-        streak: newStreak,
-        updated_at: new Date().toISOString(),
-      }).eq('id', user.id);
+      await supabase
+        .from('profiles')
+        .update({
+          points: newPoints,
+          streak: newStreak,
+          updated_at: completedAtIso,
+        })
+        .eq('id', user.id);
 
-      // 5. Recalculate journey progress
+      let initiativeId: string | null = null;
+      let journeyItemsForProgress: Array<{ id: string; status: string; weight: number | null; predecessor_id?: string | null }> = [];
+
       if (item.journey_id) {
-        const { data: journeyItems } = await supabase
-          .from('journey_items')
-          .select('id, status, weight')
-          .eq('journey_id', item.journey_id);
-        if (journeyItems && journeyItems.length > 0) {
-          const totalWeight = journeyItems.reduce((s, i) => s + (i.weight || 1), 0);
-          const completedWeight = journeyItems
-            .filter(i => i.status === 'completed' || i.id === item.id) // include current
-            .reduce((s, i) => s + (i.weight || 1), 0);
+        const [{ data: journeyRecord }, { data: journeyItems }] = await Promise.all([
+          supabase
+            .from('journeys')
+            .select('initiative_id')
+            .eq('id', item.journey_id)
+            .maybeSingle(),
+          supabase
+            .from('journey_items')
+            .select('id, status, weight, predecessor_id')
+            .eq('journey_id', item.journey_id),
+        ]);
+
+        initiativeId = journeyRecord?.initiative_id ?? null;
+        journeyItemsForProgress = journeyItems ?? [];
+
+        if (journeyItemsForProgress.length > 0) {
+          const completedIds = new Set(
+            journeyItemsForProgress
+              .filter((journeyItem) => journeyItem.status === 'completed' || journeyItem.id === item.id)
+              .map((journeyItem) => journeyItem.id),
+          );
+
+          const totalWeight = journeyItemsForProgress.reduce(
+            (sum, journeyItem) => sum + Math.max(journeyItem.weight || 1, 1),
+            0,
+          );
+
+          const completedWeight = journeyItemsForProgress.reduce((sum, journeyItem) => {
+            if (!completedIds.has(journeyItem.id)) return sum;
+            return sum + Math.max(journeyItem.weight || 1, 1);
+          }, 0);
+
           const progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
-          await supabase.from('journeys').update({ progress }).eq('id', item.journey_id);
+
+          await supabase.from('journeys').update({ progress, updated_at: completedAtIso }).eq('id', item.journey_id);
+
+          const unlockableIds = journeyItemsForProgress
+            .filter(
+              (journeyItem) =>
+                journeyItem.status === 'locked' &&
+                journeyItem.predecessor_id &&
+                completedIds.has(journeyItem.predecessor_id),
+            )
+            .map((journeyItem) => journeyItem.id);
+
+          if (unlockableIds.length > 0) {
+            await supabase
+              .from('journey_items')
+              .update({ status: 'available', updated_at: completedAtIso })
+              .in('id', unlockableIds);
+          }
         }
       }
 
-      // 6. Emit AMP behavioural_events per declared contribution pillar.
-      //    The score-recalc engine consumes these and re-derives all pillar
-      //    + adoption + dashboard scores per the AMP framework.
       const contribs = (item.contributes_to || []) as string[];
-      let initiativeId: string | null = null;
-      if (item.journey_id) {
-        const { data: j } = await supabase
-          .from('journeys')
-          .select('initiative_id')
-          .eq('id', item.journey_id)
-          .maybeSingle();
-        initiativeId = j?.initiative_id ?? null;
-      }
-
       if (contribs.length > 0) {
-        // Map (pillar, item_type) → AMP trait_key per Participation/Ownership/
-        // Confidence framework docs §6. value=1.0 = ratio of "this completion".
         const traitKeyFor = (pillar: string): string | null => {
-          if (pillar === 'participation') return 'P_x4'; // Completion coverage
-          if (pillar === 'ownership') return 'O_x1';     // Task completion quality
-          if (pillar === 'confidence') {
-            // Self-rated readiness for confidence_check, scenario perf otherwise
-            return item.type === 'confidence_check' ? 'C_x1' : 'C_x5';
-          }
+          if (pillar === 'participation') return 'P_x4';
+          if (pillar === 'ownership') return 'O_x1';
+          if (pillar === 'confidence') return item.type === 'confidence_check' ? 'C_x1' : 'C_x5';
           return null;
         };
 
         const eventRows = contribs
-          .filter((p) => ['participation', 'ownership', 'confidence'].includes(p))
+          .filter((pillar) => ['participation', 'ownership', 'confidence'].includes(pillar))
           .map((pillar) => ({
             user_id: user.id,
             initiative_id: initiativeId,
@@ -180,30 +226,19 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
               mandatory: !!item.mandatory,
             },
           }));
+
         if (eventRows.length) {
           const { error: evErr } = await supabase.from('behavioural_events').insert(eventRows);
           if (evErr) console.error('[behavioural_events] insert failed', evErr);
         }
 
-        // Trigger verbatim AMP recalculation for this user/initiative.
         const { error: fnErr } = await supabase.functions.invoke('score-recalc', {
           body: { user_id: user.id, ...(initiativeId ? { initiative_id: initiativeId } : {}) },
         });
         if (fnErr) console.error('[score-recalc] invoke failed', fnErr);
       }
 
-      // 7. Invalidate all relevant caches
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['journey_items'] }),
-        queryClient.invalidateQueries({ queryKey: ['journeys'] }),
-        queryClient.invalidateQueries({ queryKey: ['scores'] }),
-        queryClient.invalidateQueries({ queryKey: ['score_history'] }),
-        queryClient.invalidateQueries({ queryKey: ['profiles'] }),
-        queryClient.invalidateQueries({ queryKey: ['points_ledger'] }),
-        queryClient.invalidateQueries({ queryKey: ['activity_events'] }),
-      ]);
-
-      // 8. Refresh the user context so dashboard reflects new points/scores
+      await invalidateJourneyQueries();
       await refreshUser();
 
       toast.success('Task completed! 🎉', { description: `+${pointsEarned} points earned` });
