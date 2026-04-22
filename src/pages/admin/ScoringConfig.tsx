@@ -143,22 +143,23 @@ const ScoringAdmin: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl font-bold flex items-center gap-2">
-              <Settings2 className="w-6 h-6" /> Platform Scoring Configuration
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Configure the AMP Behavioural Adoption Scoring Model — trait weights, baselines, decay, and phase weighting
-            </p>
-          </div>
+      <div className="-m-6 mb-6">
+        <PageHero
+          title="Platform Scoring Configuration"
+          subtitle="Configure the AMP Behavioural Adoption Scoring Model — trait weights, baselines, decay, and phase weighting"
+          size="sm"
+        >
           {dirty && (
-            <Button variant="outline" size="sm" onClick={handleReset}>
-              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset Changes
-            </Button>
+            <div className="mt-4">
+              <Button variant="outline" size="sm" onClick={handleReset} className="bg-white/10 border-white/20 text-white hover:bg-white/15 rounded-full">
+                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset Changes
+              </Button>
+            </div>
           )}
-        </div>
+        </PageHero>
+      </div>
+
+      <div className="max-w-5xl mx-auto space-y-6">
 
         <Tabs defaultValue="adoption" className="space-y-4">
           <TabsList className="grid w-full grid-cols-5">
