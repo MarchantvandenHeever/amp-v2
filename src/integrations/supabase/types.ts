@@ -340,6 +340,131 @@ export type Database = {
         }
         Relationships: []
       }
+      behavioural_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          initiative_id: string | null
+          journey_id: string | null
+          journey_item_id: string | null
+          occurred_at: string
+          payload: Json
+          pillar: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          initiative_id?: string | null
+          journey_id?: string | null
+          journey_item_id?: string | null
+          occurred_at?: string
+          payload?: Json
+          pillar: string
+          user_id: string
+          value?: number
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          initiative_id?: string | null
+          journey_id?: string | null
+          journey_item_id?: string | null
+          occurred_at?: string
+          payload?: Json
+          pillar?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "behavioural_events_initiative_id_fkey"
+            columns: ["initiative_id"]
+            isOneToOne: false
+            referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "behavioural_events_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "behavioural_events_journey_item_id_fkey"
+            columns: ["journey_item_id"]
+            isOneToOne: false
+            referencedRelation: "journey_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "behavioural_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      behavioural_flags: {
+        Row: {
+          active: boolean
+          details: Json
+          flag_type: string
+          id: string
+          initiative_id: string | null
+          pillar: string | null
+          raised_at: string
+          resolved_at: string | null
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          details?: Json
+          flag_type: string
+          id?: string
+          initiative_id?: string | null
+          pillar?: string | null
+          raised_at?: string
+          resolved_at?: string | null
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          details?: Json
+          flag_type?: string
+          id?: string
+          initiative_id?: string | null
+          pillar?: string | null
+          raised_at?: string
+          resolved_at?: string | null
+          severity?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "behavioural_flags_initiative_id_fkey"
+            columns: ["initiative_id"]
+            isOneToOne: false
+            referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "behavioural_flags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_items: {
         Row: {
           content_body: string | null
@@ -1353,34 +1478,43 @@ export type Database = {
       score_history: {
         Row: {
           adoption: number | null
+          adoption_dashboard: number | null
+          adoption_ideal: number | null
           confidence: number | null
           id: string
           initiative_id: string | null
           ownership: number | null
           participation: number | null
           recorded_at: string
+          time_progress: number | null
           user_id: string
           week_label: string | null
         }
         Insert: {
           adoption?: number | null
+          adoption_dashboard?: number | null
+          adoption_ideal?: number | null
           confidence?: number | null
           id?: string
           initiative_id?: string | null
           ownership?: number | null
           participation?: number | null
           recorded_at?: string
+          time_progress?: number | null
           user_id: string
           week_label?: string | null
         }
         Update: {
           adoption?: number | null
+          adoption_dashboard?: number | null
+          adoption_ideal?: number | null
           confidence?: number | null
           id?: string
           initiative_id?: string | null
           ownership?: number | null
           participation?: number | null
           recorded_at?: string
+          time_progress?: number | null
           user_id?: string
           week_label?: string | null
         }
@@ -1404,32 +1538,65 @@ export type Database = {
       scores: {
         Row: {
           adoption: number | null
+          adoption_dashboard: number | null
+          adoption_gap: number | null
+          adoption_ideal: number | null
+          adoption_score_100: number | null
           calculated_at: string
           confidence: number | null
+          confidence_dashboard: number | null
+          half_life_days: number | null
           id: string
           initiative_id: string | null
           ownership: number | null
+          ownership_dashboard: number | null
           participation: number | null
+          participation_dashboard: number | null
+          phase_used: string | null
+          rolling_window_days: number | null
+          time_progress: number | null
           user_id: string
         }
         Insert: {
           adoption?: number | null
+          adoption_dashboard?: number | null
+          adoption_gap?: number | null
+          adoption_ideal?: number | null
+          adoption_score_100?: number | null
           calculated_at?: string
           confidence?: number | null
+          confidence_dashboard?: number | null
+          half_life_days?: number | null
           id?: string
           initiative_id?: string | null
           ownership?: number | null
+          ownership_dashboard?: number | null
           participation?: number | null
+          participation_dashboard?: number | null
+          phase_used?: string | null
+          rolling_window_days?: number | null
+          time_progress?: number | null
           user_id: string
         }
         Update: {
           adoption?: number | null
+          adoption_dashboard?: number | null
+          adoption_gap?: number | null
+          adoption_ideal?: number | null
+          adoption_score_100?: number | null
           calculated_at?: string
           confidence?: number | null
+          confidence_dashboard?: number | null
+          half_life_days?: number | null
           id?: string
           initiative_id?: string | null
           ownership?: number | null
+          ownership_dashboard?: number | null
           participation?: number | null
+          participation_dashboard?: number | null
+          phase_used?: string | null
+          rolling_window_days?: number | null
+          time_progress?: number | null
           user_id?: string
         }
         Relationships: [
@@ -1487,6 +1654,72 @@ export type Database = {
           },
         ]
       }
+      trait_observations: {
+        Row: {
+          baseline_mean: number
+          baseline_sd: number
+          calculated_at: string
+          event_count: number
+          half_life_days: number
+          id: string
+          initiative_id: string | null
+          observed_value: number
+          pillar: string
+          rolling_window_days: number
+          scaled_value: number
+          trait_key: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          baseline_mean: number
+          baseline_sd: number
+          calculated_at?: string
+          event_count?: number
+          half_life_days: number
+          id?: string
+          initiative_id?: string | null
+          observed_value: number
+          pillar: string
+          rolling_window_days: number
+          scaled_value: number
+          trait_key: string
+          user_id: string
+          weight: number
+        }
+        Update: {
+          baseline_mean?: number
+          baseline_sd?: number
+          calculated_at?: string
+          event_count?: number
+          half_life_days?: number
+          id?: string
+          initiative_id?: string | null
+          observed_value?: number
+          pillar?: string
+          rolling_window_days?: number
+          scaled_value?: number
+          trait_key?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trait_observations_initiative_id_fkey"
+            columns: ["initiative_id"]
+            isOneToOne: false
+            referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trait_observations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_badges: {
         Row: {
           badge_id: string
@@ -1516,6 +1749,44 @@ export type Database = {
           },
           {
             foreignKeyName: "user_badges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_capacity: {
+        Row: {
+          h_bau: number
+          h_journey: number
+          id: string
+          updated_at: string
+          user_id: string
+          week_start: string
+          weekly_limit: number
+        }
+        Insert: {
+          h_bau?: number
+          h_journey?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+          week_start: string
+          weekly_limit?: number
+        }
+        Update: {
+          h_bau?: number
+          h_journey?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+          weekly_limit?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_capacity_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
