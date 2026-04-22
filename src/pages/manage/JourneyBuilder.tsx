@@ -330,10 +330,9 @@ const JourneyBuilder: React.FC = () => {
                       <button onClick={() => setAssignModal(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border font-medium hover:bg-secondary transition-colors">
                         <Users className="w-3.5 h-3.5" /> Assign
                       </button>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        selectedJourney.status === 'active' ? 'bg-amp-success/10 text-amp-success' :
-                        selectedJourney.status === 'draft' ? 'bg-secondary text-muted-foreground' :
-                        'bg-amp-info/10 text-amp-info'}`}>{selectedJourney.status}</span>
+                      <StatusChip tone={selectedJourney.status === 'active' ? 'success' : selectedJourney.status === 'draft' ? 'neutral' : 'info'}>
+                        {selectedJourney.status}
+                      </StatusChip>
                     </div>
                   </div>
                   <div className="flex gap-4 text-xs text-muted-foreground">
