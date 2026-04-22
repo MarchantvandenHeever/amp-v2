@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
-import { useEndUsers, useInitiatives, useRiskFlags, useJourneys, useScores } from '@/hooks/useSupabaseData';
+import { useEndUsers, useInitiatives, useRiskFlags, useJourneys, useScores, useScoreHistory } from '@/hooks/useSupabaseData';
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
@@ -15,6 +15,7 @@ const ChangeManagerDashboard: React.FC = () => {
   const { data: riskFlags, isLoading: loadingRisks } = useRiskFlags();
   const { data: journeys } = useJourneys();
   const { data: scores, isLoading: loadingScores } = useScores();
+  const { data: history } = useScoreHistory();
   const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
 
   if (loadingProfiles || loadingInit || loadingRisks || loadingScores) {
@@ -22,15 +23,29 @@ const ChangeManagerDashboard: React.FC = () => {
   }
 
   const endUserScores = scores?.filter(s => profiles?.some(p => p.id === s.user_id)) || [];
+  // Pull verbatim AMP dashboard fields (already time-progress weighted by score-recalc).
   const avgScoreRaw = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
     endUserScores.length ? Math.round(endUserScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / endUserScores.length) : 0;
+  const avgScoreDashboard = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') => {
+    const dashKey = `${key}_dashboard` as keyof typeof endUserScores[number];
+    return endUserScores.length
+      ? Math.round(endUserScores.reduce((sum, s) => sum + Number((s as any)[dashKey] || 0), 0) / endUserScores.length)
+      : 0;
+  };
 
   const teams = [...new Set(profiles?.map(p => p.team).filter(Boolean) || [])];
   const teamComparison = teams.map(team => {
     const teamProfiles = profiles?.filter(p => p.team === team) || [];
     const teamScores = endUserScores.filter(s => teamProfiles.some(p => p.id === s.user_id));
     const avg = (k: string) => teamScores.length ? Math.round(teamScores.reduce((sum, s) => sum + Number((s as any)[k] || 0), 0) / teamScores.length) : 0;
-    return { team, participation: avg('participation'), ownership: avg('ownership'), confidence: avg('confidence'), adoption: avg('adoption') };
+    // Show dashboard (p-weighted) values to match AMP semantics.
+    return {
+      team,
+      participation: avg('participation_dashboard'),
+      ownership: avg('ownership_dashboard'),
+      confidence: avg('confidence_dashboard'),
+      adoption: avg('adoption_dashboard'),
+    };
   });
 
   const activeInits = initiatives?.filter(i => i.status === 'active') || [];

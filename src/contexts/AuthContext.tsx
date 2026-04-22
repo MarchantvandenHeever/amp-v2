@@ -55,25 +55,27 @@ async function fetchDemoUser(profileId: string): Promise<DemoUser> {
     .single();
   if (error || !profile) throw error;
 
-  // Fetch scores aggregated across all current score rows for this user
+  // Fetch live scores written by score-recalc edge function.
+  // Use the dashboard fields (already multiplied by time-progress p) per AMP model:
+  //   Pillar_dashboard = PillarScore100 * p
+  //   A_dashboard      = AdoptionScore100 * p
   const { data: scoreRows } = await supabase
     .from('scores')
-    .select('participation, ownership, confidence, adoption')
+    .select('participation, ownership, confidence, adoption, participation_dashboard, ownership_dashboard, confidence_dashboard, adoption_dashboard')
     .eq('user_id', profileId);
 
-  const averagedScores = (scoreRows && scoreRows.length > 0)
-    ? {
-        participation: Math.round(scoreRows.reduce((sum, row) => sum + Number(row.participation || 0), 0) / scoreRows.length),
-        ownership: Math.round(scoreRows.reduce((sum, row) => sum + Number(row.ownership || 0), 0) / scoreRows.length),
-        confidence: Math.round(scoreRows.reduce((sum, row) => sum + Number(row.confidence || 0), 0) / scoreRows.length),
-        adoption: Math.round(scoreRows.reduce((sum, row) => sum + Number(row.adoption || 0), 0) / scoreRows.length),
-      }
-    : {
-        participation: 0,
-        ownership: 0,
-        confidence: 0,
-        adoption: 0,
-      };
+  const avg = (rows: any[] | null, key: string) =>
+    rows && rows.length > 0
+      ? Math.round(rows.reduce((s, r) => s + Number(r[key] || 0), 0) / rows.length)
+      : 0;
+
+  const averagedScores = {
+    // Surfaced to UI as the dashboard (time-progress weighted) values per AMP doc.
+    participation: avg(scoreRows, 'participation_dashboard'),
+    ownership: avg(scoreRows, 'ownership_dashboard'),
+    confidence: avg(scoreRows, 'confidence_dashboard'),
+    adoption: avg(scoreRows, 'adoption_dashboard'),
+  };
 
   // Fetch badges
   const { data: userBadges } = await supabase
