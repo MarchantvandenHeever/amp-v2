@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useScores, useScoreHistory, useProfiles, useInitiatives, useRiskFlags, getAdoptionScore, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
-import { useScoringConfig } from '@/hooks/useScoringConfig';
+import { useScores, useScoreHistory, useEndUsers, useInitiatives, useRiskFlags, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { motion } from 'framer-motion';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -10,11 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import AdoptionTrendChart from '@/components/charts/AdoptionTrendChart';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ResponsiveContainer,
   BarChart, Bar, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  AreaChart, Area, PieChart, Pie, Cell
+  CartesianGrid, Tooltip, PieChart, Pie, Cell, XAxis, YAxis
 } from 'recharts';
-import { TrendingUp, TrendingDown, Users, Target, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Users, Target, AlertTriangle, BarChart3 } from 'lucide-react';
 import { PageHero } from '@/components/cl';
 
 const INDICES = [
@@ -29,10 +28,10 @@ type IndexKey = typeof INDICES[number]['key'];
 const Analytics: React.FC = () => {
   const { data: scores } = useScores();
   const { data: scoreHistory } = useScoreHistory();
-  const { data: profiles } = useProfiles();
+  const { data: profiles } = useEndUsers();
   const { data: initiatives } = useInitiatives();
   const { data: riskFlags } = useRiskFlags();
-  const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
+  const { idealScore: currentIdeal } = useIdealAdoptionScore();
 
   const [selectedIndices, setSelectedIndices] = useState<Set<IndexKey>>(new Set(['participation', 'ownership', 'confidence', 'adoption']));
   const [selectedInitiative, setSelectedInitiative] = useState<string>('all');
@@ -46,6 +45,16 @@ const Analytics: React.FC = () => {
       return next;
     });
   };
+
+  const endUserIds = useMemo(() => new Set((profiles || []).map((p) => p.id)), [profiles]);
+  const endUserScores = useMemo(
+    () => (scores || []).filter((s) => endUserIds.has(s.user_id)),
+    [scores, endUserIds],
+  );
+  const endUserHistory = useMemo(
+    () => (scoreHistory || []).filter((h) => endUserIds.has(h.user_id)),
+    [scoreHistory, endUserIds],
+  );
 
   // Per-initiative data setup
   const activeInits = initiatives?.filter(i => i.status === 'active') || [];
@@ -72,31 +81,21 @@ const Analytics: React.FC = () => {
     ? combinedProgress
     : (activeInits.find(i => i.id === selectedInitiative)?.progress ?? combinedProgress);
 
-  // Pillar averages — use the same p-weighted (_dashboard) columns as Overview, with raw*TP fallback.
-  const avgScoresRaw = useMemo(() => {
-    if (!scores?.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
-    const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
-    if (!filtered.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
-    return {
-      participation: Math.round(filtered.reduce((s, r) => s + (Number(r.participation) || 0), 0) / filtered.length),
-      ownership: Math.round(filtered.reduce((s, r) => s + (Number(r.ownership) || 0), 0) / filtered.length),
-      confidence: Math.round(filtered.reduce((s, r) => s + (Number(r.confidence) || 0), 0) / filtered.length),
-      adoption: Math.round(filtered.reduce((s, r) => s + (Number(r.adoption) || 0), 0) / filtered.length),
-    };
-  }, [scores, selectedInitiative]);
+  const filteredScores = useMemo(
+    () => selectedInitiative === 'all' ? endUserScores : endUserScores.filter(s => s.initiative_id === selectedInitiative),
+    [endUserScores, selectedInitiative],
+  );
 
   const avgScores = useMemo(() => {
-    if (!scores?.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
-    const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
-    if (!filtered.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
+    if (!filteredScores.length) return { participation: 0, ownership: 0, confidence: 0, adoption: 0 };
     const avg = (k: 'participation' | 'ownership' | 'confidence' | 'adoption') => {
       const dashKey = `${k}_dashboard` as const;
-      const sum = filtered.reduce((acc, r: any) => {
+      const sum = filteredScores.reduce((acc, r: any) => {
         const v = r[dashKey];
         const fallback = (Number(r[k]) || 0) * currentTP;
         return acc + Number(v ?? fallback);
       }, 0);
-      return Math.round(sum / filtered.length);
+      return Math.round(sum / filteredScores.length);
     };
     return {
       participation: avg('participation'),
@@ -104,97 +103,54 @@ const Analytics: React.FC = () => {
       confidence: avg('confidence'),
       adoption: avg('adoption'),
     };
-  }, [scores, selectedInitiative, currentTP]);
-
-  // Duration-based helper: compute timeProgressRatio from initiative dates for a given week's recorded_at
-  const getInitDateRange = (initId?: string) => {
-    if (initId && initId !== 'all') {
-      const init = activeInits.find(i => i.id === initId);
-      return { start: init?.start_date, end: init?.end_date };
-    }
-    // Combined: earliest start, latest end
-    const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
-    const ends = activeInits.map(i => i.end_date).filter(Boolean) as string[];
-    return {
-      start: starts.length ? starts.sort()[0] : undefined,
-      end: ends.length ? ends.sort().reverse()[0] : undefined,
-    };
-  };
-
-  const computeIdealAtWeek = (weekNum: number, totalDataWeeks: number, startDate?: string, endDate?: string) => {
-    if (!startDate || !endDate) return Math.round(desiredTarget * (weekNum / totalDataWeeks));
-    const start = new Date(startDate).getTime();
-    const end = new Date(endDate).getTime();
-    const totalDuration = end - start;
-    if (totalDuration <= 0) return 0;
-    // Each week represents an equal slice of the total planned duration
-    const timeProgressRatio = Math.min(weekNum / totalDataWeeks, 1);
-    // But we need to map weekNum to actual elapsed time
-    // weekNum / totalDataWeeks gives us how far through the data we are
-    // We need to map to actual calendar time using start/end dates
-    const weekDate = new Date(start + (weekNum / totalDataWeeks) * totalDuration);
-    const elapsed = Math.max(0, Math.min(weekDate.getTime() - start, totalDuration));
-    return Math.round(desiredTarget * (elapsed / totalDuration));
-  };
+  }, [filteredScores, currentTP]);
 
   // Build trend data from score_history
-  const buildTrendFromHistory = (filtered: any[], startDate?: string, endDate?: string) => {
-    const byWeek: Record<string, { count: number; participation: number; ownership: number; confidence: number; adoption: number; earliestDate: string }> = {};
+  // Rows are already written by score-recalc, so do not re-apply time-progress on the client.
+  const buildTrendFromHistory = (filtered: any[]) => {
+    if (!filtered.length) return [];
+
+    const byWeek: Record<string, { count: number; participation: number; ownership: number; confidence: number; adoption: number; idealAdoption: number }> = {};
     filtered.forEach(r => {
-      const week = r.week_label || 'Unknown';
-      if (!byWeek[week]) byWeek[week] = { count: 0, participation: 0, ownership: 0, confidence: 0, adoption: 0, earliestDate: r.recorded_at };
+      const week = r.week_label || new Date(r.recorded_at).toISOString().slice(0, 10);
+      if (!byWeek[week]) {
+        byWeek[week] = {
+          count: 0,
+          participation: 0,
+          ownership: 0,
+          confidence: 0,
+          adoption: 0,
+          idealAdoption: 0,
+        };
+      }
       byWeek[week].count++;
       byWeek[week].participation += Number(r.participation) || 0;
       byWeek[week].ownership += Number(r.ownership) || 0;
       byWeek[week].confidence += Number(r.confidence) || 0;
-      byWeek[week].adoption += Number(r.adoption) || 0;
-      if (r.recorded_at < byWeek[week].earliestDate) byWeek[week].earliestDate = r.recorded_at;
+      byWeek[week].adoption += Number(r.adoption_dashboard ?? r.adoption) || 0;
+      byWeek[week].idealAdoption += Number(r.adoption_ideal) || 0;
     });
-    const weekEntries = Object.entries(byWeek);
-    const startMs = startDate ? new Date(startDate).getTime() : 0;
-    const endMs = endDate ? new Date(endDate).getTime() : 0;
-    const totalDuration = endMs - startMs;
 
-    return weekEntries.map(([week, v]) => {
-      const m = week.match(/\d+/);
-      const weekNum = m ? parseInt(m[0]) : 1;
-      return { week, weekNum, v };
-    }).sort((a, b) => a.weekNum - b.weekNum).map((entry) => {
-      const { week, weekNum, v } = entry;
-      // Calendar-based TP: weekNum weeks from start
-      let weekTP = 0;
-      if (totalDuration > 0) {
-        const weekDateMs = startMs + weekNum * 7 * 24 * 60 * 60 * 1000;
-        const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
-        weekTP = elapsed / totalDuration;
-      }
-      return {
+    return Object.entries(byWeek)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([week, v]) => ({
         week,
-        participation: Math.round((v.participation / v.count) * weekTP),
-        ownership: Math.round((v.ownership / v.count) * weekTP),
-        confidence: Math.round((v.confidence / v.count) * weekTP),
-        adoption: Math.round((v.adoption / v.count) * weekTP),
-        idealAdoption: Math.round(desiredTarget * weekTP),
-      };
-    });
+        participation: Math.round(v.participation / v.count),
+        ownership: Math.round(v.ownership / v.count),
+        confidence: Math.round(v.confidence / v.count),
+        adoption: Math.round(v.adoption / v.count),
+        idealAdoption: Math.round(v.idealAdoption / v.count),
+      }));
   };
 
-  // Trend data (score_history by week)
   const trendData = useMemo(() => {
-    if (!scoreHistory?.length) return [];
-    const filtered = selectedInitiative === 'all' ? scoreHistory : scoreHistory.filter(s => s.initiative_id === selectedInitiative);
-    const { start, end } = getInitDateRange(selectedInitiative);
-    return buildTrendFromHistory(filtered, start, end);
-  }, [scoreHistory, selectedInitiative, desiredTarget, activeInits]);
+    const filtered = selectedInitiative === 'all'
+      ? endUserHistory
+      : endUserHistory.filter(s => s.initiative_id === selectedInitiative);
+    return buildTrendFromHistory(filtered);
+  }, [endUserHistory, selectedInitiative]);
 
-  const visibleTrendData = useMemo(() => {
-    if (!trendData.length) return trendData;
-    if (selectedInitiativeProgress >= 100) return trendData;
-    const cutoffIndex = Math.max(1, Math.ceil((selectedInitiativeProgress / 100) * trendData.length));
-    return trendData.slice(0, cutoffIndex);
-  }, [trendData, selectedInitiativeProgress]);
-
-  const currentTrendPoint = visibleTrendData[visibleTrendData.length - 1] ?? {
+  const currentTrendPoint = {
     participation: avgScores.participation,
     ownership: avgScores.ownership,
     confidence: avgScores.confidence,
@@ -203,14 +159,14 @@ const Analytics: React.FC = () => {
   };
 
   const perInitiativeTrendData = useMemo(() => {
-    if (!scoreHistory?.length) return {} as Record<string, any[]>;
+    if (!endUserHistory.length) return {} as Record<string, any[]>;
     const result: Record<string, any[]> = {};
     activeInits.forEach(init => {
-      const filtered = scoreHistory.filter(s => s.initiative_id === init.id);
-      result[init.id] = buildTrendFromHistory(filtered, init.start_date ?? undefined, init.end_date ?? undefined);
+      const filtered = endUserHistory.filter(s => s.initiative_id === init.id);
+      result[init.id] = buildTrendFromHistory(filtered);
     });
     return result;
-  }, [scoreHistory, activeInits, desiredTarget]);
+  }, [endUserHistory, activeInits]);
 
   // Helper: read p-weighted (_dashboard) value with raw*TP fallback (matches Overview)
   const dashVal = (row: any, k: 'participation' | 'ownership' | 'confidence' | 'adoption') => {
@@ -220,11 +176,10 @@ const Analytics: React.FC = () => {
 
   // Group breakdown (by team or persona)
   const groupData = useMemo(() => {
-    if (!scores?.length || !profiles?.length) return [];
+    if (!filteredScores.length || !profiles?.length) return [];
     const profileMap = new Map(profiles.map(p => [p.id, p]));
     const groups: Record<string, { count: number; participation: number; ownership: number; confidence: number; adoption: number }> = {};
-    const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
-    filtered.forEach(s => {
+    filteredScores.forEach(s => {
       const profile = profileMap.get(s.user_id);
       const group = groupBy === 'team' ? (profile?.team || 'Unknown') : (profile?.persona || 'Unknown');
       if (!groups[group]) groups[group] = { count: 0, participation: 0, ownership: 0, confidence: 0, adoption: 0 };
@@ -241,14 +196,13 @@ const Analytics: React.FC = () => {
       confidence: Math.round(v.confidence / v.count),
       adoption: Math.round(v.adoption / v.count),
     }));
-  }, [scores, profiles, selectedInitiative, groupBy, currentTP]);
+  }, [filteredScores, profiles, groupBy, currentTP]);
 
   // Individual user table
   const userTable = useMemo(() => {
-    if (!scores?.length || !profiles?.length) return [];
+    if (!filteredScores.length || !profiles?.length) return [];
     const profileMap = new Map(profiles.map(p => [p.id, p]));
-    const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
-    return filtered.map(s => {
+    return filteredScores.map(s => {
       const profile = profileMap.get(s.user_id);
       const adoption = Math.round(dashVal(s, 'adoption'));
       return {
@@ -263,7 +217,7 @@ const Analytics: React.FC = () => {
         label: getScoreLabel(adoption),
       };
     }).sort((a, b) => b.adoption - a.adoption);
-  }, [scores, profiles, selectedInitiative, currentTP]);
+  }, [filteredScores, profiles, currentTP]);
 
   // Radar data for overview
   const radarData = useMemo(() => {
