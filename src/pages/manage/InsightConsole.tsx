@@ -107,10 +107,10 @@ const InsightConsole: React.FC = () => {
 
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <KpiTile label="Total Insights" value={(insights || []).length} icon={<Brain className="w-4 h-4" />} />
-          <KpiTile label="Critical/High" value={(insights || []).filter(i => i.severity === 'critical' || i.severity === 'high').length} tone="risk" icon={<AlertTriangle className="w-4 h-4" />} />
-          <KpiTile label="Confusion" value={grouped['confusion']?.length || 0} icon={<HelpCircle className="w-4 h-4" />} />
-          <KpiTile label="Champions" value={grouped['champion_candidate']?.length || 0} tone="success" icon={<Users className="w-4 h-4" />} />
+          <KpiTile label="Total Insights" value={(insights || []).length} iconTone="info" icon={<Brain className="w-4 h-4" />} />
+          <KpiTile label="Critical/High" value={(insights || []).filter(i => i.severity === 'critical' || i.severity === 'high').length} iconTone="risk" icon={<AlertTriangle className="w-4 h-4" />} />
+          <KpiTile label="Confusion" value={grouped['confusion']?.length || 0} iconTone="warning" icon={<HelpCircle className="w-4 h-4" />} />
+          <KpiTile label="Champions" value={grouped['champion_candidate']?.length || 0} iconTone="success" icon={<Users className="w-4 h-4" />} />
         </div>
 
         <div className="cl-card p-6">

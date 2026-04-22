@@ -81,9 +81,9 @@ const RiskInsights: React.FC = () => {
 
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <KpiTile label="High Risk" value={highRisk.length} tone="risk" icon={<AlertTriangle className="w-4 h-4" />} />
-          <KpiTile label="Medium Risk" value={medRisk.length} tone="warning" icon={<TrendingDown className="w-4 h-4" />} />
-          <KpiTile label="Total Flags" value={flags.length} icon={<Eye className="w-4 h-4" />} />
+          <KpiTile label="High Risk" value={highRisk.length} iconTone="risk" icon={<AlertTriangle className="w-4 h-4" />} />
+          <KpiTile label="Medium Risk" value={medRisk.length} iconTone="warning" icon={<TrendingDown className="w-4 h-4" />} />
+          <KpiTile label="Total Flags" value={flags.length} iconTone="info" icon={<Eye className="w-4 h-4" />} />
         </div>
 
         <div className="cl-card p-6">
