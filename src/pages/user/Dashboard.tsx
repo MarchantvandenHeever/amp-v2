@@ -73,19 +73,13 @@ const EndUserDashboard: React.FC = () => {
     const today: typeof active = [];
     const upcoming: typeof active = [];
     active.forEach((item) => {
-      if (item.due_date) {
-        try {
-          const d = parseISO(item.due_date);
-          if (isToday(d)) return today.push(item);
-          if (isTomorrow(d) || isThisWeek(d)) return upcoming.push(item);
-        } catch {}
-      }
-      if (item.status === "in_progress") today.push(item);
-      else upcoming.push(item);
+      if (!item.due_date) return;
+      try {
+        const d = parseISO(item.due_date);
+        if (isToday(d)) today.push(item);
+        else if (isTomorrow(d) || isThisWeek(d)) upcoming.push(item);
+      } catch {}
     });
-    if (today.length === 0 && upcoming.length > 0) {
-      today.push(...upcoming.splice(0, Math.min(3, upcoming.length)));
-    }
     const tt = today.reduce((s, i) => s + parseDurationMinutes(i.duration), 0);
     return { todayTasks: today.slice(0, 6), upcomingTasks: upcoming.slice(0, 5), todayTimeMinutes: tt };
   }, [allItems]);
