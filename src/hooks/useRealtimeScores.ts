@@ -45,6 +45,21 @@ export function useRealtimeScores() {
           queryClient.invalidateQueries({ queryKey: ['journeys'] });
         },
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'journeys' },
+        () => queryClient.invalidateQueries({ queryKey: ['journeys'] }),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => queryClient.invalidateQueries({ queryKey: ['profiles'] }),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'points_ledger' },
+        () => queryClient.invalidateQueries({ queryKey: ['points_ledger'] }),
+      )
       .subscribe();
 
     return () => {
