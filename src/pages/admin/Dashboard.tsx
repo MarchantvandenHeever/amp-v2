@@ -45,12 +45,21 @@ const SuperAdminDashboard: React.FC = () => {
   const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
     Math.round(avgScoreRaw(key) * currentTP);
 
-  // Team comparison from live data
+  // Team comparison — use the same p-weighted (_dashboard) values as pillar tiles & trend
   const teams = [...new Set(endUsers.map(p => p.team).filter(Boolean))] as string[];
   const teamComparison = teams.map(team => {
     const teamProfiles = endUsers.filter(p => p.team === team);
     const teamScores = endUserScores.filter(s => teamProfiles.some(p => p.id === s.user_id));
-    const avg = (k: string) => teamScores.length ? Math.round(teamScores.reduce((sum, s) => sum + Number((s as any)[k] || 0), 0) / teamScores.length) : 0;
+    const avg = (k: string) => {
+      if (!teamScores.length) return 0;
+      const dashKey = `${k}_dashboard`;
+      const sum = teamScores.reduce((acc, s) => {
+        const v = (s as any)[dashKey];
+        const fallback = Number((s as any)[k] || 0) * currentTP;
+        return acc + Number(v ?? fallback);
+      }, 0);
+      return Math.round(sum / teamScores.length);
+    };
     return { team, participation: avg('participation'), ownership: avg('ownership'), confidence: avg('confidence'), adoption: avg('adoption') };
   });
 
