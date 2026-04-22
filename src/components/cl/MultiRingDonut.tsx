@@ -36,12 +36,8 @@ export const MultiRingDonut: React.FC<MultiRingDonutProps> = ({
   const cx = size / 2;
   const cy = size / 2;
 
-  // Render the pillar rings on the outside, plus an inner ring for the adoption (center) value
-  // so it is visually represented alongside the pillars.
-  const allRings: Ring[] = [
-    ...rings,
-    { value: centerValue, color: centerColor, label: centerLabel },
-  ];
+  // Only render the pillar rings; adoption is shown as the center percentage.
+  const allRings: Ring[] = rings;
 
   return (
     <div
