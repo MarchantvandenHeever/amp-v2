@@ -269,7 +269,7 @@ const Analytics: React.FC = () => {
   const radarData = useMemo(() => {
     return INDICES.filter(i => selectedIndices.has(i.key)).map(i => ({
       index: i.label,
-      score: currentTrendPoint[i.key],
+      score: avgScores[i.key],
       fullMark: 100,
     }));
   }, [avgScores, selectedIndices]);
