@@ -179,7 +179,7 @@ const EndUserDashboard: React.FC = () => {
                         key={journey.id}
                         title={journey.name}
                         description={journey.description || undefined}
-                        adoptionScore={progress}
+                        adoptionScore={adoption}
                         progress={progress}
                         pendingTasks={pending}
                         overdueTasks={overdue}
