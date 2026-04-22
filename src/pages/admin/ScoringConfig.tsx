@@ -1,28 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useScoringConfig, useUpdateScoringConfig } from '@/hooks/useScoringConfig';
-import { validateWeights, TraitConfig, adoptionScore, dashboardScore, getScoreBand } from '@/lib/scoringEngine';
+import { useRecalcScores } from '@/hooks/useScoring';
+import { validateWeights, TraitConfig, adoptionScore, getScoreBand } from '@/lib/scoringEngine';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Save, RotateCcw, AlertTriangle, CheckCircle2, Settings2, Gauge, Shield, Brain, Zap } from 'lucide-react';
+import { Loader2, Save, RotateCcw, AlertTriangle, CheckCircle2, Settings2, Gauge, Shield, Brain, Zap, RefreshCw, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { PageHero } from '@/components/cl';
 
 const ScoringAdmin: React.FC = () => {
   const { data: config, isLoading } = useScoringConfig();
   const updateConfig = useUpdateScoringConfig();
+  const recalc = useRecalcScores();
   const [localConfig, setLocalConfig] = useState<any>(null);
-  const [desiredTarget, setDesiredTarget] = useState<number>(100);
+  const [desiredTarget, setDesiredTarget] = useState<number>(85);
+  const [weightingMode, setWeightingMode] = useState<'baseline' | 'phase'>('baseline');
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     if (config) {
       setLocalConfig(JSON.parse(JSON.stringify(config)));
-      setDesiredTarget((config as any).desired_adoption_target ?? 100);
+      setDesiredTarget(Number(config.adoption_target?.A_target ?? 85));
+      setWeightingMode((config.adoption_target?.weighting_mode ?? 'baseline') as 'baseline' | 'phase');
     }
   }, [config]);
+
+  const handleRecalcNow = async () => {
+    try {
+      const res = await recalc.mutateAsync(undefined);
+      toast.success(`Recalculated ${res.recalced} user × initiative pairs`);
+    } catch (e: any) {
+      toast.error(`Recalc failed: ${e.message}`);
+    }
+  };
+
+  const handleSaveAdoptionTarget = async () => {
+    await handleSave('adoption_target', {
+      A_target: desiredTarget,
+      weighting_mode: weightingMode,
+      epsilon: 0.01,
+    });
+  };
 
   if (isLoading || !localConfig) {
     return <AppLayout><div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
@@ -150,13 +173,25 @@ const ScoringAdmin: React.FC = () => {
           subtitle="Configure the AMP Behavioural Adoption Scoring Model — trait weights, baselines, decay, and phase weighting"
           size="sm"
         >
-          {dirty && (
-            <div className="mt-4">
-              <Button variant="outline" size="sm" onClick={handleReset} className="bg-white/10 border-white/20 text-white hover:bg-white/15 rounded-full">
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button size="sm" onClick={handleRecalcNow} disabled={recalc.isPending}
+              className="bg-white text-foreground hover:bg-white/90 rounded-full">
+              {recalc.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+              Recalculate scores now
+            </Button>
+            <Link to="/manage/scoring/drilldown">
+              <Button variant="outline" size="sm"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/15 rounded-full">
+                <Search className="w-3.5 h-3.5 mr-1" /> Score drill-down
+              </Button>
+            </Link>
+            {dirty && (
+              <Button variant="outline" size="sm" onClick={handleReset}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/15 rounded-full">
                 <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset Changes
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </PageHero>
       </div>
 
@@ -173,33 +208,45 @@ const ScoringAdmin: React.FC = () => {
 
           {/* Adoption Phase Weights */}
           <TabsContent value="adoption" className="space-y-6">
-            {/* Desired Adoption Target */}
+            {/* Adoption target + weighting mode (AMP §9.1, §9.3, §9.5) */}
             <div className="bg-card border border-border rounded-xl p-5 amp-shadow-card">
-              <h3 className="font-heading text-sm font-semibold mb-1">Desired Adoption Target</h3>
+              <h3 className="font-heading text-sm font-semibold mb-1">Adoption Target & Weighting Mode</h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Sets the target adoption score. The ideal score at any point = (journey progress %) × this target. e.g., at 50% progress with target 80, ideal = 40.
+                A_target is the desired final adoption score (AMP §9.5). A_ideal at any point = A_target × p,
+                where p = (now − t_start) / (t_end − t_start). Choose <strong>Baseline</strong> for the fixed
+                20/40/40 split (AMP §9.1) or <strong>Phase</strong> for the per-phase weights (AMP §9.3).
               </p>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 max-w-xs space-y-2">
-                  <Label>Target Score (0–100)</Label>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="space-y-2">
+                  <Label>A_target (0–100)</Label>
                   <Input
                     type="number" min={0} max={100} value={desiredTarget}
                     onChange={e => { setDesiredTarget(parseInt(e.target.value) || 0); setDirty(true); }}
                     className="h-9 w-32"
                   />
                 </div>
-                <div className="bg-secondary/30 rounded-lg p-4 text-center flex-1">
-                  <p className="text-xs text-muted-foreground mb-1">Example at 50% journey progress</p>
-                  <p className="text-2xl font-bold text-amp-adoption">{Math.round(0.5 * desiredTarget)}</p>
-                  <p className="text-xs text-muted-foreground">Ideal adoption score</p>
+                <div className="space-y-2">
+                  <Label>Weighting mode</Label>
+                  <Select value={weightingMode} onValueChange={(v) => { setWeightingMode(v as 'baseline' | 'phase'); setDirty(true); }}>
+                    <SelectTrigger className="h-9 w-56"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="baseline">Baseline (20/40/40, AMP §9.1)</SelectItem>
+                      <SelectItem value="phase">Phase-based (AMP §9.3)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button size="sm" onClick={() => handleSave('desired_adoption_target', desiredTarget)} disabled={updateConfig.isPending}>
-                  <Save className="w-3.5 h-3.5 mr-1" /> Save Target
+                <div className="bg-secondary/30 rounded-lg p-4 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">A_ideal at p = 0.5</p>
+                  <p className="text-2xl font-bold text-amp-adoption">{Math.round(0.5 * desiredTarget)}</p>
+                </div>
+                <Button size="sm" onClick={handleSaveAdoptionTarget} disabled={updateConfig.isPending}>
+                  <Save className="w-3.5 h-3.5 mr-1" /> Save adoption target
                 </Button>
               </div>
             </div>
+
             <div className="bg-card border border-border rounded-xl p-5 amp-shadow-card">
-              <h3 className="font-heading text-sm font-semibold mb-1">Phase-Based Dimension Weights</h3>
+              <h3 className="font-heading text-sm font-semibold mb-1">Phase-Based Dimension Weights (AMP §9.3)</h3>
               <p className="text-xs text-muted-foreground mb-4">
                 The adoption score formula: A = P×w_p + O×w_o + C×w_c. Weights must sum to 1.0 per phase.
               </p>

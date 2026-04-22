@@ -19,6 +19,7 @@ import Analytics from "./pages/manage/Analytics";
 import InsightConsole from "./pages/manage/InsightConsole";
 import Recommendations from "./pages/manage/Recommendations";
 import AIChangeLog from "./pages/manage/AIChangeLog";
+import ScoringDrillDown from "./pages/manage/ScoringDrillDown";
 import TeamDashboard from "./pages/team/Dashboard";
 import EndUserDashboard from "./pages/user/Dashboard";
 import MyInitiatives from "./pages/user/MyInitiatives";
@@ -77,6 +78,7 @@ const AppRoutes = () => {
       <Route path="/manage/insights" element={<ProtectedRoute><InsightConsole /></ProtectedRoute>} />
       <Route path="/manage/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
       <Route path="/manage/ai-changelog" element={<ProtectedRoute><AIChangeLog /></ProtectedRoute>} />
+      <Route path="/manage/scoring/drilldown" element={<ProtectedRoute><ScoringDrillDown /></ProtectedRoute>} />
 
       {/* Team Workspace — team leads + admins only */}
       <Route path="/team" element={<RoleRoute allow={["team_lead", "change_manager", "super_admin"]}><TeamDashboard /></RoleRoute>} />
