@@ -63,6 +63,7 @@ export const AdoptionScoreCard: React.FC<AdoptionScoreCardProps> = ({
       <MultiRingDonut
         rings={dimensions.map((d) => ({ value: d.value, color: d.color }))}
         centerValue={adoption}
+        centerColor="hsl(var(--amp-adoption))"
       />
     </div>
   </section>
