@@ -11,7 +11,7 @@ import AdoptionTrendChart from '@/components/charts/AdoptionTrendChart';
 import {
   ResponsiveContainer,
   BarChart, Bar, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  CartesianGrid, Tooltip, PieChart, Pie, Cell
+  CartesianGrid, Tooltip, PieChart, Pie, Cell, XAxis, YAxis
 } from 'recharts';
 import { Users, Target, AlertTriangle, BarChart3 } from 'lucide-react';
 import { PageHero } from '@/components/cl';
