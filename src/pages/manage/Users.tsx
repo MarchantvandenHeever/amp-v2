@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProfiles, useScores, useRiskFlags } from '@/hooks/useSupabaseData';
 import { motion } from 'framer-motion';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Plus } from 'lucide-react';
 import { NewUserModal } from '@/components/users/NewUserModal';
+import { PageHero, StatusChip } from '@/components/cl';
 
 const UserManagement: React.FC = () => {
   const { data: profiles, isLoading, refetch } = useProfiles();
@@ -47,35 +48,41 @@ const UserManagement: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl font-bold">Users & Teams</h1>
-            <p className="text-sm text-muted-foreground mt-1">{allUsers.length} users across {new Set(allUsers.map(u => u.team)).size} teams</p>
+      <div className="-m-6 mb-6">
+        <PageHero
+          title="Users & Teams"
+          subtitle={`${allUsers.length} users across ${new Set(allUsers.map(u => u.team)).size} teams`}
+          size="sm"
+        >
+          <div className="mt-4">
+            <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-full bg-white text-primary text-sm font-semibold hover:bg-white/90 transition-colors inline-flex items-center gap-1.5 w-fit">
+              <Plus className="w-4 h-4" /> Add User
+            </button>
           </div>
-          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium">+ Add User</button>
-        </div>
+        </PageHero>
+      </div>
 
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input type="text" placeholder="Search users, teams, personas..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
-        <div className="bg-card border border-border rounded-xl amp-shadow-card overflow-hidden">
+        <div className="cl-card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary/30">
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase">Name</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase">Team</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase">Persona</th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-muted-foreground uppercase">P</th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-muted-foreground uppercase">O</th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-muted-foreground uppercase">C</th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-muted-foreground uppercase">Adoption</th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-muted-foreground uppercase">Streak</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase">Risk</th>
+                <th className="text-left py-3 px-4 cl-section-label">Name</th>
+                <th className="text-left py-3 px-4 cl-section-label">Team</th>
+                <th className="text-left py-3 px-4 cl-section-label">Persona</th>
+                <th className="text-center py-3 px-4 cl-section-label">P</th>
+                <th className="text-center py-3 px-4 cl-section-label">O</th>
+                <th className="text-center py-3 px-4 cl-section-label">C</th>
+                <th className="text-center py-3 px-4 cl-section-label">Adoption</th>
+                <th className="text-center py-3 px-4 cl-section-label">Streak</th>
+                <th className="text-left py-3 px-4 cl-section-label">Risk</th>
               </tr>
             </thead>
             <tbody>
@@ -99,7 +106,7 @@ const UserManagement: React.FC = () => {
                   <td className="py-3 px-4 text-center">{(user.streak || 0) > 0 ? `🔥 ${user.streak}` : '—'}</td>
                   <td className="py-3 px-4">
                     {user.riskFlags.length > 0 ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-amp-risk/10 text-amp-risk font-medium">{user.riskFlags[0].type}</span>
+                      <StatusChip tone="risk">{user.riskFlags[0].type}</StatusChip>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
                     )}

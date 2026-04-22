@@ -4,16 +4,17 @@ import { useRecommendations, useApplyRecommendation, useDismissRecommendation, u
 import { useInitiatives } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, Check, X, Bookmark, Loader2, AlertTriangle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Check, X, Bookmark, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { PageHero, StatusChip, type ChipTone } from '@/components/cl';
 
-const severityColors: Record<string, string> = {
-  critical: 'bg-amp-risk/10 text-amp-risk border-amp-risk/20',
-  high: 'bg-amp-risk/10 text-amp-risk border-amp-risk/20',
-  medium: 'bg-amp-warning/10 text-amp-confidence border-amp-warning/20',
-  low: 'bg-secondary text-muted-foreground border-border',
+const severityTone: Record<string, ChipTone> = {
+  critical: 'risk',
+  high: 'risk',
+  medium: 'warning',
+  low: 'neutral',
 };
 
 const typeLabels: Record<string, string> = {
@@ -74,52 +75,50 @@ const Recommendations: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl font-bold">AI Recommendations</h1>
-            <p className="text-sm text-muted-foreground mt-1">Review and apply AI-generated journey improvements</p>
-          </div>
-          <div className="flex items-center gap-2">
+      <div className="-m-6 mb-6">
+        <PageHero
+          title="AI Recommendations"
+          subtitle="Review and apply AI-generated journey improvements"
+          size="sm"
+        >
+          <div className="mt-4 flex items-center gap-2 flex-wrap">
             <select value={selectedInitiative} onChange={e => setSelectedInitiative(e.target.value)}
-              className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card">
-              <option value="">All Initiatives</option>
-              {(initiatives || []).map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              className="text-sm rounded-full px-3 py-1.5 bg-white/10 backdrop-blur-sm text-white border border-white/20">
+              <option value="" className="text-foreground">All Initiatives</option>
+              {(initiatives || []).map(i => <option key={i.id} value={i.id} className="text-foreground">{i.name}</option>)}
             </select>
             <button onClick={handleGenerate} disabled={generating}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium disabled:opacity-50">
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-primary text-sm font-semibold disabled:opacity-50 hover:bg-white/90 transition-colors">
               {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
               Generate
             </button>
           </div>
-        </div>
+        </PageHero>
+      </div>
 
-        {/* Status tabs */}
-        <div className="flex gap-2">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex gap-2 flex-wrap">
           {(['pending', 'saved', 'approved', 'dismissed'] as const).map(status => (
             <button key={status} onClick={() => setStatusFilter(statusFilter === status ? '' : status)}
-              className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+              className={cn("px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
                 statusFilter === status ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80')}>
               {status.charAt(0).toUpperCase() + status.slice(1)} ({statusCounts[status]})
             </button>
           ))}
         </div>
 
-        {/* Recommendations list */}
         <div className="space-y-3">
           {filtered.map((rec, i) => {
             const expanded = expandedId === rec.id;
             return (
               <motion.div key={rec.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                className={cn("bg-card border rounded-xl amp-shadow-card overflow-hidden", severityColors[rec.severity])}>
+                className="cl-card overflow-hidden">
                 <div className="p-4 cursor-pointer" onClick={() => setExpandedId(expanded ? null : rec.id)}>
                   <div className="flex items-start gap-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                          {typeLabels[rec.recommendation_type] || rec.recommendation_type}
-                        </span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${severityColors[rec.severity]}`}>{rec.severity}</span>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <StatusChip tone="info">{typeLabels[rec.recommendation_type] || rec.recommendation_type}</StatusChip>
+                        <StatusChip tone={severityTone[rec.severity] || 'neutral'}>{rec.severity}</StatusChip>
                         <span className="text-[10px] text-muted-foreground">Priority: {rec.priority}</span>
                       </div>
                       <h3 className="text-sm font-semibold">{rec.title}</h3>
@@ -180,7 +179,7 @@ const Recommendations: React.FC = () => {
             );
           })}
           {filtered.length === 0 && (
-            <div className="bg-card border border-dashed border-border rounded-xl p-8 text-center">
+            <div className="cl-card border-dashed p-8 text-center">
               <Sparkles className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">No {statusFilter} recommendations. Click "Generate" to analyse insights.</p>
             </div>

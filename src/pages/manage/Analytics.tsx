@@ -15,6 +15,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell
 } from 'recharts';
 import { TrendingUp, TrendingDown, Users, Target, AlertTriangle, BarChart3 } from 'lucide-react';
+import { PageHero } from '@/components/cl';
 
 const INDICES = [
   { key: 'participation', label: 'Participation', color: 'hsl(var(--amp-participation))' },
@@ -272,16 +273,15 @@ const Analytics: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <h1 className="font-heading text-2xl font-bold">Analytics</h1>
-            <p className="text-sm text-muted-foreground mt-1">Behavioural adoption intelligence across your organisation</p>
-          </div>
-          <div className="flex items-center gap-3">
+      <div className="-m-6 mb-6">
+        <PageHero
+          title="Analytics"
+          subtitle="Behavioural adoption intelligence across your organisation"
+          size="sm"
+        >
+          <div className="mt-4">
             <Select value={selectedInitiative} onValueChange={setSelectedInitiative}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-56 bg-white/10 border-white/20 text-white backdrop-blur-sm rounded-full">
                 <SelectValue placeholder="All Initiatives" />
               </SelectTrigger>
               <SelectContent>
@@ -292,7 +292,10 @@ const Analytics: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </PageHero>
+      </div>
+
+      <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Index selector */}
         <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card">

@@ -69,8 +69,9 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 amp-gradient-hero items-center justify-center p-12 relative overflow-hidden">
+      {/* Left panel — CL hero */}
+      <div className="hidden lg:flex lg:w-1/2 cl-hero items-center justify-center p-12 relative overflow-hidden">
+        <div className="absolute inset-0 cl-hero-pattern opacity-50" />
         <div className="absolute inset-0 opacity-10">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="absolute rounded-full border border-primary-foreground/20"
@@ -86,13 +87,13 @@ const Login: React.FC = () => {
           <h1 className="font-heading text-4xl font-bold text-primary-foreground mb-4 tracking-tight">
             Adoption Management Platform
           </h1>
-          <p className="text-primary-foreground/70 text-lg leading-relaxed mb-8">
+          <p className="text-primary-foreground/80 text-lg leading-relaxed mb-8">
             Adoption is evidenced through behaviour. AMP makes behavioural readiness visible.
           </p>
           <div className="flex flex-col gap-3 text-left">
             {['Participation is only the beginning', 'Ownership and confidence signal whether change is truly forming', 'Small actions build embedment'].map((text, i) => (
-              <div key={i} className="flex items-center gap-3 text-primary-foreground/60 text-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-sidebar-primary shrink-0" />
+              <div key={i} className="flex items-center gap-3 text-primary-foreground/70 text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
                 <span>{text}</span>
               </div>
             ))}
@@ -132,7 +133,7 @@ const Login: React.FC = () => {
                     transition={{ delay: i * 0.08 }}
                     onClick={() => handleLogin(persona.id, persona.role)}
                     disabled={!!loggingIn}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:amp-shadow-card-hover hover:border-primary/30 transition-all group text-left disabled:opacity-50"
+                    className="w-full flex items-center gap-4 p-4 cl-card hover:cl-card-hover hover:border-primary/30 transition-all group text-left disabled:opacity-50"
                   >
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.color}`}>
                       <Icon className="w-5 h-5" />

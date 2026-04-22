@@ -24,6 +24,7 @@ import {
   emptySection, newId, saveFormDraft,
 } from '@/lib/formExtractor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PageHero } from '@/components/cl';
 
 type Mode = 'edit' | 'preview';
 
@@ -165,18 +166,16 @@ const FormExtractor: React.FC = () => {
   if (!draft) {
     return (
       <AppLayout>
-        <div className="max-w-2xl mx-auto py-10">
-          <button onClick={() => navigate('/manage/content')}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
-            <ArrowLeft className="w-4 h-4" /> Back to Content Library
-          </button>
-          <h1 className="font-heading text-3xl font-bold">Document → Form Extractor</h1>
-          <p className="text-muted-foreground mt-2 text-sm">
-            Upload a DOCX or PDF. AMP will extract the title, instructions, questions, scales,
-            and completion message into a clean editable form.
-          </p>
-
-          <label className={`mt-8 block border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-colors ${uploading ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-secondary/50'}`}>
+        <div className="-m-6 mb-6">
+          <PageHero
+            title="Document → Form Extractor"
+            subtitle="Upload a DOCX or PDF. AMP will extract the title, instructions, questions, scales, and completion message into a clean editable form."
+            back={() => navigate('/manage/content')}
+            size="sm"
+          />
+        </div>
+        <div className="max-w-2xl mx-auto py-4">
+          <label className={`mt-4 block border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-colors ${uploading ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-secondary/50'}`}>
             <input type="file" accept=".pdf,.docx,.txt,.md" className="hidden"
               onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} disabled={uploading} />
             {uploading ? (
