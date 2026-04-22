@@ -161,7 +161,6 @@ const InitiativeList: React.FC = () => {
               </motion.div>
             );
           })}
-        </div>
       </div>
 
       <NewInitiativeModal open={showNew || !!editInit} onClose={() => { setShowNew(false); setEditInit(null); }} onCreated={() => { refetch(); refetchMilestones(); }} initiative={editInit} />
