@@ -168,9 +168,12 @@ const EndUserDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {activeJourneys.slice(0, 4).map((journey) => {
                     const items = allItems?.filter((i) => i.journey_id === journey.id) || [];
+                    const total = items.length;
+                    const completed = items.filter((i) => i.status === "completed").length;
+                    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
                     const pending = items.filter((i) => i.status === "available" || i.status === "in_progress").length;
                     const overdue = items.filter((i) => {
-                      if (!i.due_date || i.status === "completed") return false;
+                      if (!i.due_date || i.status === "completed" || i.status === "locked") return false;
                       try {
                         return parseISO(i.due_date).getTime() < Date.now();
                       } catch {
@@ -182,8 +185,8 @@ const EndUserDashboard: React.FC = () => {
                         key={journey.id}
                         title={journey.name}
                         description={journey.description || undefined}
-                        adoptionScore={journey.progress ?? 0}
-                        progress={journey.progress ?? 0}
+                        adoptionScore={progress}
+                        progress={progress}
                         pendingTasks={pending}
                         overdueTasks={overdue}
                         members={[{ id: user.id, name: user.name }]}
