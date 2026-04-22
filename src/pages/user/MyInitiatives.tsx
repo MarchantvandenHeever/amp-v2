@@ -213,6 +213,8 @@ const MyInitiatives: React.FC = () => {
                       {tasksToRender.map((item) => {
                         const overdue =
                           taskTab === "todo" &&
+                          item.status !== "locked" &&
+                          item.status !== "completed" &&
                           item.due_date &&
                           (() => {
                             try { return isPast(parseISO(item.due_date)); } catch { return false; }
