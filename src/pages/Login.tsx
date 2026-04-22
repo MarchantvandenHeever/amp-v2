@@ -4,8 +4,8 @@ import { useAuth, getRoleDashboardPath, getRoleLabel, UserRole } from '@/context
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { ArrowRight, Shield, Users, BarChart3, User, Loader2 } from 'lucide-react';
-import ampLogo from '@/assets/amp-logo-orange-transparent.png';
-import ampLogoTransparent from '@/assets/amp-logo-orange-transparent.png';
+import ampLogo from '@/assets/amp-logo-official.jpg';
+import ampLogoTransparent from '@/assets/amp-logo-official.jpg';
 
 const roleConfig: Record<UserRole, { icon: React.ElementType; description: string; color: string }> = {
   super_admin: { icon: Shield, description: 'Platform-wide settings, customers, and analytics', color: 'bg-amp-participation/10 text-amp-participation' },

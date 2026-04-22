@@ -1,44 +1,25 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import ampLogo from "@/assets/amp-logo-orange-transparent.png";
+import ampLogo from "@/assets/amp-logo-official.jpg";
 
 interface BrandLogoProps {
   className?: string;
-  /** Render variant. `mark` shows only the logo image. `full` shows logo + wordmark. */
+  /** Kept for API compatibility. The official logo already includes the wordmark. */
   variant?: "full" | "mark";
-  /** Force light or dark wordmark. Defaults to dark for use on white headers. */
+  /** Kept for API compatibility. */
   tone?: "dark" | "light";
 }
 
 /**
- * AMP brand mark — uses the official AMP logo image.
+ * Official AMP logo — used as-is everywhere in the app.
  */
-export const BrandLogo: React.FC<BrandLogoProps> = ({
-  className,
-  variant = "full",
-  tone = "dark",
-}) => {
-  const wordColor = tone === "light" ? "hsl(var(--nav-foreground))" : "hsl(var(--foreground))";
-
+export const BrandLogo: React.FC<BrandLogoProps> = ({ className }) => {
   return (
-    <div className={cn("inline-flex items-center gap-2.5 select-none", className)}>
-      <img
-        src={ampLogo}
-        alt="AMP"
-        width={38}
-        height={38}
-        className="h-9 w-auto object-contain"
-        draggable={false}
-      />
-
-      {variant === "full" && (
-        <div
-          style={{ color: wordColor, fontFamily: "var(--font-heading)" }}
-          className="text-[18px] font-bold tracking-tight leading-none"
-        >
-          AMP
-        </div>
-      )}
-    </div>
+    <img
+      src={ampLogo}
+      alt="amp — powered by change logic"
+      className={cn("h-10 w-auto object-contain select-none", className)}
+      draggable={false}
+    />
   );
 };
