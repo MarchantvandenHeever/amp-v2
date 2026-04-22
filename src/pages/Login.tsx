@@ -80,7 +80,7 @@ const Login: React.FC = () => {
           <HeroPattern className="absolute inset-0 w-full h-full pointer-events-none opacity-90" />
 
           <div className="relative z-10 w-full max-w-md">
-            <div className="bg-white rounded-2xl px-5 py-4 inline-flex shadow-sm mb-10">
+            <div className="rounded-2xl px-5 py-4 inline-flex shadow-sm mb-10" style={{ backgroundColor: '#e8e6d8' }}>
               <BrandLogo className="h-12" />
             </div>
 
