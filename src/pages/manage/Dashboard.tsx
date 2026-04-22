@@ -149,17 +149,17 @@ const ChangeManagerDashboard: React.FC = () => {
         </div>
 
         <div>
-          <h3 className="font-heading font-semibold mb-3">Active Initiatives</h3>
+          <h3 className="cl-section-label mb-3">Active Initiatives</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {initiatives?.filter(i => i.status === 'active').map(init => (
               <motion.div key={init.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                className="bg-card border border-border rounded-xl p-5 amp-shadow-card hover:amp-shadow-card-hover transition-shadow cursor-pointer">
+                className="cl-card hover:cl-card-hover transition-shadow cursor-pointer p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h4 className="font-semibold text-sm">{init.name}</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">{init.user_count} users</p>
                   </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-amp-adoption/10 text-amp-adoption font-medium">{init.phase.replace(/_/g, ' ')}</span>
+                  <StatusChip tone="info">{init.phase.replace(/_/g, ' ')}</StatusChip>
                 </div>
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
@@ -176,8 +176,8 @@ const ChangeManagerDashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
-            <h3 className="font-heading font-semibold mb-4">Adoption Trend</h3>
+          <div className="cl-card p-6">
+            <h3 className="cl-section-label mb-4">Adoption Trend</h3>
             <AdoptionTrendChart
               data={scoreTrends}
               height={240}
@@ -186,8 +186,8 @@ const ChangeManagerDashboard: React.FC = () => {
               progress={combinedProgress}
             />
           </div>
-          <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
-            <h3 className="font-heading font-semibold mb-4">Team Comparison</h3>
+          <div className="cl-card p-6">
+            <h3 className="cl-section-label mb-4">Team Comparison</h3>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={teamComparison}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -202,12 +202,12 @@ const ChangeManagerDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
+        <div className="cl-card p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading font-semibold">At-Risk Users</h3>
-            <span className="text-xs px-2 py-1 rounded-full bg-amp-risk/10 text-amp-risk font-medium">
+            <h3 className="cl-section-label">At-Risk Users</h3>
+            <StatusChip tone="risk">
               {riskFlags?.filter(r => r.severity === 'high').length || 0} high risk
-            </span>
+            </StatusChip>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -227,11 +227,9 @@ const ChangeManagerDashboard: React.FC = () => {
                     <td className="py-2.5 px-3 text-muted-foreground">{(flag as any).profiles?.team || '-'}</td>
                     <td className="py-2.5 px-3">{flag.type}</td>
                     <td className="py-2.5 px-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        flag.severity === 'high' ? 'bg-amp-risk/10 text-amp-risk' :
-                        flag.severity === 'medium' ? 'bg-amp-warning/10 text-amp-confidence' :
-                        'bg-secondary text-muted-foreground'
-                      }`}>{flag.severity}</span>
+                      <StatusChip tone={flag.severity === 'high' ? 'risk' : flag.severity === 'medium' ? 'warning' : 'neutral'}>
+                        {flag.severity}
+                      </StatusChip>
                     </td>
                     <td className="py-2.5 px-3 text-primary text-xs font-medium cursor-pointer hover:underline">{flag.recommendation}</td>
                   </tr>
