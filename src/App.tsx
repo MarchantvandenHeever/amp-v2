@@ -7,6 +7,8 @@ import { AuthProvider, useAuth, getRoleDashboardPath } from "@/contexts/AuthCont
 import Login from "./pages/Login";
 import SuperAdminDashboard from "./pages/admin/Dashboard";
 import ScoringConfig from "./pages/admin/ScoringConfig";
+import AdminCustomers from "./pages/admin/Customers";
+import AdminSettings from "./pages/admin/Settings";
 import ChangeManagerDashboard from "./pages/manage/Dashboard";
 import InitiativeList from "./pages/manage/Initiatives";
 import JourneyBuilder from "./pages/manage/JourneyBuilder";
@@ -63,9 +65,13 @@ const AppRoutes = () => {
       <Route path="/" element={<RootRedirect />} />
 
       {/* Super Admin */}
-      <Route path="/admin" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/scoring" element={<ProtectedRoute><ScoringConfig /></ProtectedRoute>} />
-      <Route path="/admin/*" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin" element={<RoleRoute allow={["super_admin"]}><SuperAdminDashboard /></RoleRoute>} />
+      <Route path="/admin/customers" element={<RoleRoute allow={["super_admin"]}><AdminCustomers /></RoleRoute>} />
+      <Route path="/admin/users" element={<RoleRoute allow={["super_admin"]}><UserManagement /></RoleRoute>} />
+      <Route path="/admin/scoring" element={<RoleRoute allow={["super_admin"]}><ScoringConfig /></RoleRoute>} />
+      <Route path="/admin/analytics" element={<RoleRoute allow={["super_admin"]}><Analytics /></RoleRoute>} />
+      <Route path="/admin/settings" element={<RoleRoute allow={["super_admin"]}><AdminSettings /></RoleRoute>} />
+      <Route path="/admin/*" element={<RoleRoute allow={["super_admin"]}><SuperAdminDashboard /></RoleRoute>} />
 
       {/* Change Manager */}
       <Route path="/manage" element={<ProtectedRoute><ChangeManagerDashboard /></ProtectedRoute>} />
