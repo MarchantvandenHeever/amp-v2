@@ -212,6 +212,12 @@ const Analytics: React.FC = () => {
     return result;
   }, [scoreHistory, activeInits, desiredTarget]);
 
+  // Helper: read p-weighted (_dashboard) value with raw*TP fallback (matches Overview)
+  const dashVal = (row: any, k: 'participation' | 'ownership' | 'confidence' | 'adoption') => {
+    const v = row[`${k}_dashboard`];
+    return Number(v ?? (Number(row[k]) || 0) * currentTP);
+  };
+
   // Group breakdown (by team or persona)
   const groupData = useMemo(() => {
     if (!scores?.length || !profiles?.length) return [];
@@ -223,10 +229,10 @@ const Analytics: React.FC = () => {
       const group = groupBy === 'team' ? (profile?.team || 'Unknown') : (profile?.persona || 'Unknown');
       if (!groups[group]) groups[group] = { count: 0, participation: 0, ownership: 0, confidence: 0, adoption: 0 };
       groups[group].count++;
-      groups[group].participation += Number(s.participation) || 0;
-      groups[group].ownership += Number(s.ownership) || 0;
-      groups[group].confidence += Number(s.confidence) || 0;
-      groups[group].adoption += Number(s.adoption) || 0;
+      groups[group].participation += dashVal(s, 'participation');
+      groups[group].ownership += dashVal(s, 'ownership');
+      groups[group].confidence += dashVal(s, 'confidence');
+      groups[group].adoption += dashVal(s, 'adoption');
     });
     return Object.entries(groups).map(([name, v]) => ({
       name,
@@ -235,7 +241,7 @@ const Analytics: React.FC = () => {
       confidence: Math.round(v.confidence / v.count),
       adoption: Math.round(v.adoption / v.count),
     }));
-  }, [scores, profiles, selectedInitiative, groupBy]);
+  }, [scores, profiles, selectedInitiative, groupBy, currentTP]);
 
   // Individual user table
   const userTable = useMemo(() => {
@@ -244,19 +250,20 @@ const Analytics: React.FC = () => {
     const filtered = selectedInitiative === 'all' ? scores : scores.filter(s => s.initiative_id === selectedInitiative);
     return filtered.map(s => {
       const profile = profileMap.get(s.user_id);
+      const adoption = Math.round(dashVal(s, 'adoption'));
       return {
         id: s.user_id,
         name: profile?.display_name || 'Unknown',
         team: profile?.team || '—',
         persona: profile?.persona || '—',
-        participation: Number(s.participation) || 0,
-        ownership: Number(s.ownership) || 0,
-        confidence: Number(s.confidence) || 0,
-        adoption: Number(s.adoption) || 0,
-        label: getScoreLabel(Number(s.adoption) || 0),
+        participation: Math.round(dashVal(s, 'participation')),
+        ownership: Math.round(dashVal(s, 'ownership')),
+        confidence: Math.round(dashVal(s, 'confidence')),
+        adoption,
+        label: getScoreLabel(adoption),
       };
     }).sort((a, b) => b.adoption - a.adoption);
-  }, [scores, profiles, selectedInitiative]);
+  }, [scores, profiles, selectedInitiative, currentTP]);
 
   // Radar data for overview
   const radarData = useMemo(() => {
