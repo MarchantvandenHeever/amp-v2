@@ -7,6 +7,8 @@ import { AuthProvider, useAuth, getRoleDashboardPath } from "@/contexts/AuthCont
 import Login from "./pages/Login";
 import SuperAdminDashboard from "./pages/admin/Dashboard";
 import ScoringConfig from "./pages/admin/ScoringConfig";
+import AdminCustomers from "./pages/admin/Customers";
+import AdminSettings from "./pages/admin/Settings";
 import ChangeManagerDashboard from "./pages/manage/Dashboard";
 import InitiativeList from "./pages/manage/Initiatives";
 import JourneyBuilder from "./pages/manage/JourneyBuilder";
