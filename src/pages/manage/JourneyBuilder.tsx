@@ -316,7 +316,7 @@ const JourneyBuilder: React.FC = () => {
           <div className="lg:col-span-3 space-y-4">
             {selectedJourney && (
               <>
-                <div className="bg-card border border-border rounded-xl p-5 amp-shadow-card">
+                <div className="cl-card p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <h2 className="font-heading text-lg font-semibold">{selectedJourney.name}</h2>
