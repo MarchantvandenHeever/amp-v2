@@ -12,6 +12,8 @@ interface MultiRingDonutProps {
   rings: Ring[];
   /** 0-100 — value rendered in the center */
   centerValue: number;
+  /** Optional color for the implicit center (adoption) ring */
+  centerColor?: string;
   centerLabel?: string;
   size?: number;
   className?: string;
@@ -24,25 +26,38 @@ interface MultiRingDonutProps {
 export const MultiRingDonut: React.FC<MultiRingDonutProps> = ({
   rings,
   centerValue,
+  centerColor = "hsl(var(--primary))",
   centerLabel = "Adoption",
   size = 220,
   className,
 }) => {
-  const stroke = 12;
-  const gap = 4;
+  const stroke = 11;
+  const gap = 5;
   const cx = size / 2;
   const cy = size / 2;
 
+  // Render the pillar rings on the outside, plus an inner ring for the adoption (center) value
+  // so it is visually represented alongside the pillars.
+  const allRings: Ring[] = [
+    ...rings,
+    { value: centerValue, color: centerColor, label: centerLabel },
+  ];
+
   return (
-    <div className={cn("relative inline-flex items-center justify-center", className)} style={{ width: size, height: size }}>
+    <div
+      className={cn("relative inline-flex items-center justify-center", className)}
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {rings.map((r, i) => {
+        {allRings.map((r, i) => {
           const radius = size / 2 - stroke / 2 - i * (stroke + gap);
-          if (radius <= 0) return null;
+          if (radius <= stroke) return null;
           const c = 2 * Math.PI * radius;
-          const dash = (Math.max(0, Math.min(100, r.value)) / 100) * c;
+          const pct = Math.max(0, Math.min(100, r.value)) / 100;
+          const dash = pct * c;
           return (
             <g key={i} transform={`rotate(-90 ${cx} ${cy})`}>
+              {/* Track */}
               <circle
                 cx={cx}
                 cy={cy}
@@ -50,9 +65,9 @@ export const MultiRingDonut: React.FC<MultiRingDonutProps> = ({
                 fill="none"
                 stroke="hsl(var(--muted))"
                 strokeWidth={stroke}
-                strokeLinecap="round"
-                opacity={0.55}
+                opacity={0.45}
               />
+              {/* Value arc */}
               <circle
                 cx={cx}
                 cy={cy}
@@ -69,7 +84,9 @@ export const MultiRingDonut: React.FC<MultiRingDonutProps> = ({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <div className="flex items-baseline">
-          <span className="text-4xl font-bold text-foreground tracking-tight">{Math.round(centerValue)}</span>
+          <span className="text-4xl font-bold text-foreground tracking-tight tabular-nums">
+            {Math.round(centerValue)}
+          </span>
           <span className="text-base font-semibold text-foreground ml-0.5">%</span>
         </div>
         <span className="text-xs text-muted-foreground mt-0.5">{centerLabel}</span>
