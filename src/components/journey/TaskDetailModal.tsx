@@ -70,7 +70,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ item, open, on
       queryClient.invalidateQueries({ queryKey: ['journey_items', item.journey_id] }),
       queryClient.invalidateQueries({ queryKey: ['journeys'] }),
       queryClient.invalidateQueries({ queryKey: ['journeys', undefined] }),
-      queryClient.invalidateQueries({ queryKey: ['journeys', item.initiative_id] }),
       queryClient.invalidateQueries({ queryKey: ['scores'] }),
       queryClient.invalidateQueries({ queryKey: ['score_history'] }),
       queryClient.invalidateQueries({ queryKey: ['profiles'] }),
