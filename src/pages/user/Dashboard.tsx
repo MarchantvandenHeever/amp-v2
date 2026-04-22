@@ -53,6 +53,8 @@ const EndUserDashboard: React.FC = () => {
   const { idealScore } = useIdealAdoptionScore(user?.id);
   const [selectedTask, setSelectedTask] = useState<any>(null);
 
+  // Combined time-progress p (used by ideal score badge / labels only).
+  // Scores from auth context are already AMP `_dashboard` (p-weighted) values.
   const currentTP = useMemo(() => {
     const active = initiatives?.filter((i) => i.status === "active") || [];
     const starts = active.map((i) => i.start_date).filter(Boolean) as string[];
@@ -100,7 +102,7 @@ const EndUserDashboard: React.FC = () => {
     );
   }
 
-  const adoption = Math.round((user.scores.adoption || 0) * currentTP);
+  const adoption = Math.round(user.scores.adoption || 0);
   const tier = getTierFromPoints(user.points);
   const activeJourneys = journeys?.filter((j) => j.status === "active") || [];
   const activeAnnouncement = announcements?.find((a) => a.active);

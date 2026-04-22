@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
-import { useEndUsers, useInitiatives, useRiskFlags, useJourneys, useScores } from '@/hooks/useSupabaseData';
+import { useEndUsers, useInitiatives, useRiskFlags, useJourneys, useScores, useScoreHistory } from '@/hooks/useSupabaseData';
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
@@ -15,6 +15,7 @@ const ChangeManagerDashboard: React.FC = () => {
   const { data: riskFlags, isLoading: loadingRisks } = useRiskFlags();
   const { data: journeys } = useJourneys();
   const { data: scores, isLoading: loadingScores } = useScores();
+  const { data: history } = useScoreHistory();
   const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
 
   if (loadingProfiles || loadingInit || loadingRisks || loadingScores) {
@@ -22,20 +23,34 @@ const ChangeManagerDashboard: React.FC = () => {
   }
 
   const endUserScores = scores?.filter(s => profiles?.some(p => p.id === s.user_id)) || [];
+  // Pull verbatim AMP dashboard fields (already time-progress weighted by score-recalc).
   const avgScoreRaw = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
     endUserScores.length ? Math.round(endUserScores.reduce((sum, s) => sum + Number(s[key] || 0), 0) / endUserScores.length) : 0;
+  const avgScoreDashboard = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') => {
+    const dashKey = `${key}_dashboard` as keyof typeof endUserScores[number];
+    return endUserScores.length
+      ? Math.round(endUserScores.reduce((sum, s) => sum + Number((s as any)[dashKey] || 0), 0) / endUserScores.length)
+      : 0;
+  };
 
   const teams = [...new Set(profiles?.map(p => p.team).filter(Boolean) || [])];
   const teamComparison = teams.map(team => {
     const teamProfiles = profiles?.filter(p => p.team === team) || [];
     const teamScores = endUserScores.filter(s => teamProfiles.some(p => p.id === s.user_id));
     const avg = (k: string) => teamScores.length ? Math.round(teamScores.reduce((sum, s) => sum + Number((s as any)[k] || 0), 0) / teamScores.length) : 0;
-    return { team, participation: avg('participation'), ownership: avg('ownership'), confidence: avg('confidence'), adoption: avg('adoption') };
+    // Show dashboard (p-weighted) values to match AMP semantics.
+    return {
+      team,
+      participation: avg('participation_dashboard'),
+      ownership: avg('ownership_dashboard'),
+      confidence: avg('confidence_dashboard'),
+      adoption: avg('adoption_dashboard'),
+    };
   });
 
   const activeInits = initiatives?.filter(i => i.status === 'active') || [];
 
-  // Duration-based combined progress
+  // Combined time-progress p across active initiatives (used only for progress chip / chart cutoff).
   const now = new Date();
   const currentTP = (() => {
     const starts = activeInits.map(i => i.start_date).filter(Boolean) as string[];
@@ -49,62 +64,48 @@ const ChangeManagerDashboard: React.FC = () => {
   })();
   const combinedProgress = Math.round(currentTP * 100);
 
-  // KPI scores factored by current TP
-  const avgScore = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') =>
-    Math.round(avgScoreRaw(key) * currentTP);
-
-  // Duration-based trend using initiative date ranges
-  // Find combined date range across active initiatives
-  const combinedStart = activeInits.reduce((earliest, init) => {
-    if (!init.start_date) return earliest;
-    const d = new Date(init.start_date);
-    return !earliest || d < earliest ? d : earliest;
-  }, null as Date | null);
-  const combinedEnd = activeInits.reduce((latest, init) => {
-    if (!init.end_date) return latest;
-    const d = new Date(init.end_date);
-    return !latest || d > latest ? d : latest;
-  }, null as Date | null);
-
-  const totalWeeks = 10;
-  // now already declared above
-
-  const buildTrendData = (startDate: Date | null, endDate: Date | null, scoresFn: (key: string) => number) => {
-    if (!startDate || !endDate) {
-      return Array.from({ length: totalWeeks }, (_, i) => ({
-        week: `W${i + 1}`,
-        participation: 0, ownership: 0, confidence: 0, adoption: 0,
-        idealAdoption: Math.round(desiredTarget * ((i + 1) / totalWeeks)),
-      }));
+  // ─── Trend data sourced from real score_history (written by score-recalc) ───
+  // Each row already contains AMP dashboard fields; no client-side TP multiplication.
+  const buildTrendFromHistory = (rows: any[]) => {
+    if (!rows || rows.length === 0) return [];
+    // Group by ISO week label (already populated by score-recalc); aggregate by mean.
+    const byWeek = new Map<string, any[]>();
+    for (const r of rows) {
+      const key = r.week_label || new Date(r.recorded_at).toISOString().slice(0, 10);
+      if (!byWeek.has(key)) byWeek.set(key, []);
+      byWeek.get(key)!.push(r);
     }
-    const totalDuration = endDate.getTime() - startDate.getTime();
-    return Array.from({ length: totalWeeks }, (_, i) => {
-      // Each synthetic week maps to a calendar point
-      const weekDateMs = startDate.getTime() + ((i + 1) / totalWeeks) * totalDuration;
-      const elapsed = Math.max(0, Math.min(weekDateMs - startDate.getTime(), totalDuration));
-      const weekTP = totalDuration > 0 ? elapsed / totalDuration : 0;
+    const sortedKeys = Array.from(byWeek.keys()).sort();
+    return sortedKeys.map((key) => {
+      const bucket = byWeek.get(key)!;
+      const mean = (k: string) =>
+        Math.round(bucket.reduce((s, x) => s + Number(x[k] || 0), 0) / bucket.length);
       return {
-        week: `W${i + 1}`,
-        participation: Math.min(100, Math.round(scoresFn('participation') * weekTP)),
-        ownership: Math.min(100, Math.round(scoresFn('ownership') * weekTP)),
-        confidence: Math.min(100, Math.round(scoresFn('confidence') * weekTP)),
-        adoption: Math.min(100, Math.round(scoresFn('adoption') * weekTP)),
-        idealAdoption: Math.round(desiredTarget * weekTP),
+        week: key,
+        participation: mean('participation'),
+        ownership: mean('ownership'),
+        confidence: mean('confidence'),
+        adoption: mean('adoption_dashboard'),
+        idealAdoption: mean('adoption_ideal'),
       };
     });
   };
 
-  const scoreTrends = buildTrendData(combinedStart, combinedEnd, (key) => avgScoreRaw(key as any));
-  const visibleScoreTrends = progressVisibleData(scoreTrends, combinedProgress);
-  const currentTrendPoint = visibleScoreTrends[visibleScoreTrends.length - 1] ?? {
-    participation: avgScore('participation'),
-    ownership: avgScore('ownership'),
-    confidence: avgScore('confidence'),
-    adoption: avgScore('adoption'),
+  const combinedHistoryRows = (history || []).filter(
+    (h: any) => endUserScores.some((s) => s.user_id === h.user_id),
+  );
+  const scoreTrends = buildTrendFromHistory(combinedHistoryRows);
+
+  // Latest live snapshot (no synthesis): pull straight from `scores` dashboard fields.
+  const currentTrendPoint = {
+    participation: avgScoreDashboard('participation'),
+    ownership: avgScoreDashboard('ownership'),
+    confidence: avgScoreDashboard('confidence'),
+    adoption: avgScoreDashboard('adoption'),
     idealAdoption: currentIdeal,
   };
 
-  // Per-initiative trend data
+  // Per-initiative trend data (real history filtered by initiative_id)
   const initiativeOptions = activeInits.map(init => ({
     id: init.id,
     name: init.name,
@@ -113,19 +114,9 @@ const ChangeManagerDashboard: React.FC = () => {
 
   const initiativeData: Record<string, any[]> = {};
   activeInits.forEach(init => {
-    const initScores = endUserScores.filter(s => s.initiative_id === init.id);
-    const initAvg = (key: string) =>
-      initScores.length ? Math.round(initScores.reduce((sum, s) => sum + Number((s as any)[key] || 0), 0) / initScores.length) : avgScoreRaw(key as any);
-    const initStart = init.start_date ? new Date(init.start_date) : null;
-    const initEnd = init.end_date ? new Date(init.end_date) : null;
-    initiativeData[init.id] = buildTrendData(initStart, initEnd, initAvg);
+    const initRows = (history || []).filter((h: any) => h.initiative_id === init.id);
+    initiativeData[init.id] = buildTrendFromHistory(initRows);
   });
-
-  function progressVisibleData<T>(rows: T[], progressValue?: number) {
-    if (progressValue == null || progressValue >= 100 || rows.length === 0) return rows;
-    const cutoffIndex = Math.max(1, Math.ceil((progressValue / 100) * rows.length));
-    return rows.slice(0, cutoffIndex);
-  }
 
   return (
     <AppLayout>
