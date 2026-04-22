@@ -7,6 +7,7 @@ import { Calendar, Users, ChevronRight, ChevronDown, Loader2, Edit, Trash2, Plus
 import { NewInitiativeModal } from '@/components/initiatives/NewInitiativeModal';
 import { MilestoneModal } from '@/components/initiatives/MilestoneModal';
 import { toast } from 'sonner';
+import { PageHero, StatusChip } from '@/components/cl';
 
 const InitiativeList: React.FC = () => {
   const { data: initiatives, isLoading: loadingInit, refetch } = useInitiatives();
@@ -46,25 +47,28 @@ const InitiativeList: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl font-bold">Initiatives</h1>
-            <p className="text-sm text-muted-foreground mt-1">Manage adoption initiatives and track progress</p>
-          </div>
-          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg amp-gradient-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
-            + New Initiative
+      <div className="-m-6 mb-0">
+        <PageHero
+          title="Initiatives"
+          subtitle="Manage adoption initiatives and track progress."
+          size="sm"
+        >
+          <button
+            onClick={() => setShowNew(true)}
+            className="mt-4 self-start inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> New Initiative
           </button>
-        </div>
-
-        <div className="space-y-4">
+        </PageHero>
+      </div>
+      <div className="max-w-5xl mx-auto space-y-4 pt-6">
           {(initiatives || []).map((init, i) => {
             const initMilestones = (milestones || []).filter(m => m.initiative_id === init.id);
             const initJourneys = (journeys || []).filter(j => j.initiative_id === init.id);
             const expanded = expandedId === init.id;
             return (
               <motion.div key={init.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-                className="bg-card border border-border rounded-xl p-6 amp-shadow-card hover:amp-shadow-card-hover transition-shadow">
+                className="cl-card hover:cl-card-hover transition-shadow p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 cursor-pointer" onClick={() => setExpandedId(expanded ? null : init.id)}>
                     <div className="flex items-center gap-2">
@@ -90,11 +94,13 @@ const InitiativeList: React.FC = () => {
                   </div>
                   <span className="text-sm font-semibold">{init.progress || 0}%</span>
                 </div>
-                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{init.start_date} → {init.end_date}</span>
                   <span className="flex items-center gap-1"><Users className="w-3 h-3" />{init.user_count || 0} users</span>
-                  <span className="px-2 py-0.5 rounded-full bg-secondary font-medium">{init.phase.replace(/_/g, ' ')}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-secondary font-medium capitalize">{init.status}</span>
+                  <StatusChip tone="info">{init.phase.replace(/_/g, ' ')}</StatusChip>
+                  <StatusChip tone={init.status === 'active' ? 'success' : init.status === 'completed' ? 'info' : 'neutral'}>
+                    {init.status}
+                  </StatusChip>
                   <span>{initMilestones.length} milestones · {initJourneys.length} journeys</span>
                 </div>
 
@@ -155,7 +161,6 @@ const InitiativeList: React.FC = () => {
               </motion.div>
             );
           })}
-        </div>
       </div>
 
       <NewInitiativeModal open={showNew || !!editInit} onClose={() => { setShowNew(false); setEditInit(null); }} onCreated={() => { refetch(); refetchMilestones(); }} initiative={editInit} />
