@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useContentItems } from '@/hooks/useSupabaseData';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Video, Image, Mic, MessageSquare, Star, Plus, Search, Loader2, ExternalLink, Eye, X, Download, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { FileText, Video, Image, Mic, MessageSquare, Star, Plus, Search, Loader2, ExternalLink, Eye, Download, Sparkles } from 'lucide-react';
 import { NewContentModal } from '@/components/content/NewContentModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
+import { PageHero, StatusChip } from '@/components/cl';
 
 const typeIcons: Record<string, React.ElementType> = {
   document: FileText,
@@ -77,7 +78,7 @@ const ContentLibrary: React.FC = () => {
         const form = JSON.parse(item.content_body);
         return (
           <div className="space-y-3">
-            <p className="text-xs font-medium text-muted-foreground uppercase">Form Fields</p>
+            <p className="cl-section-label">Form Fields</p>
             {form.fields?.map((f: any, i: number) => (
               <div key={i} className="p-3 rounded-lg bg-secondary/50 border border-border">
                 <p className="text-sm font-medium">{f.label}</p>
@@ -95,26 +96,28 @@ const ContentLibrary: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl font-bold">Content Library</h1>
-            <p className="text-sm text-muted-foreground mt-1">{(contentItems || []).length} content items</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/manage/forms/extract')} className="px-4 py-2 rounded-lg border border-primary/30 text-primary bg-primary/5 text-sm font-medium hover:bg-primary/10 transition-colors flex items-center gap-1.5">
+      <div className="-m-6 mb-6">
+        <PageHero
+          title="Content Library"
+          subtitle={`${(contentItems || []).length} content items`}
+          size="sm"
+        >
+          <div className="mt-4 flex items-center gap-2 flex-wrap">
+            <button onClick={() => navigate('/manage/forms/extract')} className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 backdrop-blur-sm text-white text-sm font-medium transition-colors flex items-center gap-1.5">
               <Sparkles className="w-4 h-4" /> Document → Form Extractor
             </button>
-            <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
-              <Plus className="w-4 h-4 inline mr-1" /> Add Content
+            <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-full bg-white text-primary text-sm font-semibold hover:bg-white/90 transition-colors flex items-center gap-1.5">
+              <Plus className="w-4 h-4" /> Add Content
             </button>
           </div>
-        </div>
+        </PageHero>
+      </div>
 
+      <div className="max-w-5xl mx-auto space-y-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input type="text" placeholder="Search content..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -124,7 +127,7 @@ const ContentLibrary: React.FC = () => {
             return (
               <motion.div key={item.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 onClick={() => setSelected(item as ContentItem)}
-                className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer group">
+                className="cl-card p-4 hover:cl-card-hover transition-shadow cursor-pointer group">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
                     <Icon className="w-5 h-5 text-muted-foreground" />
@@ -139,9 +142,7 @@ const ContentLibrary: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Eye className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      item.status === 'published' ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
-                    }`}>{item.status}</span>
+                    <StatusChip tone={item.status === 'published' ? 'success' : 'neutral'}>{item.status}</StatusChip>
                   </div>
                 </div>
               </motion.div>
@@ -152,7 +153,6 @@ const ContentLibrary: React.FC = () => {
 
       <NewContentModal open={showNew} onClose={() => setShowNew(false)} onCreated={() => refetch()} />
 
-      {/* Content Preview Dialog */}
       <Dialog open={!!selected} onOpenChange={v => !v && setSelected(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           {selected && (

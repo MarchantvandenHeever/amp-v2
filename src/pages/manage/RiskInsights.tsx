@@ -9,6 +9,14 @@ import { ImplementRecommendationModal } from '@/components/risk/ImplementRecomme
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { PageHero, KpiTile, StatusChip, type ChipTone } from '@/components/cl';
+
+const severityTone: Record<string, ChipTone> = {
+  critical: 'risk',
+  high: 'risk',
+  medium: 'warning',
+  low: 'neutral',
+};
 
 const RiskInsights: React.FC = () => {
   const { data: riskFlags, isLoading, refetch } = useRiskFlags();
@@ -58,55 +66,38 @@ const RiskInsights: React.FC = () => {
   const highRisk = flags.filter(r => r.severity === 'high');
   const medRisk = flags.filter(r => r.severity === 'medium');
 
-  // Show pending and saved recommendations as interventions
   const pendingRecs = (recommendations || []).filter(r => r.review_status === 'pending' || r.review_status === 'saved');
   const appliedRecs = (recommendations || []).filter(r => r.review_status === 'approved');
 
   return (
     <AppLayout>
+      <div className="-m-6 mb-6">
+        <PageHero
+          title="Risk & Insights"
+          subtitle="Where behaviour is fragile and where reinforcement is working"
+          size="sm"
+        />
+      </div>
+
       <div className="max-w-6xl mx-auto space-y-6">
-        <div>
-          <h1 className="font-heading text-2xl font-bold">Risk & Insights</h1>
-          <p className="text-sm text-muted-foreground mt-1">Where behaviour is fragile and where reinforcement is working</p>
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-4 h-4 text-amp-risk" />
-              <span className="text-xs font-medium text-muted-foreground uppercase">High Risk</span>
-            </div>
-            <p className="font-heading text-3xl font-bold text-amp-risk">{highRisk.length}</p>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingDown className="w-4 h-4 text-amp-warning" />
-              <span className="text-xs font-medium text-muted-foreground uppercase">Medium Risk</span>
-            </div>
-            <p className="font-heading text-3xl font-bold text-amp-confidence">{medRisk.length}</p>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4 amp-shadow-card">
-            <div className="flex items-center gap-2 mb-2">
-              <Eye className="w-4 h-4 text-amp-info" />
-              <span className="text-xs font-medium text-muted-foreground uppercase">Total Flags</span>
-            </div>
-            <p className="font-heading text-3xl font-bold">{flags.length}</p>
-          </div>
+          <KpiTile label="High Risk" value={highRisk.length} tone="risk" icon={<AlertTriangle className="w-4 h-4" />} />
+          <KpiTile label="Medium Risk" value={medRisk.length} tone="warning" icon={<TrendingDown className="w-4 h-4" />} />
+          <KpiTile label="Total Flags" value={flags.length} icon={<Eye className="w-4 h-4" />} />
         </div>
 
-        {/* Risk flags table */}
-        <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
+        <div className="cl-card p-6">
           <h3 className="font-heading font-semibold mb-4">Active Risk Flags</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase">User</th>
-                  <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Team</th>
-                  <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Risk Type</th>
-                  <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Severity</th>
-                  <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Recommendation</th>
-                  <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Action</th>
+                  <th className="text-left py-2 px-3 cl-section-label">User</th>
+                  <th className="text-left py-2 px-3 cl-section-label">Team</th>
+                  <th className="text-left py-2 px-3 cl-section-label">Risk Type</th>
+                  <th className="text-left py-2 px-3 cl-section-label">Severity</th>
+                  <th className="text-left py-2 px-3 cl-section-label">Recommendation</th>
+                  <th className="text-right py-2 px-3 cl-section-label">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -118,11 +109,7 @@ const RiskInsights: React.FC = () => {
                       <td className="py-2.5 px-3 text-muted-foreground">{profile?.team || '—'}</td>
                       <td className="py-2.5 px-3">{flag.type}</td>
                       <td className="py-2.5 px-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                          flag.severity === 'high' ? 'bg-amp-risk/10 text-amp-risk' :
-                          flag.severity === 'medium' ? 'bg-amp-warning/10 text-amp-confidence' :
-                          'bg-secondary text-muted-foreground'
-                        }`}>{flag.severity}</span>
+                        <StatusChip tone={severityTone[flag.severity] || 'neutral'}>{flag.severity}</StatusChip>
                       </td>
                       <td className="py-2.5 px-3 text-primary text-xs font-medium max-w-xs">{flag.recommendation}</td>
                       <td className="py-2.5 px-3 text-right">
@@ -141,8 +128,7 @@ const RiskInsights: React.FC = () => {
           </div>
         </div>
 
-        {/* Intervention recommendations from DB */}
-        <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
+        <div className="cl-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Lightbulb className="w-4 h-4 text-amp-confidence" />
             <h3 className="font-heading font-semibold">Recommended Interventions</h3>
@@ -153,16 +139,12 @@ const RiskInsights: React.FC = () => {
             )}
             {pendingRecs.map((rec, i) => (
               <motion.div key={rec.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-secondary/30 transition-colors">
-                <div className="flex-1">
+                className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-secondary/30 transition-colors flex-wrap">
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{rec.title}</p>
                   <p className="text-xs text-muted-foreground">{rec.rationale || rec.description}</p>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  rec.severity === 'high' ? 'bg-amp-risk/10 text-amp-risk' :
-                  rec.severity === 'medium' ? 'bg-amp-warning/10 text-amp-confidence' :
-                  'bg-secondary text-muted-foreground'
-                }`}>{rec.severity}</span>
+                <StatusChip tone={severityTone[rec.severity] || 'neutral'}>{rec.severity}</StatusChip>
                 <span className="text-xs text-muted-foreground capitalize">{rec.recommendation_type.replace(/_/g, ' ')}</span>
                 <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleImplementIntervention(rec)}>
                   <Sparkles className="w-3.5 h-3.5" /> Implement
