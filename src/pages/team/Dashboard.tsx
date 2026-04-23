@@ -20,6 +20,7 @@ import {
   StatusChip,
   type RankedMember,
 } from "@/components/cl";
+import { derivePersona } from "@/lib/personaDerivation";
 
 const TeamDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -76,7 +77,7 @@ const TeamDashboard: React.FC = () => {
           return {
             id: m.id,
             name: m.display_name,
-            persona: m.persona,
+            persona: derivePersona(m as any, s as any),
             team: m.team,
             adoption: Math.round(Number(s?.adoption || 0) * currentTP),
           };
