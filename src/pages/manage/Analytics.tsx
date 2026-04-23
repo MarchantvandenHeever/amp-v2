@@ -512,30 +512,43 @@ const Analytics: React.FC = () => {
                       {INDICES.filter(i => selectedIndices.has(i.key)).map(idx => (
                         <th key={idx.key} className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase">{idx.label}</th>
                       ))}
-                      <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Status</th>
+                      <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Ideal</th>
+                      <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase" title="Adoption performance: actual − ideal (pp)">ΔA</th>
+                      <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Performance</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {userTable.map(u => (
-                      <tr key={u.id} className="border-b border-border/50 hover:bg-secondary/50">
-                        <td className="py-2.5 px-3 font-medium">{u.name}</td>
-                        <td className="py-2.5 px-3 text-muted-foreground">{u.team}</td>
-                        <td className="py-2.5 px-3 text-muted-foreground capitalize">{u.persona}</td>
-                        {INDICES.filter(i => selectedIndices.has(i.key)).map(idx => (
-                          <td key={idx.key} className="py-2.5 px-3 text-right font-semibold" style={{ color: idx.color }}>
-                            {u[idx.key]}
+                    {userTable.map((u: any) => {
+                      const perfClass =
+                        u.deltaA >= 5 ? 'bg-amp-success/10 text-amp-success' :
+                        u.deltaA >= -5 ? 'bg-amp-info/10 text-amp-info' :
+                        u.deltaA >= -15 ? 'bg-amp-warning/10 text-amp-confidence' :
+                        'bg-amp-risk/10 text-amp-risk';
+                      const perfLabel =
+                        u.deltaA >= 5 ? 'Ahead' :
+                        u.deltaA >= -5 ? 'On Track' :
+                        u.deltaA >= -15 ? 'Behind' : 'At Risk';
+                      const deltaClass = u.deltaA >= 0 ? 'text-amp-success' : u.deltaA >= -15 ? 'text-amp-warning' : 'text-amp-risk';
+                      return (
+                        <tr key={u.id} className="border-b border-border/50 hover:bg-secondary/50">
+                          <td className="py-2.5 px-3 font-medium">{u.name}</td>
+                          <td className="py-2.5 px-3 text-muted-foreground">{u.team}</td>
+                          <td className="py-2.5 px-3 text-muted-foreground capitalize">{u.persona}</td>
+                          {INDICES.filter(i => selectedIndices.has(i.key)).map(idx => (
+                            <td key={idx.key} className="py-2.5 px-3 text-right font-semibold" style={{ color: idx.color }}>
+                              {u[idx.key]}
+                            </td>
+                          ))}
+                          <td className="py-2.5 px-3 text-right text-muted-foreground tabular-nums">{u.ideal}</td>
+                          <td className={`py-2.5 px-3 text-right font-semibold tabular-nums ${deltaClass}`}>
+                            {u.deltaA > 0 ? '+' : ''}{u.deltaA}
                           </td>
-                        ))}
-                        <td className="py-2.5 px-3 text-right">
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                            u.adoption >= 80 ? 'bg-amp-success/10 text-amp-success' :
-                            u.adoption >= 60 ? 'bg-amp-info/10 text-amp-info' :
-                            u.adoption >= 40 ? 'bg-amp-warning/10 text-amp-confidence' :
-                            'bg-amp-risk/10 text-amp-risk'
-                          }`}>{u.label}</span>
-                        </td>
-                      </tr>
-                    ))}
+                          <td className="py-2.5 px-3 text-right">
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${perfClass}`}>{perfLabel}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
