@@ -445,11 +445,16 @@ const Analytics: React.FC = () => {
             </div>
           </TabsContent>
 
-          {/* DISTRIBUTION TAB */}
+          {/* DISTRIBUTION TAB — Adoption Performance (ΔA vs ideal) */}
           <TabsContent value="distribution" className="space-y-4">
+            <div className="bg-amp-info/5 border border-amp-info/20 rounded-xl p-4 text-sm text-muted-foreground">
+              <strong className="text-foreground">Adoption Performance</strong> measures each user's
+              adoption score against the <em>ideal</em> trajectory at this point in time
+              (both already scaled by time-progress). ΔA = actual − ideal, in percentage-points.
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
-                <h3 className="font-heading font-semibold mb-4">Adoption Score Distribution</h3>
+                <h3 className="font-heading font-semibold mb-4">Adoption Performance Distribution</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie data={distributionData} cx="50%" cy="50%" outerRadius={100} innerRadius={50} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
@@ -475,10 +480,18 @@ const Analytics: React.FC = () => {
                     </div>
                   ))}
                 </div>
-                <div className="mt-6 pt-4 border-t border-border">
-                  <div className="flex justify-between text-sm">
+                <div className="mt-6 pt-4 border-t border-border space-y-1.5 text-sm">
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Total users scored</span>
                     <span className="font-semibold">{userTable.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Avg ΔA (performance gap)</span>
+                    <span className="font-semibold">
+                      {userTable.length
+                        ? `${Math.round(userTable.reduce((a: number, u: any) => a + u.deltaA, 0) / userTable.length)} pp`
+                        : '—'}
+                    </span>
                   </div>
                 </div>
               </div>
