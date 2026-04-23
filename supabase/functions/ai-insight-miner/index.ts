@@ -48,7 +48,9 @@ serve(async (req) => {
     ] = await Promise.all([
       supabase.from("agent_messages").select("*, agent_conversations(initiative_id, user_id, context_type)").order("created_at", { ascending: false }).limit(200),
       supabase.from("activity_events").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("scores").select("*, profiles(display_name, team, persona)").eq("initiative_id", initiative_id || "").limit(100),
+      initiative_id
+        ? supabase.from("scores").select("*, profiles(display_name, team, persona)").eq("initiative_id", initiative_id).limit(200)
+        : supabase.from("scores").select("*, profiles(display_name, team, persona)").limit(200),
       supabase.from("reminders").select("*").order("sent_at", { ascending: false }).limit(100),
       supabase.from("risk_flags").select("*").eq("resolved", false).limit(50),
     ]);
