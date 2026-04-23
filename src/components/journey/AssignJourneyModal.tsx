@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { useProfiles } from '@/hooks/useSupabaseData';
+import { useProfiles, useScores } from '@/hooks/useSupabaseData';
+import { derivePersona } from '@/lib/personaDerivation';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Users, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,6 +18,7 @@ interface AssignJourneyModalProps {
 
 export const AssignJourneyModal: React.FC<AssignJourneyModalProps> = ({ open, onClose, journeyName, journeyId }) => {
   const { data: profiles, isLoading } = useProfiles();
+  const { data: scores } = useScores();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
@@ -121,7 +123,7 @@ export const AssignJourneyModal: React.FC<AssignJourneyModalProps> = ({ open, on
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{u.display_name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{u.team || '—'} · {u.persona || u.role}</p>
+                    <p className="text-xs text-muted-foreground truncate">{u.team || '—'} · {derivePersona(u as any, (scores || []).find(s => s.user_id === u.id) as any)}</p>
                   </div>
                 </div>
               </label>

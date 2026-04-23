@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Search, Loader2, Plus } from 'lucide-react';
 import { NewUserModal } from '@/components/users/NewUserModal';
 import { PageHero, StatusChip } from '@/components/cl';
+import { derivePersona } from '@/lib/personaDerivation';
 
 const UserManagement: React.FC = () => {
   const { data: profiles, isLoading, refetch } = useProfiles();
@@ -18,8 +19,10 @@ const UserManagement: React.FC = () => {
   const usersWithScores = allUsers.map(u => {
     const userScore = (scores || []).find(s => s.user_id === u.id);
     const userRisks = (riskFlags || []).filter(r => r.user_id === u.id);
+    const livePersona = derivePersona(u, userScore as any);
     return {
       ...u,
+      persona: livePersona,
       scores: {
         participation: Number(userScore?.participation || 0),
         ownership: Number(userScore?.ownership || 0),

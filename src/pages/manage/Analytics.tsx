@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useScores, useScoreHistory, useEndUsers, useInitiatives, useRiskFlags, getScoreLabel, getScoreColor } from '@/hooks/useSupabaseData';
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
+import { derivePersona } from '@/lib/personaDerivation';
 import { motion } from 'framer-motion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -181,7 +182,8 @@ const Analytics: React.FC = () => {
     const groups: Record<string, { count: number; participation: number; ownership: number; confidence: number; adoption: number }> = {};
     filteredScores.forEach(s => {
       const profile = profileMap.get(s.user_id);
-      const group = groupBy === 'team' ? (profile?.team || 'Unknown') : (profile?.persona || 'Unknown');
+      const livePersona = derivePersona(profile as any, s as any);
+      const group = groupBy === 'team' ? (profile?.team || 'Unknown') : livePersona;
       if (!groups[group]) groups[group] = { count: 0, participation: 0, ownership: 0, confidence: 0, adoption: 0 };
       groups[group].count++;
       groups[group].participation += dashVal(s, 'participation');
@@ -212,7 +214,7 @@ const Analytics: React.FC = () => {
         id: s.user_id,
         name: profile?.display_name || 'Unknown',
         team: profile?.team || '—',
-        persona: profile?.persona || '—',
+        persona: derivePersona(profile as any, s as any),
         participation: Math.round(dashVal(s, 'participation')),
         ownership: Math.round(dashVal(s, 'ownership')),
         confidence: Math.round(dashVal(s, 'confidence')),

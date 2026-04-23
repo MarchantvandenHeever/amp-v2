@@ -292,6 +292,24 @@ async function recalcOne(
     week_label: new Date().toISOString().slice(0, 10),
   });
 
+  // 3b. Persist live persona on profile (Power/Standard/Reluctant)
+  // ΔA = adoption_dashboard − adoption_ideal (percentage-points, both p-scaled)
+  // Role-based personas (Admin/Change Manager/Manager) are preserved.
+  const deltaA = adoption_dashboard - adoption_ideal;
+  const { data: prof } = await sb
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  const isPerformanceRole = !prof?.role || prof.role === "end_user";
+  if (isPerformanceRole) {
+    const livePersona =
+      deltaA >= 5  ? "Power User" :
+      deltaA < -5  ? "Reluctant User" :
+                     "Standard User";
+    await sb.from("profiles").update({ persona: livePersona }).eq("id", userId);
+  }
+
   // 4. behavioural_flags (operational only — separate from scores)
   // Ownership overload (Ownership §9): H_journey + H_BAU > weekly_limit
   const weekStart = new Date();
