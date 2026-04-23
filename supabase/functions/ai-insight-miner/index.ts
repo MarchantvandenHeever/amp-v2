@@ -53,22 +53,67 @@ serve(async (req) => {
       supabase.from("risk_flags").select("*").eq("resolved", false).limit(50),
     ]);
 
+    // Compute Adoption Performance (ΔA = actual − ideal, both p-scaled).
+    // This is the primary signal: pillar/adoption dashboard scores are scaled by
+    // time-progress, so ΔA directly captures whether users are ahead/behind plan.
+    const scoredRows = (scores || []).map((s: any) => {
+      const actual = Number(s.adoption_dashboard ?? 0);
+      const ideal = Number(s.adoption_ideal ?? 0);
+      const deltaA_pp = Math.round(actual - ideal);
+      return {
+        user_id: s.user_id,
+        team: s.profiles?.team,
+        persona: s.profiles?.persona,
+        display_name: s.profiles?.display_name,
+        participation_dashboard: Math.round(Number(s.participation_dashboard ?? 0)),
+        ownership_dashboard: Math.round(Number(s.ownership_dashboard ?? 0)),
+        confidence_dashboard: Math.round(Number(s.confidence_dashboard ?? 0)),
+        adoption_dashboard: Math.round(actual),
+        adoption_ideal: Math.round(ideal),
+        deltaA_pp,
+        performance_band:
+          deltaA_pp >= 5 ? 'ahead' :
+          deltaA_pp >= -5 ? 'on_track' :
+          deltaA_pp >= -15 ? 'behind' : 'at_risk',
+      };
+    });
+
+    const avgDeltaA = scoredRows.length
+      ? Math.round(scoredRows.reduce((a, r) => a + r.deltaA_pp, 0) / scoredRows.length)
+      : 0;
+    const atRiskCount = scoredRows.filter(r => r.performance_band === 'at_risk').length;
+    const behindCount = scoredRows.filter(r => r.performance_band === 'behind').length;
+
     const prompt = `Analyse the following AMP platform data and extract structured behavioural insights.
 
-Focus on patterns like:
-- Confusion themes from support conversations
-- Repeated support requests on same topics
-- Low confidence patterns (users expressing uncertainty)
-- Weak ownership (completing tasks but not applying)
-- Reminder dependency (users only acting after reminders)
-- Stalled workflow items
-- High-risk milestones
-- Champion candidates (high engagement + evidence)
+PRIMARY PERFORMANCE METRIC — Adoption Performance (ΔA):
+  ΔA = adoption_dashboard − adoption_ideal  (in percentage-points)
+  Both values are already scaled by time-progress, so ΔA directly measures
+  whether a user/cohort is ahead of or behind the ideal adoption trajectory.
+  Bands: ahead (≥+5pp), on_track (−5..+5pp), behind (−15..−5pp), at_risk (<−15pp).
+
+Cohort summary:
+  - Avg ΔA across users: ${avgDeltaA} pp
+  - Users at risk (ΔA < −15pp): ${atRiskCount}
+  - Users behind (−15..−5pp): ${behindCount}
+
+Generate insights that:
+  1. Prioritise users/teams/personas with the largest negative ΔA (worst performance gap).
+  2. Explain WHY adoption is lagging using the pillar dashboard scores
+     (participation, ownership, confidence) — these are also p-scaled.
+  3. Surface confusion themes, repeated support requests, low-confidence patterns,
+     weak ownership, reminder dependency, stalled items.
+  4. Identify champion candidates (large positive ΔA + strong evidence).
+
+Severity rule: severity should track ΔA — at_risk → high/critical, behind → medium,
+on_track → low, ahead → low (champion).
 
 Platform Data:
+- User performance rows (sorted worst-first): ${JSON.stringify(
+      scoredRows.sort((a, b) => a.deltaA_pp - b.deltaA_pp).slice(0, 30)
+    )}
 - Recent support messages: ${JSON.stringify((messages || []).slice(0, 50).map(m => ({ role: m.role, content: m.content?.substring(0, 200), signals: m.structured_output })))}
 - Activity events: ${JSON.stringify((events || []).slice(0, 30))}
-- Current scores: ${JSON.stringify((scores || []).slice(0, 20))}
 - Reminders sent: ${reminders?.length || 0}
 - Active risk flags: ${riskFlags?.length || 0}
 
