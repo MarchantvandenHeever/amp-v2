@@ -198,13 +198,16 @@ const Analytics: React.FC = () => {
     }));
   }, [filteredScores, profiles, groupBy, currentTP]);
 
-  // Individual user table
+  // Individual user table — adoption performance is measured as ΔA (gap vs ideal)
+  // ΔA(pp) = adoption_dashboard − adoption_ideal  (both already p-scaled)
   const userTable = useMemo(() => {
     if (!filteredScores.length || !profiles?.length) return [];
     const profileMap = new Map(profiles.map(p => [p.id, p]));
-    return filteredScores.map(s => {
+    return filteredScores.map((s: any) => {
       const profile = profileMap.get(s.user_id);
       const adoption = Math.round(dashVal(s, 'adoption'));
+      const ideal = Math.round(Number(s.adoption_ideal) || 0);
+      const deltaA = adoption - ideal; // performance gap in percentage-points
       return {
         id: s.user_id,
         name: profile?.display_name || 'Unknown',
@@ -214,9 +217,11 @@ const Analytics: React.FC = () => {
         ownership: Math.round(dashVal(s, 'ownership')),
         confidence: Math.round(dashVal(s, 'confidence')),
         adoption,
+        ideal,
+        deltaA,
         label: getScoreLabel(adoption),
       };
-    }).sort((a, b) => b.adoption - a.adoption);
+    }).sort((a, b) => a.deltaA - b.deltaA); // worst performance first
   }, [filteredScores, profiles, currentTP]);
 
   // Radar data for overview
@@ -228,20 +233,28 @@ const Analytics: React.FC = () => {
     }));
   }, [avgScores, selectedIndices]);
 
-  // Distribution data for pie chart
+  // Distribution by Adoption Performance (ΔA = actual − ideal, in percentage-points).
+  // Both values are already scaled by time-progress, so ΔA is the true performance signal.
   const distributionData = useMemo(() => {
     if (!userTable.length) return [];
-    const buckets = { 'Strong (80+)': 0, 'Developing (60-79)': 0, 'Emerging (40-59)': 0, 'At Risk (<40)': 0 };
-    userTable.forEach(u => {
-      if (u.adoption >= 80) buckets['Strong (80+)']++;
-      else if (u.adoption >= 60) buckets['Developing (60-79)']++;
-      else if (u.adoption >= 40) buckets['Emerging (40-59)']++;
-      else buckets['At Risk (<40)']++;
+    const buckets = {
+      'Ahead (Δ ≥ +5pp)': 0,
+      'On Track (−5 to +5pp)': 0,
+      'Behind (−15 to −5pp)': 0,
+      'At Risk (Δ < −15pp)': 0,
+    };
+    userTable.forEach((u: any) => {
+      const d = u.deltaA;
+      if (d >= 5) buckets['Ahead (Δ ≥ +5pp)']++;
+      else if (d >= -5) buckets['On Track (−5 to +5pp)']++;
+      else if (d >= -15) buckets['Behind (−15 to −5pp)']++;
+      else buckets['At Risk (Δ < −15pp)']++;
     });
     return Object.entries(buckets).map(([name, value]) => ({ name, value }));
   }, [userTable]);
 
-  const PIE_COLORS = ['hsl(var(--amp-adoption))', 'hsl(var(--amp-info))', 'hsl(var(--amp-warning))', 'hsl(var(--amp-risk))'];
+  // Ahead → Adoption (green), On Track → info, Behind → warning, At Risk → risk
+  const PIE_COLORS = ['hsl(var(--amp-success))', 'hsl(var(--amp-info))', 'hsl(var(--amp-warning))', 'hsl(var(--amp-risk))'];
 
   const riskCount = riskFlags?.filter(r => r.severity === 'high').length || 0;
 
