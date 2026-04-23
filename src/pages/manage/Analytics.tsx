@@ -198,13 +198,16 @@ const Analytics: React.FC = () => {
     }));
   }, [filteredScores, profiles, groupBy, currentTP]);
 
-  // Individual user table
+  // Individual user table — adoption performance is measured as ΔA (gap vs ideal)
+  // ΔA(pp) = adoption_dashboard − adoption_ideal  (both already p-scaled)
   const userTable = useMemo(() => {
     if (!filteredScores.length || !profiles?.length) return [];
     const profileMap = new Map(profiles.map(p => [p.id, p]));
-    return filteredScores.map(s => {
+    return filteredScores.map((s: any) => {
       const profile = profileMap.get(s.user_id);
       const adoption = Math.round(dashVal(s, 'adoption'));
+      const ideal = Math.round(Number(s.adoption_ideal) || 0);
+      const deltaA = adoption - ideal; // performance gap in percentage-points
       return {
         id: s.user_id,
         name: profile?.display_name || 'Unknown',
@@ -214,9 +217,11 @@ const Analytics: React.FC = () => {
         ownership: Math.round(dashVal(s, 'ownership')),
         confidence: Math.round(dashVal(s, 'confidence')),
         adoption,
+        ideal,
+        deltaA,
         label: getScoreLabel(adoption),
       };
-    }).sort((a, b) => b.adoption - a.adoption);
+    }).sort((a, b) => a.deltaA - b.deltaA); // worst performance first
   }, [filteredScores, profiles, currentTP]);
 
   // Radar data for overview
@@ -228,20 +233,28 @@ const Analytics: React.FC = () => {
     }));
   }, [avgScores, selectedIndices]);
 
-  // Distribution data for pie chart
+  // Distribution by Adoption Performance (ΔA = actual − ideal, in percentage-points).
+  // Both values are already scaled by time-progress, so ΔA is the true performance signal.
   const distributionData = useMemo(() => {
     if (!userTable.length) return [];
-    const buckets = { 'Strong (80+)': 0, 'Developing (60-79)': 0, 'Emerging (40-59)': 0, 'At Risk (<40)': 0 };
-    userTable.forEach(u => {
-      if (u.adoption >= 80) buckets['Strong (80+)']++;
-      else if (u.adoption >= 60) buckets['Developing (60-79)']++;
-      else if (u.adoption >= 40) buckets['Emerging (40-59)']++;
-      else buckets['At Risk (<40)']++;
+    const buckets = {
+      'Ahead (Δ ≥ +5pp)': 0,
+      'On Track (−5 to +5pp)': 0,
+      'Behind (−15 to −5pp)': 0,
+      'At Risk (Δ < −15pp)': 0,
+    };
+    userTable.forEach((u: any) => {
+      const d = u.deltaA;
+      if (d >= 5) buckets['Ahead (Δ ≥ +5pp)']++;
+      else if (d >= -5) buckets['On Track (−5 to +5pp)']++;
+      else if (d >= -15) buckets['Behind (−15 to −5pp)']++;
+      else buckets['At Risk (Δ < −15pp)']++;
     });
     return Object.entries(buckets).map(([name, value]) => ({ name, value }));
   }, [userTable]);
 
-  const PIE_COLORS = ['hsl(var(--amp-adoption))', 'hsl(var(--amp-info))', 'hsl(var(--amp-warning))', 'hsl(var(--amp-risk))'];
+  // Ahead → Adoption (green), On Track → info, Behind → warning, At Risk → risk
+  const PIE_COLORS = ['hsl(var(--amp-success))', 'hsl(var(--amp-info))', 'hsl(var(--amp-warning))', 'hsl(var(--amp-risk))'];
 
   const riskCount = riskFlags?.filter(r => r.severity === 'high').length || 0;
 
@@ -432,11 +445,16 @@ const Analytics: React.FC = () => {
             </div>
           </TabsContent>
 
-          {/* DISTRIBUTION TAB */}
+          {/* DISTRIBUTION TAB — Adoption Performance (ΔA vs ideal) */}
           <TabsContent value="distribution" className="space-y-4">
+            <div className="bg-amp-info/5 border border-amp-info/20 rounded-xl p-4 text-sm text-muted-foreground">
+              <strong className="text-foreground">Adoption Performance</strong> measures each user's
+              adoption score against the <em>ideal</em> trajectory at this point in time
+              (both already scaled by time-progress). ΔA = actual − ideal, in percentage-points.
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="bg-card border border-border rounded-xl p-6 amp-shadow-card">
-                <h3 className="font-heading font-semibold mb-4">Adoption Score Distribution</h3>
+                <h3 className="font-heading font-semibold mb-4">Adoption Performance Distribution</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie data={distributionData} cx="50%" cy="50%" outerRadius={100} innerRadius={50} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
@@ -462,10 +480,18 @@ const Analytics: React.FC = () => {
                     </div>
                   ))}
                 </div>
-                <div className="mt-6 pt-4 border-t border-border">
-                  <div className="flex justify-between text-sm">
+                <div className="mt-6 pt-4 border-t border-border space-y-1.5 text-sm">
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Total users scored</span>
                     <span className="font-semibold">{userTable.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Avg ΔA (performance gap)</span>
+                    <span className="font-semibold">
+                      {userTable.length
+                        ? `${Math.round(userTable.reduce((a: number, u: any) => a + u.deltaA, 0) / userTable.length)} pp`
+                        : '—'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -486,30 +512,43 @@ const Analytics: React.FC = () => {
                       {INDICES.filter(i => selectedIndices.has(i.key)).map(idx => (
                         <th key={idx.key} className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase">{idx.label}</th>
                       ))}
-                      <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Status</th>
+                      <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Ideal</th>
+                      <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase" title="Adoption performance: actual − ideal (pp)">ΔA</th>
+                      <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground uppercase">Performance</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {userTable.map(u => (
-                      <tr key={u.id} className="border-b border-border/50 hover:bg-secondary/50">
-                        <td className="py-2.5 px-3 font-medium">{u.name}</td>
-                        <td className="py-2.5 px-3 text-muted-foreground">{u.team}</td>
-                        <td className="py-2.5 px-3 text-muted-foreground capitalize">{u.persona}</td>
-                        {INDICES.filter(i => selectedIndices.has(i.key)).map(idx => (
-                          <td key={idx.key} className="py-2.5 px-3 text-right font-semibold" style={{ color: idx.color }}>
-                            {u[idx.key]}
+                    {userTable.map((u: any) => {
+                      const perfClass =
+                        u.deltaA >= 5 ? 'bg-amp-success/10 text-amp-success' :
+                        u.deltaA >= -5 ? 'bg-amp-info/10 text-amp-info' :
+                        u.deltaA >= -15 ? 'bg-amp-warning/10 text-amp-confidence' :
+                        'bg-amp-risk/10 text-amp-risk';
+                      const perfLabel =
+                        u.deltaA >= 5 ? 'Ahead' :
+                        u.deltaA >= -5 ? 'On Track' :
+                        u.deltaA >= -15 ? 'Behind' : 'At Risk';
+                      const deltaClass = u.deltaA >= 0 ? 'text-amp-success' : u.deltaA >= -15 ? 'text-amp-warning' : 'text-amp-risk';
+                      return (
+                        <tr key={u.id} className="border-b border-border/50 hover:bg-secondary/50">
+                          <td className="py-2.5 px-3 font-medium">{u.name}</td>
+                          <td className="py-2.5 px-3 text-muted-foreground">{u.team}</td>
+                          <td className="py-2.5 px-3 text-muted-foreground capitalize">{u.persona}</td>
+                          {INDICES.filter(i => selectedIndices.has(i.key)).map(idx => (
+                            <td key={idx.key} className="py-2.5 px-3 text-right font-semibold" style={{ color: idx.color }}>
+                              {u[idx.key]}
+                            </td>
+                          ))}
+                          <td className="py-2.5 px-3 text-right text-muted-foreground tabular-nums">{u.ideal}</td>
+                          <td className={`py-2.5 px-3 text-right font-semibold tabular-nums ${deltaClass}`}>
+                            {u.deltaA > 0 ? '+' : ''}{u.deltaA}
                           </td>
-                        ))}
-                        <td className="py-2.5 px-3 text-right">
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                            u.adoption >= 80 ? 'bg-amp-success/10 text-amp-success' :
-                            u.adoption >= 60 ? 'bg-amp-info/10 text-amp-info' :
-                            u.adoption >= 40 ? 'bg-amp-warning/10 text-amp-confidence' :
-                            'bg-amp-risk/10 text-amp-risk'
-                          }`}>{u.label}</span>
-                        </td>
-                      </tr>
-                    ))}
+                          <td className="py-2.5 px-3 text-right">
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${perfClass}`}>{perfLabel}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
