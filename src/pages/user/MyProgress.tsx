@@ -133,28 +133,9 @@ const MyProgress: React.FC = () => {
 
   if (!user) return null;
 
-  const userHistoryWithIdeal = userHistory.map(h => {
-    // Calendar-based TP: weekNum weeks from initiative start
-    let weekTP = 0;
-    if (combinedStartStr && combinedEndStr) {
-      const startMs = new Date(combinedStartStr).getTime();
-      const endMs = new Date(combinedEndStr).getTime();
-      const totalDuration = endMs - startMs;
-      if (totalDuration > 0) {
-        const weekDateMs = startMs + h.weekNum * 7 * 24 * 60 * 60 * 1000;
-        const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
-        weekTP = elapsed / totalDuration;
-      }
-    }
-    return {
-      week: h.week,
-      participation: Math.round(h.participation * weekTP),
-      ownership: Math.round(h.ownership * weekTP),
-      confidence: Math.round(h.confidence * weekTP),
-      adoption: Math.round(h.adoption * weekTP),
-      idealAdoption: Math.round(desiredTarget * weekTP),
-    };
-  });
+  // History rows are already AMP-dashboard values (p-weighted by score-recalc).
+  // Use them verbatim — no client-side time-progress synthesis.
+  const userHistoryWithIdeal = userHistory;
 
   const visibleTrendData = (() => {
     if (combinedProgressValue >= 100 || userHistoryWithIdeal.length === 0) return userHistoryWithIdeal;
