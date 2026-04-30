@@ -110,9 +110,13 @@ const Analytics: React.FC = () => {
   // Rows are already written by score-recalc, so do not re-apply time-progress on the client.
   const buildTrendFromHistory = (filtered: any[]) => {
     if (!filtered.length) return [];
+    // Defensive: ignore legacy/seed rows with non-ISO week_label (e.g. "W1").
+    const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+    const clean = filtered.filter(r => !r.week_label || ISO_DATE_RE.test(r.week_label));
+    if (!clean.length) return [];
 
     const byWeek: Record<string, { count: number; participation: number; ownership: number; confidence: number; adoption: number; idealAdoption: number }> = {};
-    filtered.forEach(r => {
+    clean.forEach(r => {
       const week = r.week_label || new Date(r.recorded_at).toISOString().slice(0, 10);
       if (!byWeek[week]) {
         byWeek[week] = {
