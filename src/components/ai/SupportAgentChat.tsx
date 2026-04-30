@@ -34,6 +34,7 @@ export const SupportAgentChat: React.FC = () => {
     const text = input;
     setInput('');
     await sendMessage(text, {
+      caller_user_id: user?.id,
       user_id: user?.id,
       user_name: user?.name,
       persona: user?.persona,
