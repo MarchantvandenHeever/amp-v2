@@ -1,0 +1,1 @@
+DELETE FROM public.score_history WHERE week_label ~ '^W[0-9]+$';
