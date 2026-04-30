@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useInsightsByType } from '@/hooks/useInsights';
 import { useInitiatives } from '@/hooks/useSupabaseData';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Brain, AlertTriangle, HelpCircle, Users, Filter, Loader2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
