@@ -42,6 +42,7 @@ const dimensionColors: Record<string, string> = {
 
 const InsightConsole: React.FC = () => {
   const { data: initiatives } = useInitiatives();
+  const { user } = useAuth();
   const [selectedInitiative, setSelectedInitiative] = useState<string>('');
   const { grouped, insights, isLoading, refetch } = useInsightsByType(selectedInitiative || undefined);
   const [mining, setMining] = useState(false);
@@ -52,7 +53,7 @@ const InsightConsole: React.FC = () => {
     setMining(true);
     try {
       const { error } = await supabase.functions.invoke('ai-insight-miner', {
-        body: { initiative_id: selectedInitiative || null },
+        body: { initiative_id: selectedInitiative || null, caller_user_id: user?.id },
       });
       if (error) throw error;
       toast.success('Insight mining complete');
