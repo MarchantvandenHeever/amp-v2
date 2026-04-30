@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { useEndUsers, useInitiatives, useRiskFlags, useScores, useScoreHistory } from '@/hooks/useSupabaseData';
+// History-driven trend (no synthesis from current scores)
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import type { InitiativeOption } from '@/components/charts/AdoptionTrendChart';
 import { motion } from 'framer-motion';
@@ -15,6 +16,7 @@ const SuperAdminDashboard: React.FC = () => {
   const { data: riskFlags, isLoading: loadingRisks } = useRiskFlags();
   const { data: scores, isLoading: loadingScores } = useScores();
   const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
+  const { data: history } = useScoreHistory();
 
   if (loadingProfiles || loadingInit || loadingRisks || loadingScores) {
     return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
@@ -63,55 +65,47 @@ const SuperAdminDashboard: React.FC = () => {
     return { team, participation: avg('participation'), ownership: avg('ownership'), confidence: avg('confidence'), adoption: avg('adoption') };
   });
 
-  // Build trend data from initiative date ranges
-  const combinedStart = activeInits.reduce((earliest, init) => {
-    if (!init.start_date) return earliest;
-    const d = new Date(init.start_date);
-    return !earliest || d < earliest ? d : earliest;
-  }, null as Date | null);
-  const combinedEnd = activeInits.reduce((latest, init) => {
-    if (!init.end_date) return latest;
-    const d = new Date(init.end_date);
-    return !latest || d > latest ? d : latest;
-  }, null as Date | null);
-
-  const totalWeeks = 10;
-
-  const buildTrendData = (startDate: Date | null, endDate: Date | null, scoresFn: (key: string) => number) => {
-    if (!startDate || !endDate) {
-      return Array.from({ length: totalWeeks }, (_, i) => ({
-        week: `W${i + 1}`,
-        participation: 0, ownership: 0, confidence: 0, adoption: 0,
-        idealAdoption: Math.round(desiredTarget * ((i + 1) / totalWeeks)),
-      }));
+  // ─── Trend sourced from real score_history (no client-side synthesis) ───
+  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const buildTrendFromHistory = (rows: any[]) => {
+    if (!rows || rows.length === 0) return [] as any[];
+    const clean = rows.filter((r: any) => !r.week_label || ISO_DATE_RE.test(r.week_label));
+    if (!clean.length) return [];
+    const byWeek = new Map<string, any[]>();
+    for (const r of clean) {
+      const key = r.week_label || new Date(r.recorded_at).toISOString().slice(0, 10);
+      if (!byWeek.has(key)) byWeek.set(key, []);
+      byWeek.get(key)!.push(r);
     }
-    const totalDuration = endDate.getTime() - startDate.getTime();
-    return Array.from({ length: totalWeeks }, (_, i) => {
-      const weekDateMs = startDate.getTime() + ((i + 1) / totalWeeks) * totalDuration;
-      const elapsed = Math.max(0, Math.min(weekDateMs - startDate.getTime(), totalDuration));
-      const weekTP = totalDuration > 0 ? elapsed / totalDuration : 0;
+    return Array.from(byWeek.keys()).sort().map((key) => {
+      const bucket = byWeek.get(key)!;
+      const mean = (k: string) => Math.round(bucket.reduce((s, x) => s + Number(x[k] || 0), 0) / bucket.length);
       return {
-        week: `W${i + 1}`,
-        participation: Math.min(100, Math.round(scoresFn('participation') * weekTP)),
-        ownership: Math.min(100, Math.round(scoresFn('ownership') * weekTP)),
-        confidence: Math.min(100, Math.round(scoresFn('confidence') * weekTP)),
-        adoption: Math.min(100, Math.round(scoresFn('adoption') * weekTP)),
-        idealAdoption: Math.round(desiredTarget * weekTP),
+        week: key,
+        participation: mean('participation'),
+        ownership: mean('ownership'),
+        confidence: mean('confidence'),
+        adoption: mean('adoption_dashboard'),
+        idealAdoption: mean('adoption_ideal'),
       };
     });
   };
 
-  function progressVisibleData<T>(rows: T[], progressValue?: number) {
-    if (progressValue == null || progressValue >= 100 || rows.length === 0) return rows;
-    const cutoffIndex = Math.max(1, Math.ceil((progressValue / 100) * rows.length));
-    return rows.slice(0, cutoffIndex);
-  }
+  const endUserHistory = (history || []).filter((h: any) => endUsers.some(p => p.id === h.user_id));
+  const scoreTrends = buildTrendFromHistory(endUserHistory);
 
-  const scoreTrends = buildTrendData(combinedStart, combinedEnd, (key) => avgScoreRaw(key as any));
-  const visibleScoreTrends = progressVisibleData(scoreTrends, combinedProgress);
-  const currentTrendPoint = visibleScoreTrends[visibleScoreTrends.length - 1] ?? {
-    participation: avgScore('participation'), ownership: avgScore('ownership'),
-    confidence: avgScore('confidence'), adoption: avgScore('adoption'),
+  // Latest live snapshot pulled from `scores` dashboard fields (verbatim, no synthesis).
+  const avgScoreDashboard = (key: 'participation' | 'ownership' | 'confidence' | 'adoption') => {
+    const dashKey = `${key}_dashboard`;
+    return endUserScores.length
+      ? Math.round(endUserScores.reduce((sum, s) => sum + Number((s as any)[dashKey] || 0), 0) / endUserScores.length)
+      : 0;
+  };
+  const currentTrendPoint = {
+    participation: avgScoreDashboard('participation'),
+    ownership: avgScoreDashboard('ownership'),
+    confidence: avgScoreDashboard('confidence'),
+    adoption: avgScoreDashboard('adoption'),
     idealAdoption: currentIdeal,
   };
 

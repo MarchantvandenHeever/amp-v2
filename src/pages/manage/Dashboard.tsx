@@ -68,9 +68,13 @@ const ChangeManagerDashboard: React.FC = () => {
   // Each row already contains AMP dashboard fields; no client-side TP multiplication.
   const buildTrendFromHistory = (rows: any[]) => {
     if (!rows || rows.length === 0) return [];
+    // Defensive: ignore legacy/seed rows with non-ISO week_label (e.g. "W1").
+    const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+    const clean = rows.filter((r: any) => !r.week_label || ISO_DATE_RE.test(r.week_label));
+    if (!clean.length) return [];
     // Group by ISO week label (already populated by score-recalc); aggregate by mean.
     const byWeek = new Map<string, any[]>();
-    for (const r of rows) {
+    for (const r of clean) {
       const key = r.week_label || new Date(r.recorded_at).toISOString().slice(0, 10);
       if (!byWeek.has(key)) byWeek.set(key, []);
       byWeek.get(key)!.push(r);

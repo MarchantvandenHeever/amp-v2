@@ -43,32 +43,34 @@ const MyProgress: React.FC = () => {
   const totalTimeSpent = completedItems.reduce((sum: number, i: any) => sum + parseDuration(i.duration), 0);
   const totalTimeRemaining = userItems.filter((i: any) => i.status !== 'completed').reduce((sum: number, i: any) => sum + parseDuration(i.duration), 0);
 
-  // Score trend data — aggregate across initiatives by week label
-  const userHistoryRaw = (scoreHistory || []).filter((s: any) => s.user_id === user.id);
-  const byWeek: Record<string, { count: number; participation: number; ownership: number; confidence: number; adoption: number }> = {};
+  // Score trend data — aggregate across initiatives by ISO date label.
+  // Only use rows with proper ISO YYYY-MM-DD week_label (written by score-recalc).
+  // Defensive filter: legacy/seed rows with non-ISO labels (e.g. "W1") are ignored.
+  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const userHistoryRaw = (scoreHistory || []).filter(
+    (s: any) => s.user_id === user.id && (s.week_label ? ISO_DATE_RE.test(s.week_label) : true),
+  );
+  const byWeek: Record<string, { count: number; participation: number; ownership: number; confidence: number; adoption: number; idealAdoption: number }> = {};
   userHistoryRaw.forEach((s: any) => {
-    const week = s.week_label || 'W1';
-    if (!byWeek[week]) byWeek[week] = { count: 0, participation: 0, ownership: 0, confidence: 0, adoption: 0 };
+    const week = s.week_label || new Date(s.recorded_at).toISOString().slice(0, 10);
+    if (!byWeek[week]) byWeek[week] = { count: 0, participation: 0, ownership: 0, confidence: 0, adoption: 0, idealAdoption: 0 };
     byWeek[week].count++;
     byWeek[week].participation += Number(s.participation || 0);
     byWeek[week].ownership += Number(s.ownership || 0);
     byWeek[week].confidence += Number(s.confidence || 0);
-    byWeek[week].adoption += Number(s.adoption || 0);
+    byWeek[week].adoption += Number(s.adoption_dashboard ?? s.adoption ?? 0);
+    byWeek[week].idealAdoption += Number(s.adoption_ideal || 0);
   });
   const userHistory = Object.entries(byWeek)
-    .map(([week, v]) => {
-      const m = week.match(/\d+/);
-      const weekNum = m ? parseInt(m[0]) : 1;
-      return {
-        week,
-        weekNum,
-        participation: Math.round(v.participation / v.count),
-        ownership: Math.round(v.ownership / v.count),
-        confidence: Math.round(v.confidence / v.count),
-        adoption: Math.round(v.adoption / v.count),
-      };
-    })
-    .sort((a, b) => a.weekNum - b.weekNum);
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([week, v]) => ({
+      week,
+      participation: Math.round(v.participation / v.count),
+      ownership: Math.round(v.ownership / v.count),
+      confidence: Math.round(v.confidence / v.count),
+      adoption: Math.round(v.adoption / v.count),
+      idealAdoption: Math.round(v.idealAdoption / v.count),
+    }));
   // Duration-based ideal adoption using initiative date ranges
   // Find the user's initiative date ranges via their journeys
   const userInitiativeIds = [...new Set((allJourneys || [])
@@ -131,28 +133,9 @@ const MyProgress: React.FC = () => {
 
   if (!user) return null;
 
-  const userHistoryWithIdeal = userHistory.map(h => {
-    // Calendar-based TP: weekNum weeks from initiative start
-    let weekTP = 0;
-    if (combinedStartStr && combinedEndStr) {
-      const startMs = new Date(combinedStartStr).getTime();
-      const endMs = new Date(combinedEndStr).getTime();
-      const totalDuration = endMs - startMs;
-      if (totalDuration > 0) {
-        const weekDateMs = startMs + h.weekNum * 7 * 24 * 60 * 60 * 1000;
-        const elapsed = Math.max(0, Math.min(weekDateMs - startMs, totalDuration));
-        weekTP = elapsed / totalDuration;
-      }
-    }
-    return {
-      week: h.week,
-      participation: Math.round(h.participation * weekTP),
-      ownership: Math.round(h.ownership * weekTP),
-      confidence: Math.round(h.confidence * weekTP),
-      adoption: Math.round(h.adoption * weekTP),
-      idealAdoption: Math.round(desiredTarget * weekTP),
-    };
-  });
+  // History rows are already AMP-dashboard values (p-weighted by score-recalc).
+  // Use them verbatim — no client-side time-progress synthesis.
+  const userHistoryWithIdeal = userHistory;
 
   const visibleTrendData = (() => {
     if (combinedProgressValue >= 100 || userHistoryWithIdeal.length === 0) return userHistoryWithIdeal;
