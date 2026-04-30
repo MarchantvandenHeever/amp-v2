@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScoreCard, AdoptionScoreRing } from '@/components/scores/ScoreCard';
 import { useEndUsers, useInitiatives, useRiskFlags, useScores, useScoreHistory } from '@/hooks/useSupabaseData';
+// History-driven trend (no synthesis from current scores)
 import { useIdealAdoptionScore } from '@/hooks/useIdealAdoptionScore';
 import type { InitiativeOption } from '@/components/charts/AdoptionTrendChart';
 import { motion } from 'framer-motion';
