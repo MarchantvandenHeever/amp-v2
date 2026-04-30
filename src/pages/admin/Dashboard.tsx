@@ -16,6 +16,7 @@ const SuperAdminDashboard: React.FC = () => {
   const { data: riskFlags, isLoading: loadingRisks } = useRiskFlags();
   const { data: scores, isLoading: loadingScores } = useScores();
   const { idealScore: currentIdeal, desiredTarget } = useIdealAdoptionScore();
+  const { data: history } = useScoreHistory();
 
   if (loadingProfiles || loadingInit || loadingRisks || loadingScores) {
     return <AppLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div></AppLayout>;
