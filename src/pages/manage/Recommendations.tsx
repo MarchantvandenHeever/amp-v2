@@ -48,7 +48,7 @@ const Recommendations: React.FC = () => {
     setGenerating(true);
     try {
       const { error } = await supabase.functions.invoke('ai-recommendation-engine', {
-        body: { initiative_id: selectedInitiative || null },
+        body: { initiative_id: selectedInitiative || null, caller_user_id: user?.id },
       });
       if (error) throw error;
       toast.success('Recommendations generated');

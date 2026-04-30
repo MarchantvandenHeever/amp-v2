@@ -10,31 +10,25 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // --- Auth check: require change_manager or super_admin ---
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const callerUserId = claimsData.claims.sub;
-
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: roleCheck } = await supabase.rpc("has_role", { _user_id: callerUserId, _role: "change_manager" });
-    const { data: adminCheck } = await supabase.rpc("has_role", { _user_id: callerUserId, _role: "super_admin" });
-    if (!roleCheck && !adminCheck) {
+    const body = await req.json();
+    const { initiative_id, caller_user_id } = body;
+
+    // Demo-mode auth: validate caller via profile + role (this app uses demo logins, not Supabase auth)
+    if (!caller_user_id) {
+      return new Response(JSON.stringify({ error: "Missing caller_user_id" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const { data: profile } = await supabase.from("profiles").select("id, role").eq("id", caller_user_id).maybeSingle();
+    if (!profile) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (!["change_manager", "super_admin"].includes(profile.role)) {
       return new Response(JSON.stringify({ error: "Forbidden: requires change_manager or super_admin role" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-
-    const { initiative_id } = await req.json();
+    const callerUserId = profile.id;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 

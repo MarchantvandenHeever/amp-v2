@@ -55,6 +55,7 @@ export const JourneyBuilderAgent: React.FC<Props> = ({
       existing_items: existingItems,
       personas: [],
       milestones: [],
+      caller_user_id: user?.id,
     });
   };
 

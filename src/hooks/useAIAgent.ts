@@ -65,6 +65,7 @@ export function useAIAgent(agentType: 'builder' | 'support') {
       const body: Record<string, any> = {
         messages: allMessages,
         conversation_id: conversationId,
+        caller_user_id: context?.caller_user_id,
       };
 
       if (agentType === 'builder') {

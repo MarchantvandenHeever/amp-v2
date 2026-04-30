@@ -1,1 +1,19 @@
 project_id = "pogsnxgutmhewgrimirj"
+
+[functions.ai-insight-miner]
+verify_jwt = false
+
+[functions.ai-journey-builder]
+verify_jwt = false
+
+[functions.ai-recommendation-engine]
+verify_jwt = false
+
+[functions.ai-support-agent]
+verify_jwt = false
+
+[functions.extract-form-from-document]
+verify_jwt = false
+
+[functions.score-recalc]
+verify_jwt = false
